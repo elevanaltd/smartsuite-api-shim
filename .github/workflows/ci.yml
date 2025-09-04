@@ -57,9 +57,12 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     permissions:
-      actions: read        # Required for workflow metadata
-      contents: read       # Required to checkout code
+      actions: read           # Required for workflow metadata
+      contents: read          # Required to checkout code
       security-events: write  # Required to upload SARIF results
+      # Additional permissions for CodeQL v3
+      id-token: write         # Required for OIDC authentication
+      pull-requests: read     # Required for PR context
     
     steps:
     - name: Checkout code
@@ -68,13 +71,20 @@ jobs:
     - name: Run npm audit
       run: npm audit --audit-level=high
       
-    - name: Run CodeQL Analysis
-      uses: github/codeql-action/init@v2
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
       with:
-        languages: javascript
+        languages: javascript-typescript
+        # Specify CodeQL CLI version to avoid deprecation warnings
+        tools: latest
         
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
+      with:
+        # Upload results to GitHub Security tab
+        upload: true
+        # Wait for processing to complete
+        wait-for-processing: true
 
   build-validation:
     name: Build Validation
