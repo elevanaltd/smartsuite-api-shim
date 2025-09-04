@@ -126,6 +126,7 @@ dist
 # Build output
 build/
 dist/
+test-build/
 
 # OS generated files
 .DS_Store
@@ -152,3 +153,5 @@ Thumbs.db
 *.backup
 # Coordination overlay
 .coord
+
+
