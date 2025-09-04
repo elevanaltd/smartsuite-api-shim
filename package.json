@@ -19,7 +19,7 @@
     "test:watch": "vitest --watch", 
     "test:coverage": "vitest --coverage",
     "test:unit": "vitest run --coverage --exclude '**/module-resolution.test.ts'",
-    "test:integration": "vitest run --coverage --include '**/module-resolution.test.ts'",
+    "test:integration": "vitest run --coverage test/module-resolution.test.ts",
     "test:ci": "npm run test:unit",
     "lint": "eslint . --ext .ts --ignore-pattern '!.*' || echo 'No TypeScript files to lint yet'",
     "lint:fix": "eslint . --ext .ts --fix --ignore-pattern '!.*' || echo 'No TypeScript files to fix yet'",
