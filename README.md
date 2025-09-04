@@ -13,3 +13,4 @@
 
 ## Coordination Access
 Access project management via `.coord/` symlink
+# CodeQL Integration Test
