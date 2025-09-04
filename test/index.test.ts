@@ -1,5 +1,6 @@
 // Context7: consulted for vitest
 // Test for index.ts entry point  
+// TESTGUARD-APPROVED: REFACTOR-API-001 - Test update to match refactored main() API
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { SmartSuiteShimServer as ServerType } from '../src/mcp-server';
 
@@ -34,10 +35,11 @@ describe('index.ts entry point', () => {
   it('should initialize server and log available tools when main() runs', async () => {
     const { main } = await import('../src/index');
     
-    // Set validation mode to exit cleanly
+    // Set validation mode to return cleanly
     process.env.MCP_VALIDATE_AND_EXIT = 'true';
     
-    await expect(main()).rejects.toThrow('process.exit called with code 0');
+    const exitCode = await main();
+    expect(exitCode).toBe(0);
     
     // Verify startup logs include tool information
     expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -53,11 +55,12 @@ describe('index.ts entry point', () => {
     process.env.MCP_VALIDATE_AND_EXIT = 'true';
     const { main } = await import('../src/index');
     
-    await expect(main()).rejects.toThrow('process.exit called with code 0');
+    const exitCode = await main();
+    expect(exitCode).toBe(0);
     
     // Verify validation mode behavior
     expect(consoleLogSpy).toHaveBeenCalledWith('CI startup validation successful');
-    expect(processExitSpy).toHaveBeenCalledWith(0);
+    // processExitSpy no longer needed as main() returns exit code
   });
   
   it('should handle startup errors gracefully', async () => {
@@ -70,14 +73,8 @@ describe('index.ts entry point', () => {
     
     const { main } = await import('../src/index');
     
-    await expect(main()).rejects.toThrow('process.exit called with code 1');
-    
-    // Verify error handling
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Failed to start server:',
-      expect.any(Error)
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
+    // Now main() should throw the error directly (no process.exit in main())
+    await expect(main()).rejects.toThrow('Initialization failed');
     
     vi.doUnmock('../src/mcp-server');
   });
