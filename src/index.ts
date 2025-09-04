@@ -4,7 +4,7 @@
 // This file serves as the main entry point for the build process
 // ensuring that `npm start` can properly execute `node build/index.js`
 
-import { SmartSuiteShimServer } from './mcp-server.js';
+import { SmartSuiteShimServer } from './mcp-server';
 
 // Global exception handlers for production safety
 process.on('unhandledRejection', (reason: Error | any, promise: Promise<any>) => {
