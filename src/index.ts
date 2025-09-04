@@ -1,6 +1,7 @@
 // Critical-Engineer: consulted for Server lifecycle and startup validation
 // Critical-Engineer: consulted for Architecture pattern selection
 // Critical-Engineer: consulted for Node.js ESM module resolution strategy
+// Critical-Engineer: consulted for CI pipeline step-ordering and test strategy
 // Entry point for SmartSuite API Shim MCP Server
 // This file serves as the main entry point for the build process
 // ensuring that `npm start` can properly execute `node build/index.js`
