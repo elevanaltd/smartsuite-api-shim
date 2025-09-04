@@ -1,9 +1,8 @@
-// TESTGUARD_BYPASS: INFRA-001 - TypeScript configuration for build infrastructure
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,

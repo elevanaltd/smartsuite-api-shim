@@ -14,7 +14,7 @@
     "clean": "rimraf build",
     "prebuild": "npm run clean",
     "postbuild": "npm run validate-build",
-    "validate-build": "node -e \"console.log('Build validation: PASS')\"",
+    "validate-build": "MCP_VALIDATE_AND_EXIT=true node build/index.js",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",

@@ -46,11 +46,11 @@ const instance = new TestClass();
 console.log(instance.getValue());`;
     await fs.writeFile(path.join(testSrcDir, 'test-main.ts'), mainContent);
     
-    // Create a minimal tsconfig for the test
+    // Create a minimal tsconfig for the test - using NodeNext
     const tsconfig = {
       compilerOptions: {
         target: 'ES2022',
-        module: 'ESNext',
+        module: 'NodeNext',
         moduleResolution: 'nodenext',
         outDir: './dist',
         rootDir: './src',

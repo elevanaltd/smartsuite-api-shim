@@ -1,8 +1,9 @@
 // Context7: consulted for vitest
 // Test for index.ts entry point  
 // TESTGUARD-APPROVED: REFACTOR-API-001 - Test update to match refactored main() API
+// Critical-Engineer: consulted for Node.js ESM module resolution strategy
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { SmartSuiteShimServer as ServerType } from '../src/mcp-server';
+import type { SmartSuiteShimServer as ServerType } from '../src/mcp-server.js';
 
 describe('index.ts entry point', () => {
   let consoleLogSpy: any;
@@ -26,14 +27,14 @@ describe('index.ts entry point', () => {
   });
   
   it('should export SmartSuiteShimServer class and main function', async () => {
-    const indexModule = await import('../src/index');
+    const indexModule = await import('../src/index.js');
     expect(indexModule.SmartSuiteShimServer).toBeDefined();
     expect(indexModule.main).toBeDefined();
     expect(typeof indexModule.main).toBe('function');
   });
   
   it('should initialize server and log available tools when main() runs', async () => {
-    const { main } = await import('../src/index');
+    const { main } = await import('../src/index.js');
     
     // Set validation mode to return cleanly
     process.env.MCP_VALIDATE_AND_EXIT = 'true';
@@ -53,7 +54,7 @@ describe('index.ts entry point', () => {
   
   it('should exit cleanly in validation mode after startup validation', async () => {
     process.env.MCP_VALIDATE_AND_EXIT = 'true';
-    const { main } = await import('../src/index');
+    const { main } = await import('../src/index.js');
     
     const exitCode = await main();
     expect(exitCode).toBe(0);
@@ -71,7 +72,7 @@ describe('index.ts entry point', () => {
       })
     }));
     
-    const { main } = await import('../src/index');
+    const { main } = await import('../src/index.js');
     
     // Now main() should throw the error directly (no process.exit in main())
     await expect(main()).rejects.toThrow('Initialization failed');
