@@ -10,11 +10,11 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
-    "start": "node build/index.js",
+    "start": "node build/src/index.js",
     "clean": "rimraf build",
     "prebuild": "npm run clean",
     "postbuild": "npm run validate-build",
-    "validate-build": "MCP_VALIDATE_AND_EXIT=true node build/index.js",
+    "validate-build": "MCP_VALIDATE_AND_EXIT=true node build/src/index.js",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
