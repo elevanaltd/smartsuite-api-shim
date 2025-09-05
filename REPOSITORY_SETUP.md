@@ -38,7 +38,7 @@ Add rule for `main` branch:
 Ensure the repository has these permissions configured:
 
 **Actions permissions:**
-- Allow elevanaltd, and select non-elevanaltd, actions and reusable workflows (including GitHub actions)
+- Allow all actions and reusable workflows
 - Note: "Read and write permissions" may be greyed out due to organization security policies
 
 **Workflow permissions:**
