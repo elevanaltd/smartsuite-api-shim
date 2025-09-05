@@ -91,7 +91,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         appId: 'test',
         data: { name: 'test' },
         dry_run: true,
-      });
+      }) as { dry_run: boolean; message: string };
 
       expect(result.dry_run).toBe(true);
       expect(result.message).toContain('DRY-RUN');
