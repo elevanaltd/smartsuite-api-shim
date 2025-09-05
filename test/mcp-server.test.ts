@@ -43,4 +43,17 @@ describe('SmartSuiteShimServer', () => {
       'create', 'update', 'delete', 'bulk_update', 'bulk_delete',
     ]);
   });
+
+  // NEW FAILING TESTS - These will fail until methods are implemented
+  it('should have executeTool method', () => {
+    const server = new SmartSuiteShimServer();
+    expect(server.executeTool).toBeDefined();
+    expect(typeof server.executeTool).toBe('function');
+  });
+
+  it('should have authenticate method', () => {
+    const server = new SmartSuiteShimServer();
+    expect(server.authenticate).toBeDefined();
+    expect(typeof server.authenticate).toBe('function');
+  });
 });
