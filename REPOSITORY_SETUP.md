@@ -8,10 +8,10 @@ Navigate to: **Settings** → **Code security and analysis**
 
 Enable the following features:
 
-- [ ] **Dependency graph** - Enable
-- [ ] **Dependabot alerts** - Enable  
-- [ ] **Dependabot security updates** - Enable
-- [ ] **Code scanning** - Enable
+- [x] **Dependency graph** - Enable
+- [x] **Dependabot alerts** - Enable  
+- [x] **Dependabot security updates** - Enable
+- [x] **Code scanning** - Enable
   - Select: "Default" or "Advanced" setup
   - If Advanced: CodeQL workflow is already configured in `.github/workflows/ci.yml`
 
@@ -22,16 +22,16 @@ Navigate to: **Settings** → **Branches**
 Add rule for `main` branch:
 
 **Required status checks:**
-- [ ] quality-gates (ubuntu-latest, 18.x)
-- [ ] quality-gates (ubuntu-latest, 20.x)
-- [ ] security-scan
-- [ ] build-validation
+- [x] quality-gates (ubuntu-latest, 18.x)
+- [x] quality-gates (ubuntu-latest, 20.x)
+- [x] security-scan
+- [x] build-validation
 
 **Protection settings:**
-- [ ] Require status checks to pass before merging
-- [ ] Require branches to be up to date before merging
-- [ ] Require conversation resolution before merging
-- [ ] Include administrators (optional for stricter enforcement)
+- [x] Require status checks to pass before merging
+- [x] Require branches to be up to date before merging
+- [x] Require conversation resolution before merging
+- [X] Include administrators (optional for stricter enforcement)
 
 ### 3. Repository Permissions
 
