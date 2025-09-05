@@ -6,7 +6,7 @@ export class SmartSuiteShimServer {
     // Minimal implementation to make instantiation test pass
   }
 
-  async getTools() {
+  getTools(): Array<{name: string; inputSchema: {properties: Record<string, unknown>}}> {
     // Minimal implementation to satisfy the 4 CQRS tools test
     return [
       {
@@ -14,36 +14,36 @@ export class SmartSuiteShimServer {
         inputSchema: {
           properties: {
             operation: {
-              enum: ['list', 'get', 'search', 'count']
-            }
-          }
-        }
+              enum: ['list', 'get', 'search', 'count'],
+            },
+          },
+        },
       },
       {
         name: 'smartsuite_record',
         inputSchema: {
           properties: {
             operation: {
-              enum: ['create', 'update', 'delete', 'bulk_update', 'bulk_delete']
+              enum: ['create', 'update', 'delete', 'bulk_update', 'bulk_delete'],
             },
             dry_run: {
-              default: true
-            }
-          }
-        }
+              default: true,
+            },
+          },
+        },
       },
       {
         name: 'smartsuite_schema',
         inputSchema: {
-          properties: {}
-        }
+          properties: {},
+        },
       },
       {
         name: 'smartsuite_undo',
         inputSchema: {
-          properties: {}
-        }
-      }
+          properties: {},
+        },
+      },
     ];
   }
 }
