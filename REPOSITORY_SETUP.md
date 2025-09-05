@@ -38,13 +38,19 @@ Add rule for `main` branch:
 Ensure the repository has these permissions configured:
 
 **Actions permissions:**
-- Read and write permissions
-- Allow GitHub Actions to create and approve pull requests (if needed)
+- Allow elevanaltd actions and reusable workflows (organization-restricted)
+- Note: "Read and write permissions" may be greyed out due to organization security policies
 
 **Workflow permissions:**
-- Read repository contents
-- Write security events
-- Read pull requests
+- Read repository contents and packages permissions (secure default)
+- Note: Granular permissions are configured via YAML in workflow files
+
+**Granular Permissions (Configured in CI workflow):**
+- actions: read (workflow metadata)
+- contents: read (repository access)
+- security-events: write (SARIF upload)
+- pull-requests: read (PR context)
+- id-token: write (OIDC authentication)
 
 ### 4. Secrets Configuration
 

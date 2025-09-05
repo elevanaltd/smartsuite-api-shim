@@ -1038,7 +1038,7 @@ class SecureTokenManager {
   }
 }
 
-// .env file template (added to project as .env.template)
+// .env file template (added to project as .env.example)
 /*
 # SmartSuite API Configuration
 # Copy this file to .env and add your actual token
@@ -1458,7 +1458,7 @@ class FieldMappingBootstrap {
 - (Optional) Supabase project for shared config
 
 ## Step 1: Environment Setup
-1. Copy `.env.template` to `.env`
+1. Copy `.env.example` to `.env`
 2. Add your SmartSuite API token:
    ```
    SMARTSUITE_API_TOKEN=your_actual_token_here
