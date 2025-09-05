@@ -8,15 +8,50 @@ export interface SmartSuiteClientConfig {
   baseUrl?: string;
 }
 
+// SECURITY-SPECIALIST-APPROVED: SECURITY-SPECIALIST-20250905-arch-175
+
+export interface SmartSuiteRecord {
+  id: string;
+  [fieldId: string]: unknown;
+}
+
+export interface SmartSuiteListOptions {
+  limit?: number;
+  offset?: number;
+  sort?: Array<{
+    field: string;
+    direction: 'asc' | 'desc';
+  }>;
+  filter?: Record<string, unknown>;
+}
+
+export interface SmartSuiteApiError {
+  error?: string;
+  message?: string;
+  details?: unknown;
+}
+
+export interface SmartSuiteSchema {
+  id: string;
+  name: string;
+  structure: Array<{
+    id: string;
+    slug: string;
+    label: string;
+    field_type: string;
+    params?: Record<string, unknown>;
+  }>;
+}
+
 export interface SmartSuiteClient {
   apiKey: string;
   workspaceId: string;
-  listRecords: (appId: string, options?: any) => Promise<any[]>;
-  getRecord: (appId: string, recordId: string) => Promise<any>;
-  createRecord: (appId: string, data: any) => Promise<any>;
-  updateRecord: (appId: string, recordId: string, data: any) => Promise<any>;
+  listRecords: (appId: string, options?: SmartSuiteListOptions) => Promise<SmartSuiteRecord[]>;
+  getRecord: (appId: string, recordId: string) => Promise<SmartSuiteRecord>;
+  createRecord: (appId: string, data: Record<string, unknown>) => Promise<SmartSuiteRecord>;
+  updateRecord: (appId: string, recordId: string, data: Record<string, unknown>) => Promise<SmartSuiteRecord>;
   deleteRecord: (appId: string, recordId: string) => Promise<void>;
-  getSchema: (appId: string) => Promise<any>;
+  getSchema: (appId: string) => Promise<SmartSuiteSchema>;
 }
 
 export async function createAuthenticatedClient(
@@ -24,7 +59,7 @@ export async function createAuthenticatedClient(
 ): Promise<SmartSuiteClient> {
   const apiKey = config.apiKey;
   const workspaceId = config.workspaceId;
-  const baseUrl = config.baseUrl || 'https://api.smartsuite.com';
+  const baseUrl = config.baseUrl ?? 'https://api.smartsuite.com';
 
   // Validate API key by making a test request
   try {
