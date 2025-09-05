@@ -15,7 +15,6 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 const execAsync = promisify(exec);
 
 describe('ES Module Resolution', () => {
-  const buildDir = path.join(process.cwd(), 'build');
   const testBuildDir = path.join(process.cwd(), 'test-build');
 
   beforeAll(async () => {
@@ -78,7 +77,7 @@ console.log(instance.getValue());`;
     );
 
     // Compile the TypeScript
-    const { stdout: tscOutput, stderr: tscError } = await execAsync(
+    const { stderr: tscError } = await execAsync(
       `cd ${testBuildDir} && npx tsc`,
     );
 
@@ -155,7 +154,7 @@ console.log(badValue);`;
   it('should validate build output can be executed by Node.js', async () => {
     // Test the actual build output
     const { stderr } = await execAsync(
-      'MCP_VALIDATE_AND_EXIT=true node build/index.js',
+      'MCP_VALIDATE_AND_EXIT=true node build/src/index.js',
       { cwd: process.cwd() },
     );
 

@@ -1,7 +1,7 @@
 // Context7: consulted for vitest
 import { describe, it, expect } from 'vitest';
 
-import { SmartSuiteShimServer } from '../src/mcp-server';
+import { SmartSuiteShimServer } from '../src/mcp-server.js';
 
 describe('SmartSuiteShimServer', () => {
   it('should be instantiable with proper MCP server interface', () => {
@@ -13,7 +13,7 @@ describe('SmartSuiteShimServer', () => {
     const tools = await server.getTools();
 
     expect(tools).toHaveLength(4);
-    expect(tools.map(t => t.name)).toEqual([
+    expect(tools.map((t: any) => t.name)).toEqual([
       'smartsuite_query',
       'smartsuite_record',
       'smartsuite_schema',
@@ -24,22 +24,22 @@ describe('SmartSuiteShimServer', () => {
   it('should enforce mandatory dry-run pattern for record tool', async () => {
     const server = new SmartSuiteShimServer();
     const tools = await server.getTools();
-    const recordTool = tools.find(t => t.name === 'smartsuite_record');
+    const recordTool = tools.find((t: any) => t.name === 'smartsuite_record');
 
-    expect(recordTool?.inputSchema?.properties?.dry_run?.default).toBe(true);
+    expect((recordTool?.inputSchema?.properties?.dry_run as any)?.default).toBe(true);
   });
 
   it('should use enum constraints for operation parameters', async () => {
     const server = new SmartSuiteShimServer();
     const tools = await server.getTools();
 
-    const queryTool = tools.find(t => t.name === 'smartsuite_query');
-    expect(queryTool?.inputSchema?.properties?.operation?.enum).toEqual([
+    const queryTool = tools.find((t: any) => t.name === 'smartsuite_query');
+    expect((queryTool?.inputSchema?.properties?.operation as any)?.enum).toEqual([
       'list', 'get', 'search', 'count',
     ]);
 
-    const recordTool = tools.find(t => t.name === 'smartsuite_record');
-    expect(recordTool?.inputSchema?.properties?.operation?.enum).toEqual([
+    const recordTool = tools.find((t: any) => t.name === 'smartsuite_record');
+    expect((recordTool?.inputSchema?.properties?.operation as any)?.enum).toEqual([
       'create', 'update', 'delete', 'bulk_update', 'bulk_delete',
     ]);
   });

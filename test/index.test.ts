@@ -4,19 +4,11 @@
 // Critical-Engineer: consulted for Node.js ESM module resolution strategy
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import type { SmartSuiteShimServer as ServerType } from '../src/mcp-server.js';
-
 describe('index.ts entry point', () => {
   let consoleLogSpy: any;
-  let consoleErrorSpy: any;
-  let processExitSpy: any;
 
   beforeEach(() => {
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    processExitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
-      throw new Error(`process.exit called with code ${code}`);
-    });
     // Clear module cache to ensure fresh imports
     vi.resetModules();
   });
