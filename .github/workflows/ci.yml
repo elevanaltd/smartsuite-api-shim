@@ -10,6 +10,10 @@ on:
   pull_request:
     branches: [ main ]
 
+# Explicitly define minimal permissions for security
+permissions:
+  contents: read  # For checkout
+  
 jobs:
   build:
     name: Build and Validate
@@ -51,6 +55,8 @@ jobs:
     name: Test Suite
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read  # For checkout
     
     strategy:
       matrix:

@@ -5,7 +5,8 @@
 // Context7: consulted for util
 // Context7: consulted for fs/promises
 // Context7: consulted for path
-import { exec } from 'child_process';
+// TESTGUARD_BYPASS: SECURITY-001 - Fixing shell command injection warnings from GitHub Advanced Security
+import { exec, execFile } from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { promisify } from 'util';
@@ -13,6 +14,7 @@ import { promisify } from 'util';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 describe('ES Module Resolution', () => {
   const testBuildDir = path.join(process.cwd(), 'test-build');
@@ -76,9 +78,11 @@ console.log(instance.getValue());`;
       JSON.stringify(packageJson, null, 2),
     );
 
-    // Compile the TypeScript
-    const { stderr: tscError } = await execAsync(
-      `cd ${testBuildDir} && npx tsc`,
+    // Compile the TypeScript (using execFile to avoid shell injection)
+    const { stderr: tscError } = await execFileAsync(
+      'npx',
+      ['tsc'],
+      { cwd: testBuildDir },
     );
 
     // TypeScript should compile successfully
@@ -91,9 +95,11 @@ console.log(instance.getValue());`;
     );
     expect(compiledMain).toContain("from './test-module.js'");
 
-    // Test that Node.js can actually run the compiled code
-    const { stdout: nodeOutput, stderr: nodeError } = await execAsync(
-      `cd ${testBuildDir} && node dist/test-main.js`,
+    // Test that Node.js can actually run the compiled code (using execFile for security)
+    const { stdout: nodeOutput, stderr: nodeError } = await execFileAsync(
+      'node',
+      ['dist/test-main.js'],
+      { cwd: testBuildDir },
     );
 
     // Node.js should run without module resolution errors
@@ -132,15 +138,19 @@ console.log(badValue);`;
       JSON.stringify(tsconfig, null, 2),
     );
 
-    // Compile with the bad config
-    await execAsync(
-      `cd ${testBuildDir} && npx tsc -p tsconfig-bad.json`,
+    // Compile with the bad config (using execFile to avoid shell injection)
+    await execFileAsync(
+      'npx',
+      ['tsc', '-p', 'tsconfig-bad.json'],
+      { cwd: testBuildDir },
     );
 
     // Try to run the compiled code - it should fail
     try {
-      await execAsync(
-        `cd ${testBuildDir} && node dist-bad/bad-main.js`,
+      await execFileAsync(
+        'node',
+        ['dist-bad/bad-main.js'],
+        { cwd: testBuildDir },
       );
       // If we get here, the test failed - it should have thrown
       expect(true).toBe(false);
@@ -152,10 +162,14 @@ console.log(badValue);`;
   });
 
   it('should validate build output can be executed by Node.js', async () => {
-    // Test the actual build output
-    const { stderr } = await execAsync(
-      'MCP_VALIDATE_AND_EXIT=true node build/src/index.js',
-      { cwd: process.cwd() },
+    // Test the actual build output (using execFile with env for security)
+    const { stderr } = await execFileAsync(
+      'node',
+      ['build/src/index.js'],
+      { 
+        cwd: process.cwd(),
+        env: { ...process.env, MCP_VALIDATE_AND_EXIT: 'true' },
+      },
     );
 
     // Should run without module resolution errors
