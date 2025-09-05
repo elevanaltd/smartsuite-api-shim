@@ -11,7 +11,7 @@ export default defineConfig({
     // Only run TypeScript source files, never compiled JS
     include: [
       'test/**/*.{test,spec}.ts',
-      'src/**/*.{test,spec}.ts'
+      'src/**/*.{test,spec}.ts',
     ],
     exclude: [
       'node_modules/**',
@@ -19,7 +19,7 @@ export default defineConfig({
       'build/**',
       'coverage/**',
       '**/*.js',  // Explicitly exclude all JavaScript files
-      '**/*.d.ts' // Exclude type definition files
+      '**/*.d.ts', // Exclude type definition files
     ],
     coverage: {
       provider: 'v8',
