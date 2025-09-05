@@ -7,6 +7,20 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    // TESTGUARD ENFORCEMENT: Explicit test inclusion/exclusion
+    // Only run TypeScript source files, never compiled JS
+    include: [
+      'test/**/*.{test,spec}.ts',
+      'src/**/*.{test,spec}.ts'
+    ],
+    exclude: [
+      'node_modules/**',
+      'dist/**',
+      'build/**',
+      'coverage/**',
+      '**/*.js',  // Explicitly exclude all JavaScript files
+      '**/*.d.ts' // Exclude type definition files
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
