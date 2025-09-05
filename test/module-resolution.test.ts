@@ -6,14 +6,13 @@
 // Context7: consulted for fs/promises
 // Context7: consulted for path
 // TESTGUARD_BYPASS: SECURITY-001 - Fixing shell command injection warnings from GitHub Advanced Security
-import { exec, execFile } from 'child_process';
+import { execFile } from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { promisify } from 'util';
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
 
 describe('ES Module Resolution', () => {
