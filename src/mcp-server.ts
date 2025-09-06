@@ -22,42 +22,102 @@ export class SmartSuiteShimServer {
     // Minimal implementation to make instantiation test pass
   }
 
-  getTools(): Array<{name: string; inputSchema: {properties: Record<string, unknown>}}> {
-    // Minimal implementation to satisfy the 4 CQRS tools test
+  getTools(): Array<{name: string; description?: string; inputSchema: {type: string; properties: Record<string, unknown>; required?: string[]}}> {
+    // Return tools in MCP protocol-compliant format with proper schemas
     return [
       {
         name: 'smartsuite_query',
+        description: 'Query SmartSuite records with filtering, sorting, and pagination',
         inputSchema: {
+          type: 'object',
           properties: {
             operation: {
+              type: 'string',
               enum: ['list', 'get', 'search', 'count'],
+              description: 'The query operation to perform',
+            },
+            appId: {
+              type: 'string',
+              description: 'SmartSuite application ID (24-char hex)',
+            },
+            recordId: {
+              type: 'string',
+              description: 'Record ID (required for get operation)',
+            },
+            filters: {
+              type: 'object',
+              description: 'Filtering criteria',
+            },
+            sort: {
+              type: 'object',
+              description: 'Sorting configuration',
+            },
+            limit: {
+              type: 'number',
+              description: 'Maximum number of records to return',
             },
           },
+          required: ['operation', 'appId'],
         },
       },
       {
         name: 'smartsuite_record',
+        description: 'Create, update, or delete SmartSuite records with DRY-RUN safety',
         inputSchema: {
+          type: 'object',
           properties: {
             operation: {
+              type: 'string',
               enum: ['create', 'update', 'delete', 'bulk_update', 'bulk_delete'],
+              description: 'The record operation to perform',
+            },
+            appId: {
+              type: 'string',
+              description: 'SmartSuite application ID (24-char hex)',
+            },
+            recordId: {
+              type: 'string',
+              description: 'Record ID (required for update/delete)',
+            },
+            data: {
+              type: 'object',
+              description: 'Record data for create/update operations',
             },
             dry_run: {
+              type: 'boolean',
               default: true,
+              description: 'Preview changes without executing (safety default)',
             },
           },
+          required: ['operation', 'appId'],
         },
       },
       {
         name: 'smartsuite_schema',
+        description: 'Get SmartSuite application schema and field definitions',
         inputSchema: {
-          properties: {},
+          type: 'object',
+          properties: {
+            appId: {
+              type: 'string',
+              description: 'SmartSuite application ID (24-char hex)',
+            },
+          },
+          required: ['appId'],
         },
       },
       {
         name: 'smartsuite_undo',
+        description: 'Undo a previous SmartSuite operation using transaction history',
         inputSchema: {
-          properties: {},
+          type: 'object',
+          properties: {
+            transaction_id: {
+              type: 'string',
+              description: 'Transaction ID from a previous operation',
+            },
+          },
+          required: ['transaction_id'],
         },
       },
     ];
