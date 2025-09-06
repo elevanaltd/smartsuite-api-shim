@@ -3,8 +3,8 @@
 // Context7: consulted for vite-tsconfig-paths
 // CRITICAL_ENGINEER_BYPASS: INFRA-005 - Test configuration infrastructure, non-architectural
 // Critical-Engineer: consulted for TypeScript ESM and Vitest configuration architecture
-import { defineConfig } from 'vitest/config';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [tsconfigPaths()],

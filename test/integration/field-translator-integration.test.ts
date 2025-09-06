@@ -1,24 +1,26 @@
 // Integration test for FieldTranslator with real SmartSuite data
 // Critical-Engineer: consulted for test data management and integration test strategy
-import { FieldTranslator } from '../../src/lib/field-translator.js';
 // Context7: consulted for path
 import * as path from 'path';
 // Context7: consulted for url
 import { fileURLToPath } from 'url';
+
 // Context7: consulted for vitest
 import { describe, it, expect, beforeEach } from 'vitest';
+
+import { FieldTranslator } from '../../src/lib/field-translator.js';
 
 describe('FieldTranslator Integration Tests', () => {
   let translator: FieldTranslator;
   const projectsTableId = '68a8ff5237fde0bf797c05b3';
-  
+
   // Get the directory path for this test file
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
 
   beforeEach(async () => {
     translator = new FieldTranslator();
-    
+
     // Load from deterministic test fixture - works in both local and CI environments
     const mappingPath = path.resolve(__dirname, '../fixtures/projects-mapping.yaml');
     await translator.loadFromYaml(mappingPath);
@@ -34,7 +36,7 @@ describe('FieldTranslator Integration Tests', () => {
         totalVideosCount: 5,
         agreementDate: '2024-01-15',
         client: 'client123',
-        projectManager: 'pm@example.com'
+        projectManager: 'pm@example.com',
       };
 
       const apiData = translator.humanToApi(projectsTableId, humanProjectData);
@@ -47,7 +49,7 @@ describe('FieldTranslator Integration Tests', () => {
         total_videos_count: 5,
         agreement_date: '2024-01-15',
         sbfc98645c: 'client123', // Cryptic client field
-        project_manager: 'pm@example.com'
+        project_manager: 'pm@example.com',
       });
     });
 
@@ -66,7 +68,7 @@ describe('FieldTranslator Integration Tests', () => {
         bkgstream: 'FILMING BOOKED',
         se202948fd: 2, // Filming blockers count
         first_created: '2024-01-01T10:00:00Z',
-        last_updated: '2024-01-15T14:30:00Z'
+        last_updated: '2024-01-15T14:30:00Z',
       };
 
       const humanData = translator.apiToHuman(projectsTableId, apiProjectData);
@@ -85,7 +87,7 @@ describe('FieldTranslator Integration Tests', () => {
         bookingStreamStatus: 'FILMING BOOKED',
         filmingBlockers: 2,
         firstCreated: '2024-01-01T10:00:00Z',
-        lastUpdated: '2024-01-15T14:30:00Z'
+        lastUpdated: '2024-01-15T14:30:00Z',
       });
     });
 
@@ -94,17 +96,17 @@ describe('FieldTranslator Integration Tests', () => {
         projectName: 'Test Project',
         customField: 'custom value',
         unmappedApiField: 'api value',
-        priority: 'Normal'
+        priority: 'Normal',
       };
 
       // Use non-strict mode to allow unmapped fields to pass through
       const apiData = translator.humanToApi(projectsTableId, mixedData, false);
-      
+
       expect(apiData).toEqual({
         project_name_actual: 'Test Project',
         customField: 'custom value', // Preserved
         unmappedApiField: 'api value', // Preserved
-        priority: 'Normal'
+        priority: 'Normal',
       });
     });
 
@@ -113,39 +115,39 @@ describe('FieldTranslator Integration Tests', () => {
         projectName: 'Complex Project',
         clientContacts: {
           richText: '<p>Contact details</p>',
-          mentions: ['user1', 'user2']
+          mentions: ['user1', 'user2'],
         },
         projectBrief: {
           content: 'Project description',
-          attachments: ['file1.pdf', 'file2.doc']
+          attachments: ['file1.pdf', 'file2.doc'],
         },
         financialRecords: ['record1', 'record2'],
         projectLifecycle: {
           start: '2024-01-01',
-          end: '2024-06-01'
-        }
+          end: '2024-06-01',
+        },
       };
 
       // Now using strict mode since our test fixture includes these fields
       const apiData = translator.humanToApi(projectsTableId, complexData);
-      
+
       expect(apiData).toEqual({
         project_name_actual: 'Complex Project',
         client_contacts: {
           richText: '<p>Contact details</p>',
-          mentions: ['user1', 'user2']
+          mentions: ['user1', 'user2'],
         },
         project_brief: {
           content: 'Project description',
-          attachments: ['file1.pdf', 'file2.doc']
+          attachments: ['file1.pdf', 'file2.doc'],
         },
         sn0a32ss: ['record1', 'record2'],
         project_lifecycle: {
           start: '2024-01-01',
-          end: '2024-06-01'
-        }
+          end: '2024-06-01',
+        },
       });
-      
+
       const backToHuman = translator.apiToHuman(projectsTableId, apiData);
 
       // Complex structures should be preserved through round-trip
@@ -175,12 +177,12 @@ describe('FieldTranslator Integration Tests', () => {
   describe('Performance with Large Datasets', () => {
     it('should handle large record sets efficiently', () => {
       const largeDataset: Record<string, any> = {};
-      
+
       // Create 1000 fields to test performance
       for (let i = 0; i < 1000; i++) {
         largeDataset[`field${i}`] = `value${i}`;
       }
-      
+
       // Add some known mappable fields
       largeDataset.projectName = 'Performance Test';
       largeDataset.priority = 'High';
@@ -192,11 +194,11 @@ describe('FieldTranslator Integration Tests', () => {
 
       // Should complete in reasonable time (< 100ms for 1000 fields)
       expect(endTime - startTime).toBeLessThan(100);
-      
+
       // Known mappings should be translated
       expect(result.project_name_actual).toBe('Performance Test');
       expect(result.priority).toBe('High');
-      
+
       // Unknown fields should pass through
       expect(result.field0).toBe('value0');
     });

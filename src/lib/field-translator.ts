@@ -2,9 +2,10 @@
 // Context7: consulted for fs-extra
 // Context7: consulted for path
 // Critical-Engineer: consulted for API shim architecture and field translation strategy
-import * as yaml from 'yaml';
-import fs from 'fs-extra';
 import * as path from 'path';
+
+import fs from 'fs-extra';
+import * as yaml from 'yaml';
 
 export interface FieldMapping {
   tableName: string;
@@ -25,14 +26,14 @@ export class FieldTranslator {
     try {
       const yamlContent = await fs.readFile(yamlPath, 'utf8');
       const mapping = yaml.parse(yamlContent) as FieldMapping;
-      
+
       if (mapping.tableId && mapping.fields) {
         // Pre-compute reverse mapping for performance
         mapping.reverseMap = {};
         for (const [human, api] of Object.entries(mapping.fields)) {
           mapping.reverseMap[api] = human;
         }
-        
+
         this.mappings.set(mapping.tableId, mapping);
       } else {
         throw new Error(`Invalid mapping structure in ${yamlPath}: missing tableId or fields`);
@@ -51,11 +52,11 @@ export class FieldTranslator {
     try {
       const files = await fs.readdir(mappingsDir);
       const yamlFiles = files.filter(f => f.endsWith('.yaml') || f.endsWith('.yml'));
-      
+
       if (yamlFiles.length === 0) {
         throw new Error(`No YAML mapping files found in directory: ${mappingsDir}`);
       }
-      
+
       for (const file of yamlFiles) {
         const filePath = path.join(mappingsDir, file);
         await this.loadFromYaml(filePath);
@@ -85,7 +86,7 @@ export class FieldTranslator {
 
     const result: Record<string, any> = {};
     const unmappedFields: string[] = [];
-    
+
     for (const [key, value] of Object.entries(humanFields)) {
       // Check if this human field name has a mapping
       const apiField = mapping.fields[key];
@@ -100,12 +101,12 @@ export class FieldTranslator {
         }
       }
     }
-    
+
     // FAIL FAST: Enforce strict schema in default mode
     if (strictMode && unmappedFields.length > 0) {
       throw new Error(`Unmapped fields found for table ${tableId} (${mapping.tableName}): ${unmappedFields.join(', ')}. Available fields: ${Object.keys(mapping.fields).join(', ')}`);
     }
-    
+
     return result;
   }
 
@@ -115,12 +116,12 @@ export class FieldTranslator {
    */
   apiToHuman(tableId: string, apiFields: Record<string, any>): Record<string, any> {
     const mapping = this.mappings.get(tableId);
-    if (!mapping || !mapping.reverseMap) {
+    if (!mapping?.reverseMap) {
       return apiFields;
     }
 
     const result: Record<string, any> = {};
-    
+
     for (const [key, value] of Object.entries(apiFields)) {
       // Use pre-computed reverse mapping for performance
       const humanField = mapping.reverseMap[key];
@@ -131,7 +132,7 @@ export class FieldTranslator {
         result[key] = value;
       }
     }
-    
+
     return result;
   }
 

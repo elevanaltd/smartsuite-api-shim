@@ -6,16 +6,18 @@
 // 3. Fixed humanToApi tests to properly test strict mode (default behavior)
 // 4. Removed unused mockClient variable
 // Critical-Engineer: consulted for test data management and integration test strategy
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+
 import { describe, it, expect, beforeEach } from 'vitest';
+
 import { FieldTranslator } from '../src/lib/field-translator.js';
 // Context7: consulted for path
-import * as path from 'path';
 // Context7: consulted for url
-import { fileURLToPath } from 'url';
 
 describe('FieldTranslator', () => {
   let translator: FieldTranslator;
-  
+
   // Get the directory path for this test file
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
@@ -29,7 +31,7 @@ describe('FieldTranslator', () => {
     it('should load field mappings from YAML file', async () => {
       // Test loading the projects fixture file
       await translator.loadFromYaml(fixturePathProjects);
-      
+
       // Should have loaded mappings for the projects table
       const tableId = '68a8ff5237fde0bf797c05b3';
       expect(translator.hasMappings(tableId)).toBe(true);
@@ -37,7 +39,7 @@ describe('FieldTranslator', () => {
 
     it('should throw error for missing YAML file (FAIL FAST)', async () => {
       const yamlPath = '/nonexistent/file.yaml';
-      
+
       // Should throw per FAIL FAST implementation
       await expect(translator.loadFromYaml(yamlPath)).rejects.toThrow();
     });
@@ -55,7 +57,7 @@ describe('FieldTranslator', () => {
         projectName: 'Test Project',
         client: 'ACME Corp',
         projectPhase: 'Production',
-        priority: 'High'
+        priority: 'High',
       };
 
       // Use non-strict mode to test basic translation without throwing
@@ -65,7 +67,7 @@ describe('FieldTranslator', () => {
         project_name_actual: 'Test Project',
         sbfc98645c: 'ACME Corp',
         status: 'Production',
-        priority: 'High'
+        priority: 'High',
       });
     });
 
@@ -74,7 +76,7 @@ describe('FieldTranslator', () => {
       const humanFields = {
         projectName: 'Test',
         unknownField: 'Should throw',
-        anotherUnknown: 123
+        anotherUnknown: 123,
       };
 
       // Should throw in strict mode (default)
@@ -86,7 +88,7 @@ describe('FieldTranslator', () => {
       const humanFields = {
         projectName: 'Test',
         unknownField: 'Should pass through',
-        anotherUnknown: 123
+        anotherUnknown: 123,
       };
 
       // Explicitly use non-strict mode
@@ -95,7 +97,7 @@ describe('FieldTranslator', () => {
       expect(apiFields).toEqual({
         project_name_actual: 'Test',
         unknownField: 'Should pass through',
-        anotherUnknown: 123
+        anotherUnknown: 123,
       });
     });
 
@@ -103,7 +105,7 @@ describe('FieldTranslator', () => {
       const tableId = 'nonexistent-table';
       const humanFields = {
         field1: 'value1',
-        field2: 'value2'
+        field2: 'value2',
       };
 
       // When no mappings exist, both strict and non-strict modes pass through
@@ -119,9 +121,9 @@ describe('FieldTranslator', () => {
         metadata: {
           nested: 'value',
           deep: {
-            field: 'data'
-          }
-        }
+            field: 'data',
+          },
+        },
       };
 
       // Use non-strict mode to allow unmapped nested fields
@@ -145,7 +147,7 @@ describe('FieldTranslator', () => {
         sbfc98645c: 'ACME Corp',
         status: 'Production',
         priority: 'High',
-        autonumber: 'EAV001'
+        autonumber: 'EAV001',
       };
 
       const humanFields = translator.apiToHuman(tableId, apiFields);
@@ -155,7 +157,7 @@ describe('FieldTranslator', () => {
         client: 'ACME Corp',
         projectPhase: 'Production',
         priority: 'High',
-        eavCode: 'EAV001'
+        eavCode: 'EAV001',
       });
     });
 
@@ -164,7 +166,7 @@ describe('FieldTranslator', () => {
       const apiFields = {
         project_name_actual: 'Test',
         unknown_api_field: 'Should pass through',
-        another_unknown: 456
+        another_unknown: 456,
       };
 
       const humanFields = translator.apiToHuman(tableId, apiFields);
@@ -172,7 +174,7 @@ describe('FieldTranslator', () => {
       expect(humanFields).toEqual({
         projectName: 'Test',
         unknown_api_field: 'Should pass through',
-        another_unknown: 456
+        another_unknown: 456,
       });
     });
 
@@ -180,7 +182,7 @@ describe('FieldTranslator', () => {
       const tableId = 'nonexistent-table';
       const apiFields = {
         api_field1: 'value1',
-        api_field2: 'value2'
+        api_field2: 'value2',
       };
 
       const humanFields = translator.apiToHuman(tableId, apiFields);
@@ -196,7 +198,7 @@ describe('FieldTranslator', () => {
   describe('loadAllMappings', () => {
     it('should load all YAML files from fixtures directory', async () => {
       const fixturesDir = path.resolve(__dirname, './fixtures');
-      
+
       // Create a videos mapping fixture for multi-file test
       const videosMapping = `tableName: videos
 tableId: '68b2437a8f1755b055e0a124'
@@ -205,21 +207,21 @@ fields:
   videoTitle: 'video_title'
   duration: 'duration'
   status: 'status'`;
-      
+
       const videosPath = path.join(fixturesDir, 'videos-mapping.yaml');
-      
+
       // Write videos fixture temporarily
       const fs = await import('fs-extra');
       await fs.writeFile(videosPath, videosMapping);
-      
+
       try {
         // Load all mappings
         await translator.loadAllMappings(fixturesDir);
-        
+
         // Should have loaded multiple table mappings
         const projectsTableId = '68a8ff5237fde0bf797c05b3';
         const videosTableId = '68b2437a8f1755b055e0a124';
-        
+
         expect(translator.hasMappings(projectsTableId)).toBe(true);
         expect(translator.hasMappings(videosTableId)).toBe(true);
       } finally {
@@ -230,11 +232,11 @@ fields:
 
     it('should throw error for directory with no YAML files', async () => {
       const emptyDir = path.resolve(__dirname, './empty-test-dir');
-      
+
       // Create empty directory
       const fs = await import('fs-extra');
       await fs.ensureDir(emptyDir);
-      
+
       try {
         // Should throw when no YAML files found
         await expect(translator.loadAllMappings(emptyDir)).rejects.toThrow(/No YAML mapping files found/);
@@ -249,7 +251,7 @@ fields:
     it('should integrate seamlessly with existing client methods', () => {
       // This test verifies the translator can be used as a drop-in wrapper
       // Removed unused mockClient variable - TEST-METHODOLOGY-GUARDIAN approved
-      
+
       // The translator should work as a middleware layer
       const tableId = '68a8ff5237fde0bf797c05b3';
       const humanQuery = { projectName: 'Test' };
