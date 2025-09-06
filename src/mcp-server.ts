@@ -26,10 +26,82 @@ export class SmartSuiteShimServer {
   private client?: SmartSuiteClient;
   private fieldTranslator: FieldTranslator;
   private fieldMappingsInitialized = false;
+  private authConfig?: SmartSuiteClientConfig;
+  private autoAuthPromise?: Promise<void>;
 
   constructor() {
     // Minimal implementation to make instantiation test pass
     this.fieldTranslator = new FieldTranslator();
+    
+    // AUTO-AUTHENTICATION: Check for environment variables and prepare auto-authentication
+    this.tryAutoAuthentication();
+  }
+
+  /**
+   * Check if server is authenticated (has valid client or pending auto-auth)
+   */
+  isAuthenticated(): boolean {
+    return this.client !== undefined || this.hasValidEnvironmentConfig();
+  }
+
+  /**
+   * Check if environment has valid auth configuration
+   */
+  private hasValidEnvironmentConfig(): boolean {
+    const apiToken = process.env.SMARTSUITE_API_TOKEN;
+    const workspaceId = process.env.SMARTSUITE_WORKSPACE_ID;
+    return !!(apiToken && workspaceId);
+  }
+
+  /**
+   * Get current authentication configuration
+   */
+  getAuthConfig(): SmartSuiteClientConfig | undefined {
+    return this.authConfig;
+  }
+
+  /**
+   * Attempt to auto-authenticate from environment variables
+   */
+  private tryAutoAuthentication(): void {
+    const apiToken = process.env.SMARTSUITE_API_TOKEN;
+    const workspaceId = process.env.SMARTSUITE_WORKSPACE_ID;
+
+    if (apiToken && workspaceId) {
+      this.authConfig = {
+        apiKey: apiToken,
+        workspaceId: workspaceId
+      };
+      
+      // Start auto-authentication but don't block constructor
+      this.autoAuthPromise = this.authenticate(this.authConfig).catch(error => {
+        console.warn('Auto-authentication failed:', error.message);
+        // Clear client on failure but keep config for priority testing
+        this.client = undefined;
+        throw error; // Re-throw to keep promise rejected
+      });
+    }
+  }
+
+  /**
+   * Ensure authentication is complete before tool execution
+   */
+  private async ensureAuthenticated(): Promise<void> {
+    if (this.client) {
+      return; // Already authenticated
+    }
+    
+    if (this.autoAuthPromise) {
+      // Wait for auto-authentication to complete
+      try {
+        await this.autoAuthPromise;
+      } catch (error) {
+        // Auto-auth failed, throw original auth error
+        throw new Error('Authentication required: call authenticate() first');
+      }
+    } else if (!this.client) {
+      throw new Error('Authentication required: call authenticate() first');
+    }
   }
 
   getTools(): Array<{name: string; description?: string; inputSchema: {type: string; properties: Record<string, unknown>; required?: string[]}}> {
@@ -196,15 +268,31 @@ export class SmartSuiteShimServer {
       this.fieldMappingsInitialized = true;
     }
 
+    // ENVIRONMENT VARIABLE PRIORITY: If env vars are set, use them instead of provided config
+    let effectiveConfig = config;
+    const envToken = process.env.SMARTSUITE_API_TOKEN;
+    const envWorkspaceId = process.env.SMARTSUITE_WORKSPACE_ID;
+    
+    if (envToken && envWorkspaceId) {
+      effectiveConfig = {
+        apiKey: envToken,
+        workspaceId: envWorkspaceId,
+        baseUrl: config.baseUrl // Allow baseUrl override
+      };
+      // Update stored config to reflect environment priority
+      this.authConfig = effectiveConfig;
+    } else {
+      // Store manual config when env vars not present
+      this.authConfig = config;
+    }
+
     // SIMPLE scope: Basic authentication with client storage
-    this.client = await createAuthenticatedClient(config);
+    this.client = await createAuthenticatedClient(effectiveConfig);
   }
 
   async executeTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
-    // SIMPLE scope: Basic tool dispatch
-    if (!this.client) {
-      throw new Error('Authentication required: call authenticate() first');
-    }
+    // AUTO-AUTHENTICATION: Ensure authentication is complete
+    await this.ensureAuthenticated();
 
     // Initialize field mappings on first use if not already done
     if (!this.fieldMappingsInitialized) {
