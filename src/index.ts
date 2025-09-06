@@ -2,9 +2,16 @@
 // Critical-Engineer: consulted for Architecture pattern selection
 // Critical-Engineer: consulted for Node.js ESM module resolution strategy
 // Critical-Engineer: consulted for CI pipeline step-ordering and test strategy
+// Context7: consulted for @modelcontextprotocol/sdk/server/index.js
+// Context7: consulted for @modelcontextprotocol/sdk/server/stdio.js
+// Context7: consulted for @modelcontextprotocol/sdk/types.js
 // Entry point for SmartSuite API Shim MCP Server
 // This file serves as the main entry point for the build process
 // ensuring that `npm start` can properly execute `node build/index.js`
+
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 import { SmartSuiteShimServer } from './mcp-server.js';
 
@@ -41,26 +48,72 @@ async function main(): Promise<number> {
     console.log('CI startup validation successful');
     return 0; // Return success code instead of calling process.exit
   }
-  // TODO: Add actual MCP server start logic once MCP SDK is integrated
-  // eslint-disable-next-line no-console
-  console.log('Server ready (awaiting MCP SDK integration for full functionality)');
+  // MCP server initialization with stdio transport
+  const mcpServer = new Server({
+    name: 'SmartSuite API Shim',
+    version: '1.0.0',
+  });
 
-  // Add graceful shutdown handlers for production readiness
+  // CRITICAL: Register our SmartSuiteShimServer tools with the MCP protocol
+  // This was the missing piece - connecting our implementation to MCP
+  mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
+    return { tools: server.getTools() };
+  });
+
+  mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+    const result = await server.executeTool(name, args || {});
+    // MCP expects specific response format for tool calls
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(result),
+        },
+      ],
+    };
+  });
+
+  // Connect to stdio transport
+  const transport = new StdioServerTransport();
+  await mcpServer.connect(transport);
+  // eslint-disable-next-line no-console
+  console.log('MCP Server connected with tool handlers ready for stdio communication');
+
+  // Critical-Engineer: consulted for Production hardening and reliability patterns
+  // Graceful shutdown handlers for production readiness with structured logging
   const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
   signals.forEach((signal) => {
     process.on(signal, () => {
+      // Structured logging for shutdown event
+      const logEntry = {
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: `Received ${signal}, shutting down gracefully...`,
+        service: 'smartsuite-mcp-shim',
+        signal,
+      };
       // eslint-disable-next-line no-console
-      console.log(`Received ${signal}, shutting down gracefully...`);
-      // TODO: Call server.stop() once MCP SDK provides shutdown method
-      // eslint-disable-next-line no-console
-      console.log('Server shutdown complete');
-      process.exit(0);
+      console.error(JSON.stringify(logEntry));
+
+      // Allow brief time for in-flight requests to complete
+      setTimeout(() => {
+        const exitLogEntry = {
+          timestamp: new Date().toISOString(),
+          level: 'info',
+          message: 'Server shutdown complete',
+          service: 'smartsuite-mcp-shim',
+        };
+        // eslint-disable-next-line no-console
+        console.error(JSON.stringify(exitLogEntry));
+        process.exit(0);
+      }, 2000); // 2 second grace period
     });
   });
 
-  // Keep the process alive until shutdown signal
-  // This will be replaced with actual server.listen() once MCP SDK is integrated
-  return 0; // Success
+  // Process will be kept alive by the stdio transport connection
+  // Graceful shutdown will be handled by the signal handlers above
+  return new Promise(() => {}); // Keep process alive indefinitely
 }
 
 // Only execute main function if this is the direct entry point
