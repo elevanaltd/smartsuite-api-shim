@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { discoverFields, labelToCamelCase } from '../../scripts/discover-fields.js';
-
+import type { SmartSuiteClient } from '../../src/smartsuite-client.js';
 // Mock the SmartSuite client module to prevent real API calls in CI
 vi.mock('../../src/smartsuite-client.js', () => ({
   createAuthenticatedClient: vi.fn(),
@@ -52,8 +52,8 @@ describe('Field Discovery Script', () => {
       const { createAuthenticatedClient } = await import('../../src/smartsuite-client.js');
       const fs = await import('fs-extra');
 
-      // Setup mock client with getSchema method
-      const mockClient = {
+      // Setup mock client with getSchema method using type-safe partial mock
+      const mockClient: Partial<SmartSuiteClient> = {
         getSchema: vi.fn().mockResolvedValue({
           id: '68a8ff5237fde0bf797c05b3',
           name: 'Test Application',
@@ -74,11 +74,11 @@ describe('Field Discovery Script', () => {
         }),
       };
 
-      // Mock the client creation
-      vi.mocked(createAuthenticatedClient).mockResolvedValue(mockClient);
-      
+      // Mock the client creation with constrained type assertion
+      vi.mocked(createAuthenticatedClient).mockResolvedValue(mockClient as SmartSuiteClient);
+
       // Mock file system operations
-      vi.mocked(fs.pathExists).mockResolvedValue(false);
+      (vi.mocked(fs.pathExists) as any).mockResolvedValue(false);
 
       // Execute the function
       const mockAppId = '68a8ff5237fde0bf797c05b3';
@@ -99,8 +99,8 @@ describe('Field Discovery Script', () => {
       const { createAuthenticatedClient } = await import('../../src/smartsuite-client.js');
       const fs = await import('fs-extra');
 
-      // Setup mock client
-      const mockClient = {
+      // Setup mock client using type-safe partial mock
+      const mockClient: Partial<SmartSuiteClient> = {
         getSchema: vi.fn().mockResolvedValue({
           id: '68a8ff5237fde0bf797c05b3',
           name: 'Test Application',
@@ -119,11 +119,11 @@ describe('Field Discovery Script', () => {
         }),
       };
 
-      vi.mocked(createAuthenticatedClient).mockResolvedValue(mockClient);
-      
+      vi.mocked(createAuthenticatedClient).mockResolvedValue(mockClient as SmartSuiteClient);
+
       // Mock existing mapping file
-      vi.mocked(fs.pathExists).mockResolvedValue(true);
-      vi.mocked(fs.readFile).mockResolvedValue(`
+      (vi.mocked(fs.pathExists) as any).mockResolvedValue(true);
+      (vi.mocked(fs.readFile) as any).mockResolvedValue(`
 tableName: test-application
 tableId: 68a8ff5237fde0bf797c05b3
 fields:
@@ -160,8 +160,8 @@ fields:
       const { createAuthenticatedClient } = await import('../../src/smartsuite-client.js');
       const fs = await import('fs-extra');
 
-      // Setup mock client with schema missing a field
-      const mockClient = {
+      // Setup mock client with schema missing a field using type-safe partial mock
+      const mockClient: Partial<SmartSuiteClient> = {
         getSchema: vi.fn().mockResolvedValue({
           id: '68a8ff5237fde0bf797c05b3',
           name: 'Test Application',
@@ -175,11 +175,11 @@ fields:
         }),
       };
 
-      vi.mocked(createAuthenticatedClient).mockResolvedValue(mockClient);
-      
+      vi.mocked(createAuthenticatedClient).mockResolvedValue(mockClient as SmartSuiteClient);
+
       // Mock existing mapping with orphaned field
-      vi.mocked(fs.pathExists).mockResolvedValue(true);
-      vi.mocked(fs.readFile).mockResolvedValue(`
+      (vi.mocked(fs.pathExists) as any).mockResolvedValue(true);
+      (vi.mocked(fs.readFile) as any).mockResolvedValue(`
 tableName: test-application
 tableId: 68a8ff5237fde0bf797c05b3
 fields:
@@ -199,8 +199,8 @@ fields:
       const { createAuthenticatedClient } = await import('../../src/smartsuite-client.js');
       const fs = await import('fs-extra');
 
-      // Setup mock client
-      const mockClient = {
+      // Setup mock client using type-safe partial mock
+      const mockClient: Partial<SmartSuiteClient> = {
         getSchema: vi.fn().mockResolvedValue({
           id: '68a8ff5237fde0bf797c05b3',
           name: 'Test Application',
@@ -219,8 +219,8 @@ fields:
         }),
       };
 
-      vi.mocked(createAuthenticatedClient).mockResolvedValue(mockClient);
-      vi.mocked(fs.pathExists).mockResolvedValue(false);
+      vi.mocked(createAuthenticatedClient).mockResolvedValue(mockClient as SmartSuiteClient);
+      (vi.mocked(fs.pathExists) as any).mockResolvedValue(false);
 
       // Mock process.argv to include --generate flag
       const originalArgv = process.argv;

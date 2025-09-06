@@ -39,8 +39,9 @@ export class FieldTranslator {
         throw new Error(`Invalid mapping structure in ${yamlPath}: missing tableId or fields`);
       }
     } catch (error) {
-      console.error(`Failed to load YAML from ${yamlPath}:`, error);
-      throw error; // FAIL FAST: Re-throw to prevent silent failures
+      // Use structured error for production readiness
+      const errorMessage = `Failed to load YAML from ${yamlPath}: ${error instanceof Error ? error.message : String(error)}`;
+      throw new Error(errorMessage); // FAIL FAST: Re-throw to prevent silent failures
     }
   }
 
@@ -57,13 +58,16 @@ export class FieldTranslator {
         throw new Error(`No YAML mapping files found in directory: ${mappingsDir}`);
       }
 
-      for (const file of yamlFiles) {
+      // Use Promise.all for concurrent loading instead of sequential await in loop
+      const loadPromises = yamlFiles.map(file => {
         const filePath = path.join(mappingsDir, file);
-        await this.loadFromYaml(filePath);
-      }
+        return this.loadFromYaml(filePath);
+      });
+      await Promise.all(loadPromises);
     } catch (error) {
-      console.error(`Failed to load mappings from directory ${mappingsDir}:`, error);
-      throw error; // FAIL FAST: Re-throw to prevent silent failures
+      // Use structured error for production readiness
+      const errorMessage = `Failed to load mappings from directory ${mappingsDir}: ${error instanceof Error ? error.message : String(error)}`;
+      throw new Error(errorMessage); // FAIL FAST: Re-throw to prevent silent failures
     }
   }
 
@@ -78,13 +82,13 @@ export class FieldTranslator {
    * Translate human-readable field names to API field codes
    * STRICT MODE: Throws errors for unmapped fields when mapping exists
    */
-  humanToApi(tableId: string, humanFields: Record<string, any>, strictMode: boolean = true): Record<string, any> {
+  humanToApi(tableId: string, humanFields: Record<string, unknown>, strictMode: boolean = true): Record<string, unknown> {
     const mapping = this.mappings.get(tableId);
     if (!mapping) {
       return humanFields;
     }
 
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     const unmappedFields: string[] = [];
 
     for (const [key, value] of Object.entries(humanFields)) {
@@ -114,13 +118,13 @@ export class FieldTranslator {
    * Translate API field codes to human-readable names
    * PERFORMANCE OPTIMIZED: Uses pre-computed reverse mapping
    */
-  apiToHuman(tableId: string, apiFields: Record<string, any>): Record<string, any> {
+  apiToHuman(tableId: string, apiFields: Record<string, unknown>): Record<string, unknown> {
     const mapping = this.mappings.get(tableId);
     if (!mapping?.reverseMap) {
       return apiFields;
     }
 
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(apiFields)) {
       // Use pre-computed reverse mapping for performance

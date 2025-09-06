@@ -32,7 +32,7 @@ export class SmartSuiteShimServer {
   constructor() {
     // Minimal implementation to make instantiation test pass
     this.fieldTranslator = new FieldTranslator();
-    
+
     // AUTO-AUTHENTICATION: Check for environment variables and prepare auto-authentication
     this.tryAutoAuthentication();
   }
@@ -70,14 +70,14 @@ export class SmartSuiteShimServer {
     if (apiToken && workspaceId) {
       this.authConfig = {
         apiKey: apiToken,
-        workspaceId: workspaceId
+        workspaceId: workspaceId,
       };
-      
+
       // Start auto-authentication but don't block constructor
       this.autoAuthPromise = this.authenticate(this.authConfig).catch(error => {
         console.warn('Auto-authentication failed:', error.message);
         // Clear client on failure but keep config for priority testing
-        this.client = undefined;
+        delete this.client;
         throw error; // Re-throw to keep promise rejected
       });
     }
@@ -90,7 +90,7 @@ export class SmartSuiteShimServer {
     if (this.client) {
       return; // Already authenticated
     }
-    
+
     if (this.autoAuthPromise) {
       // Wait for auto-authentication to complete
       try {
@@ -272,12 +272,12 @@ export class SmartSuiteShimServer {
     let effectiveConfig = config;
     const envToken = process.env.SMARTSUITE_API_TOKEN;
     const envWorkspaceId = process.env.SMARTSUITE_WORKSPACE_ID;
-    
+
     if (envToken && envWorkspaceId) {
       effectiveConfig = {
         apiKey: envToken,
         workspaceId: envWorkspaceId,
-        baseUrl: config.baseUrl // Allow baseUrl override
+        baseUrl: config.baseUrl || 'https://app.smartsuite.com/api/v1', // Provide default if undefined
       };
       // Update stored config to reflect environment priority
       this.authConfig = effectiveConfig;

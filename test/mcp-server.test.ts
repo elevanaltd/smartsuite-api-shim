@@ -98,8 +98,8 @@ describe('SmartSuiteShimServer', () => {
       // This test will FAIL initially because executeTool requires explicit authentication
       await expect(
         server.executeTool('smartsuite_schema', {
-          appId: '6613bedd1889d8deeaef8b0e'
-        })
+          appId: '6613bedd1889d8deeaef8b0e',
+        }),
       ).resolves.not.toThrow('Authentication required: call authenticate() first');
     });
 
@@ -117,8 +117,8 @@ describe('SmartSuiteShimServer', () => {
       // ASSERT: Tool execution should still require explicit authentication
       await expect(
         server.executeTool('smartsuite_schema', {
-          appId: '6613bedd1889d8deeaef8b0e'
-        })
+          appId: '6613bedd1889d8deeaef8b0e',
+        }),
       ).rejects.toThrow('Authentication required: call authenticate() first');
     });
 
@@ -132,14 +132,14 @@ describe('SmartSuiteShimServer', () => {
       // ACT: Try manual authentication with different values
       await server.authenticate({
         apiKey: 'manual-api-token',
-        workspaceId: 'manual-workspace-id'
+        workspaceId: 'manual-workspace-id',
       });
 
       // ASSERT: Server should use environment variable values, not manual config
       // This test will FAIL initially because environment variable priority doesn't exist
       expect(server.getAuthConfig()).toEqual({
         apiKey: 'env-api-token',
-        workspaceId: 'env-workspace-id'
+        workspaceId: 'env-workspace-id',
       });
     });
   });

@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+// Critical-Engineer: consulted for type-safe test mocking strategy
 /**
  * Field Discovery Script
  *
