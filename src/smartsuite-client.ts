@@ -73,9 +73,9 @@ export async function createAuthenticatedClient(
     });
 
     if (!response.ok) {
-      let errorData: any = { error: response.statusText };
+      let errorData: Record<string, unknown> = { error: response.statusText };
       try {
-        errorData = await response.json();
+        errorData = await response.json() as Record<string, unknown>;
       } catch {
         // Use default error if JSON parsing fails
       }

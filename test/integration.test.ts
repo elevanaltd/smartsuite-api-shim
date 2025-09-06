@@ -5,6 +5,7 @@
 
 // Context7: consulted for vitest
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
 
 describe('ERROR-ARCHITECT: Integration Validation', () => {
@@ -20,24 +21,24 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const config = {
         apiKey: 'test-api-key',
         workspaceId: 'test-workspace',
-        baseUrl: 'https://app.smartsuite.com'
+        baseUrl: 'https://app.smartsuite.com',
       };
 
       // Mock fetch for authentication
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true })
+        json: async () => ({ success: true }),
       });
 
       await expect(server.authenticate(config)).resolves.not.toThrow();
-      
+
       global.fetch = originalFetch;
     });
 
     it('should require authentication before tool execution', async () => {
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'list', appId: 'test' })
+        server.executeTool('smartsuite_query', { operation: 'list', appId: 'test' }),
       ).rejects.toThrow('Authentication required');
     });
   });
@@ -48,15 +49,15 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true })
+        json: async () => ({ success: true }),
       });
 
       await server.authenticate({
         apiKey: 'test-api-key',
         workspaceId: 'test-workspace',
-        baseUrl: 'https://app.smartsuite.com'
+        baseUrl: 'https://app.smartsuite.com',
       });
-      
+
       global.fetch = originalFetch;
 
       // Attempt mutation without dry_run
@@ -64,8 +65,8 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         server.executeTool('smartsuite_record', {
           operation: 'create',
           appId: 'test',
-          data: { name: 'test' }
-        })
+          data: { name: 'test' },
+        }),
       ).rejects.toThrow('Dry-run pattern required');
     });
 
@@ -74,23 +75,23 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true })
+        json: async () => ({ success: true }),
       });
 
       await server.authenticate({
         apiKey: 'test-api-key',
         workspaceId: 'test-workspace',
-        baseUrl: 'https://app.smartsuite.com'
+        baseUrl: 'https://app.smartsuite.com',
       });
-      
+
       global.fetch = originalFetch;
 
       const result = await server.executeTool('smartsuite_record', {
         operation: 'create',
         appId: 'test',
         data: { name: 'test' },
-        dry_run: true
-      });
+        dry_run: true,
+      }) as { dry_run: boolean; message: string };
 
       expect(result.dry_run).toBe(true);
       expect(result.message).toContain('DRY-RUN');
@@ -103,19 +104,19 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true })
+        json: async () => ({ success: true }),
       });
 
       await server.authenticate({
         apiKey: 'test-api-key',
         workspaceId: 'test-workspace',
-        baseUrl: 'https://app.smartsuite.com'
+        baseUrl: 'https://app.smartsuite.com',
       });
-      
+
       global.fetch = originalFetch;
 
       await expect(
-        server.executeTool('unknown_tool', {})
+        server.executeTool('unknown_tool', {}),
       ).rejects.toThrow('Unknown tool: unknown_tool');
     });
 
@@ -124,22 +125,22 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true })
+        json: async () => ({ success: true }),
       });
 
       await server.authenticate({
         apiKey: 'test-api-key',
         workspaceId: 'test-workspace',
-        baseUrl: 'https://app.smartsuite.com'
+        baseUrl: 'https://app.smartsuite.com',
       });
-      
+
       global.fetch = originalFetch;
 
       await expect(
         server.executeTool('smartsuite_query', {
           operation: 'unknown_op',
-          appId: 'test'
-        })
+          appId: 'test',
+        }),
       ).rejects.toThrow('Unknown query operation: unknown_op');
     });
 
@@ -152,8 +153,8 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         server.authenticate({
           apiKey: 'invalid-key',
           workspaceId: 'test-workspace',
-          baseUrl: 'https://app.smartsuite.com'
-        })
+          baseUrl: 'https://app.smartsuite.com',
+        }),
       ).rejects.toThrow('Authentication failed');
 
       global.fetch = originalFetch;
@@ -166,16 +167,16 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true })
+        json: async () => ({ success: true }),
       });
 
       // Setup authenticated server with mocked client
       await server.authenticate({
         apiKey: 'test-api-key',
         workspaceId: 'test-workspace',
-        baseUrl: 'https://app.smartsuite.com'
+        baseUrl: 'https://app.smartsuite.com',
       });
-      
+
       global.fetch = originalFetch;
 
       // Mock the client methods by replacing the private client
@@ -186,14 +187,14 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         createRecord: vi.fn().mockResolvedValue({ id: '2', name: 'New' }),
         updateRecord: vi.fn().mockResolvedValue({ id: '1', name: 'Updated' }),
         deleteRecord: vi.fn().mockResolvedValue(undefined),
-        getSchema: vi.fn().mockResolvedValue({ fields: [] })
+        getSchema: vi.fn().mockResolvedValue({ fields: [] }),
       } as any;
     });
 
     it('should execute query operations correctly', async () => {
       const result = await server.executeTool('smartsuite_query', {
         operation: 'list',
-        appId: 'test-app'
+        appId: 'test-app',
       });
 
       expect(result).toEqual([{ id: '1', name: 'Test' }]);
@@ -203,7 +204,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     it('should execute count operations correctly', async () => {
       const result = await server.executeTool('smartsuite_query', {
         operation: 'count',
-        appId: 'test-app'
+        appId: 'test-app',
       });
 
       expect(result).toEqual({ count: 1 });
@@ -211,7 +212,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
     it('should execute schema operations correctly', async () => {
       const result = await server.executeTool('smartsuite_schema', {
-        appId: 'test-app'
+        appId: 'test-app',
       });
 
       expect(result).toEqual({ fields: [] });
@@ -220,7 +221,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
     it('should handle undo operation placeholder', async () => {
       await expect(
-        server.executeTool('smartsuite_undo', {})
+        server.executeTool('smartsuite_undo', {}),
       ).rejects.toThrow('Undo functionality not yet implemented');
     });
   });
@@ -229,26 +230,26 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     it('should have appropriate error messages for single-user context', async () => {
       // Not authenticated
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'list', appId: 'test' })
+        server.executeTool('smartsuite_query', { operation: 'list', appId: 'test' }),
       ).rejects.toThrow(/Authentication required.*authenticate\(\) first/);
 
       // Invalid operation
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true })
+        json: async () => ({ success: true }),
       });
 
       await server.authenticate({
         apiKey: 'test-api-key',
         workspaceId: 'test-workspace',
-        baseUrl: 'https://app.smartsuite.com'
+        baseUrl: 'https://app.smartsuite.com',
       });
-      
+
       global.fetch = originalFetch;
 
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'invalid', appId: 'test' })
+        server.executeTool('smartsuite_query', { operation: 'invalid', appId: 'test' }),
       ).rejects.toThrow(/Unknown query operation: invalid/);
     });
 
@@ -257,15 +258,15 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true })
+        json: async () => ({ success: true }),
       });
 
       await server.authenticate({
         apiKey: 'test-api-key',
         workspaceId: 'test-workspace',
-        baseUrl: 'https://app.smartsuite.com'
+        baseUrl: 'https://app.smartsuite.com',
       });
-      
+
       global.fetch = originalFetch;
 
       // Bulk operations not needed for personal automation
@@ -274,8 +275,8 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
           operation: 'bulk_update',
           appId: 'test',
           data: [],
-          dry_run: true
-        })
+          dry_run: true,
+        }),
       ).rejects.toThrow('Bulk operations not yet implemented');
     });
   });
