@@ -1,6 +1,12 @@
 // Context7: consulted for vitest
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { FieldTranslator } from '../src/lib/field-translator';
+// TESTGUARD-APPROVED: TESTGUARD-20250906-28a47c71
+// Fixes applied per TEST-METHODOLOGY-GUARDIAN:
+// 1. Removed obsolete detectFieldType tests (method removed from implementation)
+// 2. Fixed loadFromYaml test to match FAIL FAST contract
+// 3. Fixed humanToApi tests to properly test strict mode (default behavior)
+// 4. Removed unused mockClient variable
+import { describe, it, expect, beforeEach } from 'vitest';
+import { FieldTranslator } from '../src/lib/field-translator.js';
 
 describe('FieldTranslator', () => {
   let translator: FieldTranslator;
@@ -20,12 +26,11 @@ describe('FieldTranslator', () => {
       expect(translator.hasMappings(tableId)).toBe(true);
     });
 
-    it('should handle missing YAML file gracefully', async () => {
+    it('should throw error for missing YAML file (FAIL FAST)', async () => {
       const yamlPath = '/nonexistent/file.yaml';
       
-      // Should not throw, but log error
-      await expect(translator.loadFromYaml(yamlPath)).resolves.not.toThrow();
-      expect(translator.hasMappings('nonexistent')).toBe(false);
+      // Should throw per FAIL FAST implementation
+      await expect(translator.loadFromYaml(yamlPath)).rejects.toThrow();
     });
   });
 
@@ -45,7 +50,8 @@ describe('FieldTranslator', () => {
         priority: 'High'
       };
 
-      const apiFields = translator.humanToApi(tableId, humanFields);
+      // Use non-strict mode to test basic translation without throwing
+      const apiFields = translator.humanToApi(tableId, humanFields, false);
 
       expect(apiFields).toEqual({
         project_name_actual: 'Test Project',
@@ -55,7 +61,19 @@ describe('FieldTranslator', () => {
       });
     });
 
-    it('should pass through unknown fields unchanged', () => {
+    it('should throw error for unmapped fields in strict mode (default)', () => {
+      const tableId = '68a8ff5237fde0bf797c05b3';
+      const humanFields = {
+        projectName: 'Test',
+        unknownField: 'Should throw',
+        anotherUnknown: 123
+      };
+
+      // Should throw in strict mode (default)
+      expect(() => translator.humanToApi(tableId, humanFields)).toThrow(/Unmapped fields found/);
+    });
+
+    it('should pass through unknown fields when strictMode is false', () => {
       const tableId = '68a8ff5237fde0bf797c05b3';
       const humanFields = {
         projectName: 'Test',
@@ -63,7 +81,8 @@ describe('FieldTranslator', () => {
         anotherUnknown: 123
       };
 
-      const apiFields = translator.humanToApi(tableId, humanFields);
+      // Explicitly use non-strict mode
+      const apiFields = translator.humanToApi(tableId, humanFields, false);
 
       expect(apiFields).toEqual({
         project_name_actual: 'Test',
@@ -79,12 +98,13 @@ describe('FieldTranslator', () => {
         field2: 'value2'
       };
 
+      // When no mappings exist, both strict and non-strict modes pass through
       const apiFields = translator.humanToApi(tableId, humanFields);
 
       expect(apiFields).toEqual(humanFields);
     });
 
-    it('should handle nested objects correctly', () => {
+    it('should handle nested objects correctly in non-strict mode', () => {
       const tableId = '68a8ff5237fde0bf797c05b3';
       const humanFields = {
         projectName: 'Test',
@@ -96,7 +116,8 @@ describe('FieldTranslator', () => {
         }
       };
 
-      const apiFields = translator.humanToApi(tableId, humanFields);
+      // Use non-strict mode to allow unmapped nested fields
+      const apiFields = translator.humanToApi(tableId, humanFields, false);
 
       expect(apiFields.project_name_actual).toBe('Test');
       expect(apiFields.metadata).toEqual(humanFields.metadata);
@@ -161,57 +182,9 @@ describe('FieldTranslator', () => {
     });
   });
 
-  describe('detectFieldType', () => {
-    it('should detect human-readable field names', () => {
-      const humanFields = {
-        projectName: 'Test',
-        clientContact: 'John',
-        finalDelivery: '2025-01-15'
-      };
-
-      expect(translator.detectFieldType(humanFields)).toBe('human');
-    });
-
-    it('should detect cryptic API field codes', () => {
-      const crypticFields = {
-        s8faf2: 'Test',
-        sbfc98645c: 'ACME',
-        f4d3a1: 'active'
-      };
-
-      expect(translator.detectFieldType(crypticFields)).toBe('cryptic');
-    });
-
-    it('should detect clean API slugs', () => {
-      const cleanApiFields = {
-        project_name_actual: 'Test',
-        main_status: 'active',
-        video_seq01: 'V001'
-      };
-
-      expect(translator.detectFieldType(cleanApiFields)).toBe('api');
-    });
-
-    it('should handle mixed field types by returning most common', () => {
-      const mixedFields = {
-        projectName: 'Test',        // human
-        s8faf2: 'Value',            // cryptic
-        another_field: 'Data'       // api (underscore)
-      };
-
-      // Should identify based on majority
-      expect(translator.detectFieldType(mixedFields)).toBeTruthy();
-    });
-
-    it('should handle empty objects', () => {
-      expect(translator.detectFieldType({})).toBe('unknown');
-    });
-
-    it('should handle null/undefined gracefully', () => {
-      expect(translator.detectFieldType(null as any)).toBe('unknown');
-      expect(translator.detectFieldType(undefined as any)).toBe('unknown');
-    });
-  });
+  // detectFieldType tests removed - method was removed per Critical Engineer recommendation
+  // The wrapper enforces a strict contract - calling code should know the expected format
+  // TEST-METHODOLOGY-GUARDIAN: Approved removal of obsolete tests for non-existent method
 
   describe('loadAllMappings', () => {
     it('should load all YAML files from field-mappings directory', async () => {
@@ -237,15 +210,12 @@ describe('FieldTranslator', () => {
   describe('Integration with SmartSuite Client', () => {
     it('should integrate seamlessly with existing client methods', () => {
       // This test verifies the translator can be used as a drop-in wrapper
-      const mockClient = {
-        query: vi.fn().mockResolvedValue({ data: [] }),
-        mutate: vi.fn().mockResolvedValue({ success: true })
-      };
-
+      // Removed unused mockClient variable - TEST-METHODOLOGY-GUARDIAN approved
+      
       // The translator should work as a middleware layer
       const tableId = '68a8ff5237fde0bf797c05b3';
       const humanQuery = { projectName: 'Test' };
-      const apiQuery = translator.humanToApi(tableId, humanQuery);
+      const apiQuery = translator.humanToApi(tableId, humanQuery, false); // Use non-strict mode for passthrough
 
       expect(apiQuery).toBeDefined();
       expect(typeof apiQuery).toBe('object');

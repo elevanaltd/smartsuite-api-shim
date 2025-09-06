@@ -1,7 +1,5 @@
 // Integration test for FieldTranslator with real SmartSuite data
-import { FieldTranslator } from '../../src/lib/field-translator';
-// Context7: consulted for path
-import * as path from 'path';
+import { FieldTranslator } from '../../src/lib/field-translator.js';
 // Context7: consulted for fs-extra
 import * as fs from 'fs-extra';
 
@@ -119,7 +117,8 @@ describe('FieldTranslator Integration Tests', () => {
         priority: 'Normal'
       };
 
-      const apiData = translator.humanToApi(projectsTableId, mixedData);
+      // Use non-strict mode to allow unmapped fields to pass through
+      const apiData = translator.humanToApi(projectsTableId, mixedData, false);
       
       expect(apiData).toEqual({
         project_name_actual: 'Test Project',
@@ -129,30 +128,8 @@ describe('FieldTranslator Integration Tests', () => {
       });
     });
 
-    it('should correctly detect field types in real SmartSuite data', () => {
-      const humanFields = {
-        projectName: 'Test',
-        priority: 'High',
-        totalVideosCount: 5
-      };
-
-      const apiFields = {
-        project_name_actual: 'Test',
-        priority: 'High',
-        total_videos_count: 5
-      };
-
-      const crypticFields = {
-        sbfc98645c: 'client123',
-        se202948fd: 2,
-        si8yx4fb: 'video_link',
-        solamlxu: 'new_video_link'
-      };
-
-      expect(translator.detectFieldType(humanFields)).toBe('human');
-      expect(translator.detectFieldType(apiFields)).toBe('api');
-      expect(translator.detectFieldType(crypticFields)).toBe('cryptic');
-    });
+    // detectFieldType test removed - method was removed per Critical Engineer recommendation
+    // The wrapper enforces a strict contract - calling code should know the expected format
 
     it('should handle complex nested data structures', () => {
       const complexData = {
@@ -195,14 +172,9 @@ describe('FieldTranslator Integration Tests', () => {
     it('should handle empty or null data gracefully', () => {
       expect(translator.humanToApi(projectsTableId, {})).toEqual({});
       expect(translator.apiToHuman(projectsTableId, {})).toEqual({});
-      expect(translator.detectFieldType({})).toBe('unknown');
     });
 
-    it('should handle malformed field mappings', () => {
-      // This should not crash the translator
-      const badData = null as any;
-      expect(translator.detectFieldType(badData)).toBe('unknown');
-    });
+    // Removed test for detectFieldType with malformed data - method no longer exists
   });
 
   describe('Performance with Large Datasets', () => {
@@ -219,7 +191,8 @@ describe('FieldTranslator Integration Tests', () => {
       largeDataset.priority = 'High';
 
       const startTime = Date.now();
-      const result = translator.humanToApi(projectsTableId, largeDataset);
+      // Use non-strict mode for performance test with many unmapped fields
+      const result = translator.humanToApi(projectsTableId, largeDataset, false);
       const endTime = Date.now();
 
       // Should complete in reasonable time (< 100ms for 1000 fields)
