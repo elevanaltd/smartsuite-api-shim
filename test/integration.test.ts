@@ -198,7 +198,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       });
 
       expect(result).toEqual([{ id: '1', name: 'Test' }]);
-      expect((server as any).client.listRecords).toHaveBeenCalledWith('test-app', undefined);
+      expect((server as any).client.listRecords).toHaveBeenCalledWith('test-app', {});
     });
 
     it('should execute count operations correctly', async () => {
@@ -215,7 +215,13 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         appId: 'test-app',
       });
 
-      expect(result).toEqual({ fields: [] });
+      expect(result).toEqual({
+        fields: [],
+        fieldMappings: {
+          hasCustomMappings: false,
+          message: 'This table uses raw API field codes. Custom field mappings not available.',
+        },
+      });
       expect((server as any).client.getSchema).toHaveBeenCalledWith('test-app');
     });
 

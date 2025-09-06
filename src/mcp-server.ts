@@ -2,10 +2,17 @@
 // Context7: consulted for @modelcontextprotocol/sdk (will be added when needed)
 // Context7: consulted for zod
 // Context7: consulted for winston
+// Context7: consulted for path
+// Context7: consulted for url
+// Context7: consulted for fs-extra
 // Critical-Engineer: consulted for Architecture pattern selection
 // Critical-Engineer: consulted for Architecture and Security Validation
 // Critical-Engineer: consulted for Architecture pattern selection
 // SECURITY-SPECIALIST-APPROVED: SECURITY-SPECIALIST-20250905-fba0d14b
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+import { FieldTranslator } from './lib/field-translator.js';
 import { SmartSuiteClient, SmartSuiteClientConfig, createAuthenticatedClient } from './smartsuite-client.js';
 
 // Safe type conversion for lint cleanup - preserves runtime behavior
@@ -17,9 +24,12 @@ function toListOptions(options: Record<string, unknown> | undefined): Record<str
 
 export class SmartSuiteShimServer {
   private client?: SmartSuiteClient;
+  private fieldTranslator: FieldTranslator;
+  private fieldMappingsInitialized = false;
 
   constructor() {
     // Minimal implementation to make instantiation test pass
+    this.fieldTranslator = new FieldTranslator();
   }
 
   getTools(): Array<{name: string; description?: string; inputSchema: {type: string; properties: Record<string, unknown>; required?: string[]}}> {
@@ -123,7 +133,69 @@ export class SmartSuiteShimServer {
     ];
   }
 
+  /**
+   * Initialize field mappings from config directory
+   * CRITICAL: This enables human-readable field names per North Star
+   */
+  private async initializeFieldMappings(): Promise<void> {
+    try {
+      // Get the directory path relative to the compiled JS location
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+
+      // Multiple path resolution strategies for different environments
+      const possiblePaths = [
+        // Production: from build/src/mcp-server.js -> ../../config/field-mappings
+        path.resolve(__dirname, '../../config/field-mappings'),
+        // Development: from src/mcp-server.js -> ../config/field-mappings
+        path.resolve(__dirname, '../config/field-mappings'),
+        // Test environment: from process.cwd()
+        path.resolve(process.cwd(), 'config/field-mappings'),
+        // Absolute fallback for dev environment
+        '/Volumes/HestAI-Projects/smartsuite-api-shim/dev/config/field-mappings',
+      ];
+
+      let configPath: string | null = null;
+
+      // Try each path until we find one that exists
+      for (const tryPath of possiblePaths) {
+        try {
+          // Use fs-extra to check if directory exists and has files
+          const fs = await import('fs-extra');
+          if (await fs.pathExists(tryPath)) {
+            const files = await fs.readdir(tryPath);
+            if (files.some(f => f.endsWith('.yaml') || f.endsWith('.yml'))) {
+              configPath = tryPath;
+              break;
+            }
+          }
+        } catch {
+          // Continue to next path
+        }
+      }
+
+      if (!configPath) {
+        throw new Error('No valid field mappings directory found');
+      }
+
+      console.log('Loading field mappings from:', configPath);
+      await this.fieldTranslator.loadAllMappings(configPath);
+      console.log('FieldTranslator initialized successfully with', this.fieldTranslator['mappings'].size, 'mappings');
+    } catch (error) {
+      console.error('Failed to initialize field mappings:', error);
+      // GRACEFUL DEGRADATION: Don't fail startup if field mappings are missing
+      // This allows the server to work with raw API codes as fallback
+      console.warn('Field mappings not available - server will use raw API field codes');
+    }
+  }
+
   async authenticate(config: SmartSuiteClientConfig): Promise<void> {
+    // Initialize field mappings on first use (lazy loading)
+    if (!this.fieldMappingsInitialized) {
+      await this.initializeFieldMappings();
+      this.fieldMappingsInitialized = true;
+    }
+
     // SIMPLE scope: Basic authentication with client storage
     this.client = await createAuthenticatedClient(config);
   }
@@ -132,6 +204,12 @@ export class SmartSuiteShimServer {
     // SIMPLE scope: Basic tool dispatch
     if (!this.client) {
       throw new Error('Authentication required: call authenticate() first');
+    }
+
+    // Initialize field mappings on first use if not already done
+    if (!this.fieldMappingsInitialized) {
+      await this.initializeFieldMappings();
+      this.fieldMappingsInitialized = true;
     }
 
     // DRY-RUN pattern enforcement for mutations (North Star requirement)
@@ -155,68 +233,152 @@ export class SmartSuiteShimServer {
   }
 
   private async handleQuery(args: Record<string, unknown>): Promise<unknown> {
-    // SIMPLE scope: Basic query operations
+    // FIELD TRANSLATION: Convert human-readable field names to API codes
     const operation = args.operation as string;
     const appId = args.appId as string;
     const recordId = args.recordId as string;
-    const options = args.options as Record<string, unknown> | undefined;
+    const filters = args.filters as Record<string, unknown> | undefined;
+    const sort = args.sort as Record<string, unknown> | undefined;
+    const limit = args.limit as number | undefined;
+
+    // Translate filters and sort options if field mappings exist
+    const translatedFilters = filters && this.fieldTranslator.hasMappings(appId)
+      ? this.fieldTranslator.humanToApi(appId, filters, false) // Non-strict mode for filters
+      : filters;
+
+    const translatedSort = sort && this.fieldTranslator.hasMappings(appId)
+      ? this.fieldTranslator.humanToApi(appId, sort, false) // Non-strict mode for sort
+      : sort;
+
+    const options = {
+      ...(translatedFilters && { filter: translatedFilters }),
+      ...(translatedSort && { sort: translatedSort }),
+      ...(limit && { limit }),
+    };
+
+    let result: unknown;
     switch (operation) {
       case 'list':
-        return this.client!.listRecords(appId, toListOptions(options));
+        result = await this.client!.listRecords(appId, toListOptions(options));
+        break;
       case 'get':
-        return this.client!.getRecord(appId, recordId);
+        result = await this.client!.getRecord(appId, recordId);
+        break;
       case 'search':
         // SIMPLE scope: search is just list with filter
-        return this.client!.listRecords(appId, toListOptions({ filter: options?.filter }));
+        result = await this.client!.listRecords(appId, toListOptions(options));
+        break;
       case 'count': {
         const records = await this.client!.listRecords(appId, toListOptions(options));
-        return { count: records.length };
+        result = { count: records.length };
+        break;
       }
       default:
         throw new Error(`Unknown query operation: ${operation}`);
     }
+
+    // FIELD TRANSLATION: Convert API response back to human-readable names
+    if (this.fieldTranslator.hasMappings(appId) && result && typeof result === 'object') {
+      if (Array.isArray(result)) {
+        // Handle array of records (list/search results)
+        return result.map(record =>
+          typeof record === 'object' && record !== null
+            ? this.fieldTranslator.apiToHuman(appId, record as Record<string, unknown>)
+            : record,
+        );
+      } else if ('count' in (result as Record<string, unknown>)) {
+        // Handle count result - no field translation needed
+        return result;
+      } else {
+        // Handle single record (get result)
+        return this.fieldTranslator.apiToHuman(appId, result as Record<string, unknown>);
+      }
+    }
+
+    return result;
   }
 
   private async handleRecord(args: Record<string, unknown>): Promise<unknown> {
-    // SIMPLE scope: Record mutations with dry-run safety
+    // FIELD TRANSLATION: Convert human-readable field names to API codes
     const operation = args.operation as string;
     const appId = args.appId as string;
     const recordId = args.recordId as string;
-    const data = args.data as Record<string, unknown>;
+    const inputData = args.data as Record<string, unknown>;
     const dry_run = args.dry_run as boolean;
+
     // Check for unimplemented operations FIRST (before dry-run)
     // This ensures we don't claim we can preview operations that don't exist
     if (operation === 'bulk_update' || operation === 'bulk_delete') {
       throw new Error(`Bulk operations not yet implemented: ${operation}`);
     }
+
+    // Translate field names if mappings exist and data is provided
+    const translatedData = inputData && this.fieldTranslator.hasMappings(appId)
+      ? this.fieldTranslator.humanToApi(appId, inputData, true) // Strict mode for data
+      : inputData;
+
     if (dry_run) {
       return {
         dry_run: true,
         operation,
         appId,
         recordId,
-        data,
-        message: `DRY-RUN: Would execute ${operation} operation`,
+        originalData: inputData,
+        translatedData,
+        fieldMappingsUsed: this.fieldTranslator.hasMappings(appId),
+        message: `DRY-RUN: Would execute ${operation} operation${this.fieldTranslator.hasMappings(appId) ? ' with field translation' : ''}`,
       };
     }
 
+    let result: unknown;
     switch (operation) {
       case 'create':
-        return this.client!.createRecord(appId, data);
+        result = await this.client!.createRecord(appId, translatedData);
+        break;
       case 'update':
-        return this.client!.updateRecord(appId, recordId, data);
+        result = await this.client!.updateRecord(appId, recordId, translatedData);
+        break;
       case 'delete':
         await this.client!.deleteRecord(appId, recordId);
-        return { deleted: recordId };
+        result = { deleted: recordId };
+        break;
       default:
         throw new Error(`Unknown record operation: ${String(operation)}`);
     }
+
+    // FIELD TRANSLATION: Convert API response back to human-readable names
+    if (this.fieldTranslator.hasMappings(appId) && result && typeof result === 'object' && !('deleted' in (result as Record<string, unknown>))) {
+      return this.fieldTranslator.apiToHuman(appId, result as Record<string, unknown>);
+    }
+
+    return result;
   }
 
   private async handleSchema(args: Record<string, unknown>): Promise<unknown> {
-    // SIMPLE scope: Schema operations
-    const { appId } = args;
-    return this.client!.getSchema(appId as string);
+    // ENHANCED scope: Schema operations with field mappings
+    const appId = args.appId as string;
+    const schema = await this.client!.getSchema(appId);
+
+    // FIELD MAPPING: Add human-readable field mappings to schema response
+    if (this.fieldTranslator.hasMappings(appId)) {
+      return {
+        ...schema,
+        fieldMappings: {
+          hasCustomMappings: true,
+          message: 'This table supports human-readable field names. Use field names from the mappings below instead of API codes.',
+          // Note: We don't expose internal mapping structure for security
+          // Users should refer to documentation for available field names
+        },
+      };
+    }
+
+    return {
+      ...schema,
+      fieldMappings: {
+        hasCustomMappings: false,
+        message: 'This table uses raw API field codes. Custom field mappings not available.',
+      },
+    };
   }
 
   private handleUndo(_args: Record<string, unknown>): Promise<unknown> {
