@@ -29,7 +29,6 @@ process.on('uncaughtException', (error: Error) => {
 });
 
 // Main server initialization - returns exit code for testability
-// eslint-disable-next-line @typescript-eslint/require-await
 async function main(): Promise<number> {
   // eslint-disable-next-line no-console
   console.log('SmartSuite API Shim MCP Server starting...');
@@ -56,13 +55,13 @@ async function main(): Promise<number> {
 
   // CRITICAL: Register our SmartSuiteShimServer tools with the MCP protocol
   // This was the missing piece - connecting our implementation to MCP
-  mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: server.getTools() };
+  mcpServer.setRequestHandler(ListToolsRequestSchema, () => {
+    return Promise.resolve({ tools: server.getTools() });
   });
 
   mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
-    const result = await server.executeTool(name, args || {});
+    const result = await server.executeTool(name, args ?? {});
     // MCP expects specific response format for tool calls
     return {
       content: [
