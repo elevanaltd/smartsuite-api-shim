@@ -220,7 +220,7 @@ describe('FieldTranslator', () => {
 
       // Should have loaded multiple table mappings
       const projectsTableId = '68a8ff5237fde0bf797c05b3';
-      const videosTableId = '66fe825502d5848ad8f1ae77';
+      const videosTableId = '68b2437a8f1755b055e0a124'; // Actual table ID from videos.yaml
       
       expect(translator.hasMappings(projectsTableId)).toBe(true);
       expect(translator.hasMappings(videosTableId)).toBe(true);
