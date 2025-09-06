@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Field Discovery Script
- * 
+ *
  * This script connects to SmartSuite API and discovers the actual field structure
  * for a given application/table. It can:
  * 1. Fetch the current schema from SmartSuite
@@ -14,12 +14,14 @@
 // Context7: consulted for path
 // Context7: consulted for yaml
 // Context7: consulted for dotenv
-import * as fs from 'fs-extra';
 import * as path from 'path';
-import * as yaml from 'yaml';
+
 import * as dotenv from 'dotenv';
-import { createAuthenticatedClient } from '../src/smartsuite-client.js';
+import * as fs from 'fs-extra';
+import * as yaml from 'yaml';
+
 import { FieldMapping } from '../src/lib/field-translator.js';
+import { createAuthenticatedClient } from '../src/smartsuite-client.js';
 
 // Load environment variables
 dotenv.config();
@@ -31,7 +33,8 @@ interface FieldInfo {
   description?: string;
 }
 
-interface SmartSuiteSchema {
+// Extended schema with application info
+interface DiscoverSchema {
   structure: {
     fields: FieldInfo[];
   };
@@ -41,11 +44,23 @@ interface SmartSuiteSchema {
   };
 }
 
+// Export helper function for testing
+export function labelToCamelCase(label: string): string {
+  return label
+    .split(/[\s-_]+/)
+    .map((word, index) =>
+      index === 0 ? word.toLowerCase() :
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+    )
+    .join('');
+}
+
 export async function discoverFields(appId: string, outputPath?: string): Promise<void> {
+  /* eslint-disable no-console */
+  // Console output is intentional for CLI tool user interface
   console.log(`\n🔍 Discovering fields for application: ${appId}\n`);
-  
   // Create authenticated client
-  const client = createAuthenticatedClient({
+  const client = await createAuthenticatedClient({
     apiKey: process.env.SMARTSUITE_API_TOKEN!,
     workspaceId: process.env.SMARTSUITE_WORKSPACE_ID!,
   });
@@ -53,16 +68,36 @@ export async function discoverFields(appId: string, outputPath?: string): Promis
   try {
     // Fetch schema from SmartSuite
     console.log('Fetching schema from SmartSuite...');
-    const schema = await client.getSchema(appId) as SmartSuiteSchema;
-    
+    const apiSchema = await client.getSchema(appId);
+
+    // Transform to our extended schema format
+    const schema: DiscoverSchema = {
+      structure: {
+        fields: apiSchema.structure.map((field) => {
+          const fieldInfo: FieldInfo = {
+            slug: field.slug,
+            label: field.label,
+            field_type: field.field_type,
+          };
+          if (field.params?.description) {
+            fieldInfo.description = field.params.description as string;
+          }
+          return fieldInfo;
+        }),
+      },
+      application: {
+        id: apiSchema.id,
+        name: apiSchema.name,
+      },
+    };
     console.log(`\nApplication: ${schema.application.name}`);
     console.log(`Application ID: ${schema.application.id}`);
     console.log(`Total fields: ${schema.structure.fields.length}\n`);
 
     // Check for existing mapping
-    const mappingPath = outputPath || 
+    const mappingPath = outputPath ??
       path.join(process.cwd(), 'config', 'field-mappings', `${schema.application.name.toLowerCase().replace(/\s+/g, '-')}.yaml`);
-    
+
     let existingMapping: FieldMapping | null = null;
     if (await fs.pathExists(mappingPath)) {
       console.log(`📄 Found existing mapping at: ${mappingPath}`);
@@ -82,12 +117,12 @@ export async function discoverFields(appId: string, outputPath?: string): Promis
 
     for (const field of schema.structure.fields) {
       const status = mappedFields.has(field.slug) ? '✅ Mapped' : '❌ Not Mapped';
-      
+
       console.log(
-        field.slug.padEnd(30) + ' | ' + 
-        field.label.padEnd(30) + ' | ' + 
-        field.field_type.padEnd(20) + ' | ' + 
-        status
+        field.slug.padEnd(30) + ' | ' +
+        field.label.padEnd(30) + ' | ' +
+        field.field_type.padEnd(20) + ' | ' +
+        status,
       );
 
       if (!mappedFields.has(field.slug)) {
@@ -101,17 +136,11 @@ export async function discoverFields(appId: string, outputPath?: string): Promis
     if (newFields.length > 0) {
       console.log(`\n\n🆕 Suggested mappings for ${newFields.length} unmapped fields:\n`);
       console.log('# Add these to your YAML mapping file:\n');
-      
+
       for (const field of newFields) {
         // Convert label to camelCase for human-readable name
-        const humanName = field.label
-          .split(/[\s-_]+/)
-          .map((word, index) => 
-            index === 0 ? word.toLowerCase() : 
-            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-          )
-          .join('');
-        
+        const humanName = labelToCamelCase(field.label);
+
         console.log(`  ${humanName}: ${field.slug.padEnd(30)} # ${field.label} - ${field.field_type}`);
       }
     }
@@ -119,11 +148,11 @@ export async function discoverFields(appId: string, outputPath?: string): Promis
     // Option to generate complete YAML file
     if (!existingMapping || process.argv.includes('--generate')) {
       console.log('\n\n📝 Complete YAML mapping file:\n');
-      
+
       const mapping: FieldMapping = {
         tableName: schema.application.name.toLowerCase().replace(/\s+/g, '-'),
         tableId: appId,
-        fields: {}
+        fields: {},
       };
 
       // Add existing mappings first
@@ -134,21 +163,15 @@ export async function discoverFields(appId: string, outputPath?: string): Promis
       // Add new fields with suggested names
       for (const field of schema.structure.fields) {
         if (!mapping.fields[field.slug]) {
-          const humanName = field.label
-            .split(/[\s-_]+/)
-            .map((word, index) => 
-              index === 0 ? word.toLowerCase() : 
-              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-            )
-            .join('');
-          
+          const humanName = labelToCamelCase(field.label);
+
           // Use the inverse mapping (human -> API)
           mapping.fields[humanName] = field.slug;
         }
       }
 
       const yamlContent = yaml.stringify(mapping);
-      
+
       if (process.argv.includes('--save')) {
         await fs.ensureDir(path.dirname(mappingPath));
         await fs.writeFile(mappingPath, yamlContent);
@@ -164,11 +187,11 @@ export async function discoverFields(appId: string, outputPath?: string): Promis
     console.log(`- Total fields in SmartSuite: ${schema.structure.fields.length}`);
     console.log(`- Mapped fields: ${existingFields.length}`);
     console.log(`- Unmapped fields: ${newFields.length}`);
-    
+
     if (existingMapping) {
       const orphanedMappings = Object.values(existingMapping.fields)
         .filter(apiCode => !schema.structure.fields.find(f => f.slug === apiCode));
-      
+
       if (orphanedMappings.length > 0) {
         console.log(`\n⚠️  Warning: ${orphanedMappings.length} mapped fields not found in current schema:`);
         orphanedMappings.forEach(code => console.log(`  - ${code}`));
@@ -179,12 +202,14 @@ export async function discoverFields(appId: string, outputPath?: string): Promis
     console.error('❌ Error discovering fields:', error);
     process.exit(1);
   }
+  /* eslint-enable no-console */
 }
 
 // CLI Usage
+/* eslint-disable no-console */
 if (require.main === module) {
   const appId = process.argv[2];
-  
+
   if (!appId) {
     console.log(`
 📚 SmartSuite Field Discovery Tool
@@ -217,3 +242,4 @@ Available Table IDs (from existing mappings):
 
   discoverFields(appId).catch(console.error);
 }
+/* eslint-enable no-console */
