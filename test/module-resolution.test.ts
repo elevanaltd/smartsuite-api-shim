@@ -165,7 +165,7 @@ console.log(badValue);`;
     const { stderr } = await execFileAsync(
       'node',
       ['build/src/index.js'],
-      { 
+      {
         cwd: process.cwd(),
         env: { ...process.env, MCP_VALIDATE_AND_EXIT: 'true' },
       },
