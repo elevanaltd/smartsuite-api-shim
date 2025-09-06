@@ -150,7 +150,12 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Backup and temporary files
+*.bak
 *.backup
+*.pre-crud
+*.swp
 # Coordination overlay
 .coord
 

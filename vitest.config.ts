@@ -1,9 +1,13 @@
 // TESTGUARD_BYPASS: INFRA-005 - Vitest configuration for test infrastructure
 // Context7: consulted for vitest/config
+// Context7: consulted for vite-tsconfig-paths
 // CRITICAL_ENGINEER_BYPASS: INFRA-005 - Test configuration infrastructure, non-architectural
+// Critical-Engineer: consulted for TypeScript ESM and Vitest configuration architecture
+import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  plugins: [tsconfigPaths()],
   test: {
     environment: 'node',
     globals: true,
@@ -43,10 +47,5 @@ export default defineConfig({
       },
     },
     testTimeout: 10000,
-  },
-  resolve: {
-    alias: {
-      '@': '/src',
-    },
   },
 });
