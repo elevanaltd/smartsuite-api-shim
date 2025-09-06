@@ -1,0 +1,70 @@
+# SmartSuite Videos Table Field Mappings - NEW ARCHITECTURE
+# SOLUTION 2: EAV Operations (68a8eedc2271ce265ebdae8f)
+# TABLE 5: Videos (68b2437a8f1755b055e0a124)
+
+tableName: videos
+tableId: 68b2437a8f1755b055e0a124
+solutionId: 68a8eedc2271ce265ebdae8f
+
+# Field mappings (human name → actual API slug)  
+fields:
+  # Core Video Fields
+  title: title                           # Video Title - Auto: [video_seq01]-[video_name]
+  videoName: video_name                  # Video Name - Text
+  videoSequence: video_seq01             # Video Sequence - Number (1, 2, 3...)
+  videoNumber: autonumber                # Video Number - Autonumber (#01, #02...)
+  
+  # Status Fields
+  mainStreamStatus: main_status          # Main Stream Status - Status Field
+  voStreamStatus: vo_status              # VO Stream Status - Status Field
+  priority: priority                     # Priority - Single Select
+  
+  # Project Relationships
+  projectOld: se4686e2e5                # Project (OLD) - TO BE REMOVED
+  projectLinkV2: proj_link_v2           # Project Link V2 - NEW FIELD
+  projectCode: s16f0c5a34               # Project Code - Lookup
+  
+  # Team Assignments
+  assignedEditor: assigned_editor        # Assigned Editor - Members
+  assignedProducer: assigned_producer    # Assigned Producer - Members
+  
+  # Production Details
+  targetDuration: target_duration        # Target Duration - Number (seconds)
+  description: description               # Description - Rich Text
+  
+  # System Fields
+  firstCreated: first_created            # First Created - Created Time
+  lastUpdated: last_updated              # Last Updated - Updated Time
+
+# Status Field Options
+mainStreamStatusOptions:
+  - PEND START
+  - PEND USER MANUAL
+  - PEND SCRIPT
+  - SCRIPT IN REVIEW
+  - PEND SCRIPT REWORK
+  - PEND SCENES
+  - SCENES PLANNED
+  - PEND FILMING
+  - PEND INGESTION
+  - MEDIA READY
+  - IN EDIT PREP
+  - IN EDIT
+  - INTERNAL REVIEW
+  - VIDEO REWORK
+  - VIDEO IN REVIEW
+  - VIDEO APPROVED
+  - IN DELIVERY
+  - DELIVERED
+
+voStreamStatusOptions:
+  - PEND SCRIPT APPROVAL
+  - PEND VO
+  - VO READY
+  - VO DELIVERED
+
+priorityOptions:
+  - Urgent
+  - High
+  - Normal
+  - Low

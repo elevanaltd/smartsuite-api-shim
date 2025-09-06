@@ -1,0 +1,147 @@
+# SmartSuite Tasks Table Field Mappings
+# SOLUTION 2: EAV Operations (68a8eedc2271ce265ebdae8f)
+# TABLE 6: Tasks (68a8ffac490e5496953e5b1c)
+
+tableName: tasks
+tableId: 68a8ffac490e5496953e5b1c
+solutionId: 68a8eedc2271ce265ebdae8f
+
+# Field mappings (human name → actual API slug)
+fields:
+  # Core Task Fields
+  taskId: autonumber                     # Task ID - Autonumber (T0001, T0002...)
+  title: title                           # Task Description - Record Title
+  taskCode: task_code                    # Task Code - Single Select (22 consolidated tasks)
+  taskVariant: task_variant              # Task Variant - Multi Select (7 options)
+  
+  # Workflow Organization
+  workflowStream: workflow_stream        # Workflow Stream - Single Select (BOOKING/ASSET/MAIN/VO)
+  taskLevel: task_level                  # Task Level - Single Select (Project Level/Video Level)
+  workflowStage: workflow_stage          # Workflow Stage - Single Select (22 stages)
+  
+  # Assignment
+  teams: teams                          # Teams - Teams field
+  assignedTo: assigned_to               # Assigned To - Members (filtered by Team)
+  
+  # Project Relationships
+  project: project                      # Project - Linked Record
+  projectCode: project_code             # Project Code - Lookup
+  relatedVideo: video_id                # Related Video - Linked Record
+  videoId: video_lookup                 # Video ID - Lookup
+  
+  # Task Management
+  status: status                        # Status - Single Select
+  priority: priority                    # Priority - Single Select (🔴 Critical / 🟠 High / 🟡 Normal / 🟢 Low)
+  dueDate: due_date                     # Due Date
+  
+  # Automation
+  autoCreatesNext: auto_creates         # Auto Creates Next - Text
+  
+  # Time Tracking
+  estimatedHours: estimated_hours       # Estimated Hours - Number
+  confirmedHours: confirmed_h           # Confirmed Hours - Number (Editor Quoting)
+  actualHours: actual_hours             # Actual Hours - Number
+  
+  # Categorization
+  valueCategory: value_category         # Value Category - Single Select
+  delegationStatus: delegation_status   # Delegation Status - Single Select
+  
+  # Dependencies
+  dependencies: dependencies            # Dependencies - Linked Record (Tasks)
+  crossStreamDependencies: cross_dependencies # Cross Stream Dependencies - Text Area
+  
+  # Content & Progress
+  taskRequirements: requirements        # Task Requirements - Rich Text
+  progressUpdates: progress             # Progress Updates - Rich Text
+  deliverables: deliverables            # Deliverables - File
+  
+  # Timeline
+  createdDate: created_date             # Created Date - Created Time
+  completedDate: completed_date         # Completed Date
+
+# Task Code Options (22 consolidated tasks)
+taskCodeOptions:
+  # BOOKING STREAM (3 tasks)
+  - p1_setup                           # P1-Project Setup
+  - p2_booking                         # P2-Booking (with variants)
+  - p3_attendance                      # P3-Attendance (with variants)
+  
+  # ASSET STREAM (4 tasks)
+  - p4_branding_collection             # P4-Branding Collection
+  - p5_music_collection                # P5-Music Collection
+  - p6_mogrt_check                     # P6-MOGRT Check
+  - p7_mogrt_creation                  # P7-MOGRT Creation (conditional)
+  
+  # MAIN STREAM - Project Level (5 tasks)
+  - p8_spec_collection                 # P8-Spec Collection
+  - p9_filming                         # P9-Filming
+  - p10_media_ingestion               # P10-Media Ingestion
+  - p11_client_delivery               # P11-Client Delivery
+  - p12_completion_invoicing          # P12-Completion & Invoicing
+  
+  # MAIN STREAM - Video Level (9 tasks)
+  - v1_manual_collection              # V1-User Manual Collection (conditional)
+  - v2_script_creation                # V2-Script Creation
+  - v3_script_review                  # V3-Script Review
+  - v4_script_revision                # V4-Script Revision (rework)
+  - v5_scene_planning                 # V5-Scene Planning
+  - v7_edit_prep                      # V7-Edit Prep
+  - v8_video_edit                     # V8-Video Edit (with variants)
+  - v9_video_review                   # V9-Video Review (with variants)
+  - v10_video_revision                # V10-Video Revision (with variants)
+  
+  # VO STREAM (1 task)
+  - v6_vo_generation                  # V6-VO Generation
+
+# Task Variant Options (7 variants)
+taskVariantOptions:
+  - recce                             # For P2/P3 tasks
+  - shoot                             # For P2/P3 tasks
+  - pickups                           # For P2/P3 tasks
+  - internal                          # For V9/V10 tasks
+  - client                            # For V9/V10 tasks
+  - editing                           # For V8/V10 tasks
+  - grading                           # For V8/V10 tasks
+
+# Workflow Stream Options
+workflowStreamOptions:
+  - BOOKING
+  - ASSET
+  - MAIN
+  - VO
+
+# Task Level Options
+taskLevelOptions:
+  - Project Level
+  - Video Level
+
+# Status Options
+statusOptions:
+  - To Do
+  - In Progress
+  - Internal Review
+  - Client Review
+  - Changes Needed
+  - Complete
+
+# Priority Options
+priorityOptions:
+  - 🔴 Critical
+  - 🟠 High
+  - 🟡 Normal
+  - 🟢 Low
+
+# Value Category Options
+valueCategoryOptions:
+  - Strategic Direction
+  - Operational Excellence
+  - Quality Control
+  - Client Relationship
+  - Technical Execution
+
+# Delegation Status Options
+delegationStatusOptions:
+  - Internal Only
+  - Ready to Delegate
+  - External Freelancer
+  - Client Dependent
