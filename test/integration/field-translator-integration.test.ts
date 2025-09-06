@@ -1,47 +1,27 @@
 // Integration test for FieldTranslator with real SmartSuite data
+// Critical-Engineer: consulted for test data management and integration test strategy
 import { FieldTranslator } from '../../src/lib/field-translator.js';
-// Context7: consulted for fs-extra
-import * as fs from 'fs-extra';
+// Context7: consulted for path
+import * as path from 'path';
+// Context7: consulted for url
+import { fileURLToPath } from 'url';
+// Context7: consulted for vitest
+import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('FieldTranslator Integration Tests', () => {
   let translator: FieldTranslator;
   const projectsTableId = '68a8ff5237fde0bf797c05b3';
-  const mappingsDir = '/Volumes/EAV/new-system/data/field-mappings/';
+  
+  // Get the directory path for this test file
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
 
   beforeEach(async () => {
     translator = new FieldTranslator();
     
-    // Only load if directory exists
-    if (await fs.pathExists(mappingsDir)) {
-      await translator.loadAllMappings(mappingsDir);
-    } else {
-      // Fallback: load from mock data if real mappings not available
-      const mockMapping = {
-        tableName: 'projects',
-        tableId: projectsTableId,
-        solutionId: '68b6d66b33630eb365ae54cb',
-        fields: {
-          title: 'title',
-          eavCode: 'autonumber',
-          projectName: 'project_name_actual',
-          client: 'sbfc98645c',
-          projectManager: 'project_manager',
-          primaryContactEmail: 'primary_contact',
-          projectPhase: 'status',
-          priority: 'priority',
-          totalVideosCount: 'total_videos_count',
-          initialProjectCost: 'initial_cost',
-          agreementDate: 'agreement_date',
-          bookingStreamStatus: 'bkgstream',
-          filmingBlockers: 'se202948fd',
-          videosOld: 'si8yx4fb',
-          firstCreated: 'first_created',
-          lastUpdated: 'last_updated'
-        }
-      };
-      
-      translator['mappings'].set(projectsTableId, mockMapping);
-    }
+    // Load from deterministic test fixture - works in both local and CI environments
+    const mappingPath = path.resolve(__dirname, '../fixtures/projects-mapping.yaml');
+    await translator.loadFromYaml(mappingPath);
   });
 
   describe('Real SmartSuite Data Translation', () => {
@@ -128,9 +108,6 @@ describe('FieldTranslator Integration Tests', () => {
       });
     });
 
-    // detectFieldType test removed - method was removed per Critical Engineer recommendation
-    // The wrapper enforces a strict contract - calling code should know the expected format
-
     it('should handle complex nested data structures', () => {
       const complexData = {
         projectName: 'Complex Project',
@@ -149,14 +126,34 @@ describe('FieldTranslator Integration Tests', () => {
         }
       };
 
+      // Now using strict mode since our test fixture includes these fields
       const apiData = translator.humanToApi(projectsTableId, complexData);
+      
+      expect(apiData).toEqual({
+        project_name_actual: 'Complex Project',
+        client_contacts: {
+          richText: '<p>Contact details</p>',
+          mentions: ['user1', 'user2']
+        },
+        project_brief: {
+          content: 'Project description',
+          attachments: ['file1.pdf', 'file2.doc']
+        },
+        sn0a32ss: ['record1', 'record2'],
+        project_lifecycle: {
+          start: '2024-01-01',
+          end: '2024-06-01'
+        }
+      });
+      
       const backToHuman = translator.apiToHuman(projectsTableId, apiData);
 
-      // Complex structures should be preserved
-      expect(apiData.project_name_actual).toBe('Complex Project');
-      expect(apiData.client_contacts).toEqual(complexData.clientContacts);
+      // Complex structures should be preserved through round-trip
       expect(backToHuman.projectName).toBe('Complex Project');
       expect(backToHuman.clientContacts).toEqual(complexData.clientContacts);
+      expect(backToHuman.projectBrief).toEqual(complexData.projectBrief);
+      expect(backToHuman.financialRecords).toEqual(complexData.financialRecords);
+      expect(backToHuman.projectLifecycle).toEqual(complexData.projectLifecycle);
     });
   });
 
@@ -173,8 +170,6 @@ describe('FieldTranslator Integration Tests', () => {
       expect(translator.humanToApi(projectsTableId, {})).toEqual({});
       expect(translator.apiToHuman(projectsTableId, {})).toEqual({});
     });
-
-    // Removed test for detectFieldType with malformed data - method no longer exists
   });
 
   describe('Performance with Large Datasets', () => {

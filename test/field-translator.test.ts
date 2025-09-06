@@ -5,11 +5,21 @@
 // 2. Fixed loadFromYaml test to match FAIL FAST contract
 // 3. Fixed humanToApi tests to properly test strict mode (default behavior)
 // 4. Removed unused mockClient variable
+// Critical-Engineer: consulted for test data management and integration test strategy
 import { describe, it, expect, beforeEach } from 'vitest';
 import { FieldTranslator } from '../src/lib/field-translator.js';
+// Context7: consulted for path
+import * as path from 'path';
+// Context7: consulted for url
+import { fileURLToPath } from 'url';
 
 describe('FieldTranslator', () => {
   let translator: FieldTranslator;
+  
+  // Get the directory path for this test file
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const fixturePathProjects = path.resolve(__dirname, './fixtures/projects-mapping.yaml');
 
   beforeEach(() => {
     translator = new FieldTranslator();
@@ -17,9 +27,8 @@ describe('FieldTranslator', () => {
 
   describe('loadFromYaml', () => {
     it('should load field mappings from YAML file', async () => {
-      // Test loading the projects.yaml file
-      const yamlPath = '/Volumes/EAV/new-system/data/field-mappings/projects.yaml';
-      await translator.loadFromYaml(yamlPath);
+      // Test loading the projects fixture file
+      await translator.loadFromYaml(fixturePathProjects);
       
       // Should have loaded mappings for the projects table
       const tableId = '68a8ff5237fde0bf797c05b3';
@@ -36,9 +45,8 @@ describe('FieldTranslator', () => {
 
   describe('humanToApi', () => {
     beforeEach(async () => {
-      // Load test mappings
-      const yamlPath = '/Volumes/EAV/new-system/data/field-mappings/projects.yaml';
-      await translator.loadFromYaml(yamlPath);
+      // Load test mappings from fixture
+      await translator.loadFromYaml(fixturePathProjects);
     });
 
     it('should translate human-readable fields to API codes', () => {
@@ -126,9 +134,8 @@ describe('FieldTranslator', () => {
 
   describe('apiToHuman', () => {
     beforeEach(async () => {
-      // Load test mappings
-      const yamlPath = '/Volumes/EAV/new-system/data/field-mappings/projects.yaml';
-      await translator.loadFromYaml(yamlPath);
+      // Load test mappings from fixture
+      await translator.loadFromYaml(fixturePathProjects);
     });
 
     it('should translate API codes back to human-readable fields', () => {
@@ -187,23 +194,54 @@ describe('FieldTranslator', () => {
   // TEST-METHODOLOGY-GUARDIAN: Approved removal of obsolete tests for non-existent method
 
   describe('loadAllMappings', () => {
-    it('should load all YAML files from field-mappings directory', async () => {
-      const mappingsDir = '/Volumes/EAV/new-system/data/field-mappings';
-      await translator.loadAllMappings(mappingsDir);
-
-      // Should have loaded multiple table mappings
-      const projectsTableId = '68a8ff5237fde0bf797c05b3';
-      const videosTableId = '68b2437a8f1755b055e0a124'; // Actual table ID from videos.yaml
+    it('should load all YAML files from fixtures directory', async () => {
+      const fixturesDir = path.resolve(__dirname, './fixtures');
       
-      expect(translator.hasMappings(projectsTableId)).toBe(true);
-      expect(translator.hasMappings(videosTableId)).toBe(true);
+      // Create a videos mapping fixture for multi-file test
+      const videosMapping = `tableName: videos
+tableId: '68b2437a8f1755b055e0a124'
+solutionId: '68b6d66b33630eb365ae54cb'
+fields:
+  videoTitle: 'video_title'
+  duration: 'duration'
+  status: 'status'`;
+      
+      const videosPath = path.join(fixturesDir, 'videos-mapping.yaml');
+      
+      // Write videos fixture temporarily
+      const fs = await import('fs-extra');
+      await fs.writeFile(videosPath, videosMapping);
+      
+      try {
+        // Load all mappings
+        await translator.loadAllMappings(fixturesDir);
+        
+        // Should have loaded multiple table mappings
+        const projectsTableId = '68a8ff5237fde0bf797c05b3';
+        const videosTableId = '68b2437a8f1755b055e0a124';
+        
+        expect(translator.hasMappings(projectsTableId)).toBe(true);
+        expect(translator.hasMappings(videosTableId)).toBe(true);
+      } finally {
+        // Clean up temporary file
+        await fs.remove(videosPath);
+      }
     });
 
-    it('should skip non-YAML files', async () => {
-      const mappingsDir = '/Volumes/EAV/new-system/data/field-mappings';
+    it('should throw error for directory with no YAML files', async () => {
+      const emptyDir = path.resolve(__dirname, './empty-test-dir');
       
-      // Should not throw when encountering README.md
-      await expect(translator.loadAllMappings(mappingsDir)).resolves.not.toThrow();
+      // Create empty directory
+      const fs = await import('fs-extra');
+      await fs.ensureDir(emptyDir);
+      
+      try {
+        // Should throw when no YAML files found
+        await expect(translator.loadAllMappings(emptyDir)).rejects.toThrow(/No YAML mapping files found/);
+      } finally {
+        // Clean up
+        await fs.remove(emptyDir);
+      }
     });
   });
 
