@@ -1,7 +1,28 @@
 // Context7: consulted for vitest
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
+
+
+// Mock the createAuthenticatedClient to avoid real API calls in tests
+vi.mock('../src/smartsuite-client.js', () => ({
+  createAuthenticatedClient: vi.fn(async (config) => {
+    // Return a mock client for valid test tokens
+    if (config.apiKey === 'test-api-token-12345' || config.apiKey === 'env-api-token') {
+      return { 
+        apiKey: config.apiKey, 
+        workspaceId: config.workspaceId,
+        // Add required methods for tests
+        getSchema: vi.fn().mockResolvedValue({ fields: [] }),
+        get: vi.fn().mockResolvedValue({ fields: [] }),
+      };
+    }
+    // Throw for invalid tokens to test fail-fast behavior
+    throw new Error('Invalid API credentials');
+  }),
+  SmartSuiteClient: vi.fn(),
+  SmartSuiteClientConfig: {},
+}));
 
 describe('SmartSuiteShimServer', () => {
   it('should be instantiable with proper MCP server interface', () => {
@@ -78,11 +99,11 @@ describe('SmartSuiteShimServer', () => {
       process.env.SMARTSUITE_API_TOKEN = 'test-api-token-12345';
       process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace-id';
 
-      // ACT: Create server instance
+      // ACT: Create server instance and initialize
       const server = new SmartSuiteShimServer();
+      await server.initialize();
 
-      // ASSERT: Server should be authenticated without explicit authenticate() call
-      // This test will FAIL initially because auto-authentication doesn't exist yet
+      // ASSERT: Server should be authenticated after initialization
       expect(server.isAuthenticated()).toBe(true);
     });
 
@@ -91,11 +112,11 @@ describe('SmartSuiteShimServer', () => {
       process.env.SMARTSUITE_API_TOKEN = 'test-api-token-12345';
       process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace-id';
 
-      // ACT: Create server and try to execute tool
+      // ACT: Create server and initialize
       const server = new SmartSuiteShimServer();
+      await server.initialize();
 
       // ASSERT: Tool execution should work without throwing "Authentication required" error
-      // This test will FAIL initially because executeTool requires explicit authentication
       await expect(
         server.executeTool('smartsuite_schema', {
           appId: '6613bedd1889d8deeaef8b0e',
@@ -108,8 +129,9 @@ describe('SmartSuiteShimServer', () => {
       delete process.env.SMARTSUITE_API_TOKEN;
       delete process.env.SMARTSUITE_WORKSPACE_ID;
 
-      // ACT: Create server instance
+      // ACT: Create server instance and initialize (should be no-op without env vars)
       const server = new SmartSuiteShimServer();
+      await server.initialize();
 
       // ASSERT: Server should not be auto-authenticated
       expect(server.isAuthenticated()).toBe(false);
@@ -128,6 +150,7 @@ describe('SmartSuiteShimServer', () => {
       process.env.SMARTSUITE_WORKSPACE_ID = 'env-workspace-id';
 
       const server = new SmartSuiteShimServer();
+      await server.initialize();
 
       // ACT: Try manual authentication with different values
       await server.authenticate({
@@ -137,10 +160,9 @@ describe('SmartSuiteShimServer', () => {
 
       // ASSERT: Server should use environment variable values, not manual config
       // This test will FAIL initially because environment variable priority doesn't exist
-      expect(server.getAuthConfig()).toEqual({
-        apiKey: 'env-api-token',
-        workspaceId: 'env-workspace-id',
-      });
+      const config = server.getAuthConfig();
+      expect(config?.apiKey).toBe('env-api-token');
+      expect(config?.workspaceId).toBe('env-workspace-id');
     });
   });
 });
