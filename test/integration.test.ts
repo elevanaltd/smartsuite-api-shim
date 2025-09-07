@@ -86,12 +86,12 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
       global.fetch = originalFetch;
 
-      const result = await server.executeTool('smartsuite_record', {
+      const result = (await server.executeTool('smartsuite_record', {
         operation: 'create',
         appId: 'test',
         data: { name: 'test' },
         dry_run: true,
-      }) as { dry_run: boolean; message: string };
+      })) as { dry_run: boolean; message: string };
 
       expect(result.dry_run).toBe(true);
       expect(result.message).toContain('DRY-RUN');
@@ -115,9 +115,9 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
       global.fetch = originalFetch;
 
-      await expect(
-        server.executeTool('unknown_tool', {}),
-      ).rejects.toThrow('Unknown tool: unknown_tool');
+      await expect(server.executeTool('unknown_tool', {})).rejects.toThrow(
+        'Unknown tool: unknown_tool',
+      );
     });
 
     it('should provide clear error for unknown operations', async () => {
@@ -226,9 +226,9 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     });
 
     it('should handle undo operation placeholder', async () => {
-      await expect(
-        server.executeTool('smartsuite_undo', {}),
-      ).rejects.toThrow('Undo functionality not yet implemented');
+      await expect(server.executeTool('smartsuite_undo', {})).rejects.toThrow(
+        'Undo functionality not yet implemented',
+      );
     });
   });
 

@@ -39,10 +39,12 @@ describe('index.ts entry point', () => {
     expect(consoleLogSpy).toHaveBeenCalledWith(
       expect.stringContaining('SmartSuite API Shim MCP Server starting'),
     );
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      'Server ready with 4 tools:',
-      ['smartsuite_query', 'smartsuite_record', 'smartsuite_schema', 'smartsuite_undo'],
-    );
+    expect(consoleLogSpy).toHaveBeenCalledWith('Server ready with 4 tools:', [
+      'smartsuite_query',
+      'smartsuite_record',
+      'smartsuite_schema',
+      'smartsuite_undo',
+    ]);
   });
 
   it('should exit cleanly in validation mode after startup validation', async () => {

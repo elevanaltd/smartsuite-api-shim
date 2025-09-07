@@ -49,7 +49,11 @@ export interface SmartSuiteClient {
   listRecords: (appId: string, options?: SmartSuiteListOptions) => Promise<SmartSuiteRecord[]>;
   getRecord: (appId: string, recordId: string) => Promise<SmartSuiteRecord>;
   createRecord: (appId: string, data: Record<string, unknown>) => Promise<SmartSuiteRecord>;
-  updateRecord: (appId: string, recordId: string, data: Record<string, unknown>) => Promise<SmartSuiteRecord>;
+  updateRecord: (
+    appId: string,
+    recordId: string,
+    data: Record<string, unknown>,
+  ) => Promise<SmartSuiteRecord>;
   deleteRecord: (appId: string, recordId: string) => Promise<void>;
   getSchema: (appId: string) => Promise<SmartSuiteSchema>;
 }
@@ -62,12 +66,14 @@ export async function createAuthenticatedClient(
   const baseUrl = config.baseUrl ?? 'https://api.smartsuite.com';
 
   // Validate API key by making a test request
+  // SmartSuite uses "Token" format and "ACCOUNT-ID" header, not Bearer
   try {
-    const validationUrl = baseUrl + '/workspaces/' + workspaceId;
+    const validationUrl = baseUrl + '/api/v1/applications';
     const response = await fetch(validationUrl, {
       method: 'GET',
       headers: {
-        'Authorization': 'Bearer ' + apiKey,
+        Authorization: 'Token ' + apiKey,
+        'ACCOUNT-ID': workspaceId,
         'Content-Type': 'application/json',
       },
     });
@@ -75,7 +81,7 @@ export async function createAuthenticatedClient(
     if (!response.ok) {
       let errorData: Record<string, unknown> = { error: response.statusText };
       try {
-        errorData = await response.json() as Record<string, unknown>;
+        errorData = (await response.json()) as Record<string, unknown>;
       } catch {
         // Use default error if JSON parsing fails
       }
@@ -94,10 +100,15 @@ export async function createAuthenticatedClient(
         throw new Error(message);
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle network errors
-    if (error.message && (error.message.includes('ETIMEDOUT') || error.message.includes('Network request failed'))) {
-      const message = 'Network error: ' + error.message + '. Please check your connection and try again.';
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (
+      errorMessage &&
+      (errorMessage.includes('ETIMEDOUT') || errorMessage.includes('Network request failed'))
+    ) {
+      const message =
+        'Network error: ' + errorMessage + '. Please check your connection and try again.';
       throw new Error(message);
     }
     // Re-throw other errors (including our custom auth errors)
@@ -110,11 +121,12 @@ export async function createAuthenticatedClient(
     workspaceId: workspaceId,
 
     async listRecords(appId: string, _options?: any): Promise<any[]> {
-      const url = baseUrl + '/applications/' + appId + '/records';
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records';
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer ' + apiKey,
+          Authorization: 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
       });
@@ -127,11 +139,12 @@ export async function createAuthenticatedClient(
     },
 
     async getRecord(appId: string, recordId: string): Promise<any> {
-      const url = baseUrl + '/applications/' + appId + '/records/' + recordId;
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId;
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer ' + apiKey,
+          Authorization: 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
       });
@@ -144,11 +157,12 @@ export async function createAuthenticatedClient(
     },
 
     async createRecord(appId: string, data: any): Promise<any> {
-      const url = baseUrl + '/applications/' + appId + '/records';
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records';
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer ' + apiKey,
+          Authorization: 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
@@ -162,11 +176,12 @@ export async function createAuthenticatedClient(
     },
 
     async updateRecord(appId: string, recordId: string, data: any): Promise<any> {
-      const url = baseUrl + '/applications/' + appId + '/records/' + recordId;
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId;
       const response = await fetch(url, {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer ' + apiKey,
+          Authorization: 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
@@ -180,11 +195,12 @@ export async function createAuthenticatedClient(
     },
 
     async deleteRecord(appId: string, recordId: string): Promise<void> {
-      const url = baseUrl + '/applications/' + appId + '/records/' + recordId;
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId;
       const response = await fetch(url, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'Bearer ' + apiKey,
+          Authorization: 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
       });
@@ -195,11 +211,12 @@ export async function createAuthenticatedClient(
     },
 
     async getSchema(appId: string): Promise<any> {
-      const url = baseUrl + '/applications/' + appId + '/structure';
+      const url = baseUrl + '/api/v1/applications/' + appId + '/structure';
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer ' + apiKey,
+          Authorization: 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
       });

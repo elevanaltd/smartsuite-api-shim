@@ -2,6 +2,7 @@
 // Critical-Engineer: consulted for Architecture pattern selection
 // Critical-Engineer: consulted for Node.js ESM module resolution strategy
 // Critical-Engineer: consulted for CI pipeline step-ordering and test strategy
+// Critical-Engineer: consulted for Build process and asset management
 // Context7: consulted for @modelcontextprotocol/sdk/server/index.js
 // Context7: consulted for @modelcontextprotocol/sdk/server/stdio.js
 // Context7: consulted for @modelcontextprotocol/sdk/types.js
@@ -33,7 +34,7 @@ async function main(): Promise<number> {
   // eslint-disable-next-line no-console
   console.log('SmartSuite API Shim MCP Server starting...');
   const server = new SmartSuiteShimServer();
-  
+
   try {
     // BLOCKING call - following fail-fast pattern per Critical-Engineer recommendation
     // Server must be authenticated (if env vars present) before accepting connections
@@ -46,12 +47,15 @@ async function main(): Promise<number> {
     // Exit with non-zero code - critical for CI/CD and orchestration
     return 1;
   }
-  
+
   // Log available tools for debugging
   const tools = server.getTools();
   // eslint-disable-next-line no-console
-  console.log(`Server ready with ${tools.length} tools:`, tools.map(t => t.name));
-  
+  console.log(
+    `Server ready with ${tools.length} tools:`,
+    tools.map((t) => t.name),
+  );
+
   // Check if we're in validation-only mode (for CI/testing)
   // Using explicit environment variable to avoid accidental production issues
   const isValidationOnly = process.env.MCP_VALIDATE_AND_EXIT === 'true';

@@ -13,10 +13,16 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 
 import { FieldTranslator } from './lib/field-translator.js';
-import { SmartSuiteClient, SmartSuiteClientConfig, createAuthenticatedClient } from './smartsuite-client.js';
+import {
+  SmartSuiteClient,
+  SmartSuiteClientConfig,
+  createAuthenticatedClient,
+} from './smartsuite-client.js';
 
 // Safe type conversion for lint cleanup - preserves runtime behavior
-function toListOptions(options: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+function toListOptions(
+  options: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
   // LINT_CLEANUP: Conservative conversion maintains existing behavior
   // TODO: Future enhancement - add Zod schema validation per Critical-Engineer recommendation
   return options;
@@ -31,7 +37,7 @@ export class SmartSuiteShimServer {
   constructor() {
     // Minimal implementation to make instantiation test pass
     this.fieldTranslator = new FieldTranslator();
-    
+
     // Critical-Engineer: consulted for server initialization and auto-authentication strategy
     // Constructor remains fast and non-blocking - no I/O operations here
   }
@@ -46,6 +52,7 @@ export class SmartSuiteShimServer {
     const workspaceId = process.env.SMARTSUITE_WORKSPACE_ID;
 
     if (apiToken && workspaceId) {
+      // eslint-disable-next-line no-console
       console.log('Auto-authenticating from environment variables...');
       this.authConfig = {
         apiKey: apiToken,
@@ -55,8 +62,10 @@ export class SmartSuiteShimServer {
       try {
         // BLOCKING call - server must be authenticated before starting
         await this.authenticate(this.authConfig);
+        // eslint-disable-next-line no-console
         console.log('Authentication successful.');
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('FATAL: Auto-authentication failed.', error);
         // Re-throw to prevent the server from starting
         throw new Error('Could not authenticate server with environment credentials.');
@@ -73,14 +82,12 @@ export class SmartSuiteShimServer {
     return this.client !== undefined;
   }
 
-
   /**
    * Get current authentication configuration
    */
   getAuthConfig(): SmartSuiteClientConfig | undefined {
     return this.authConfig;
   }
-
 
   /**
    * Ensure authentication is complete before tool execution
@@ -91,9 +98,14 @@ export class SmartSuiteShimServer {
       throw new Error('Authentication required: call authenticate() first');
     }
     // Client exists, we're authenticated
+    return Promise.resolve();
   }
 
-  getTools(): Array<{name: string; description?: string; inputSchema: {type: string; properties: Record<string, unknown>; required?: string[]}}> {
+  getTools(): Array<{
+    name: string;
+    description?: string;
+    inputSchema: { type: string; properties: Record<string, unknown>; required?: string[] };
+  }> {
     // Return tools in MCP protocol-compliant format with proper schemas
     return [
       {
@@ -218,14 +230,18 @@ export class SmartSuiteShimServer {
 
       let configPath: string | null = null;
 
+      // Import fs-extra once outside the loop for performance
+      const fs = await import('fs-extra');
+
       // Try each path until we find one that exists
+      // eslint-disable-next-line no-await-in-loop
       for (const tryPath of possiblePaths) {
         try {
           // Use fs-extra to check if directory exists and has files
-          const fs = await import('fs-extra');
+          // Sequential checking is intentional - we stop at first valid path
           if (await fs.pathExists(tryPath)) {
             const files = await fs.readdir(tryPath);
-            if (files.some(f => f.endsWith('.yaml') || f.endsWith('.yml'))) {
+            if (files.some((f) => f.endsWith('.yaml') || f.endsWith('.yml'))) {
               configPath = tryPath;
               break;
             }
@@ -239,14 +255,25 @@ export class SmartSuiteShimServer {
         throw new Error('No valid field mappings directory found');
       }
 
+      // eslint-disable-next-line no-console
       console.log('Loading field mappings from:', configPath);
       await this.fieldTranslator.loadAllMappings(configPath);
-      console.log('FieldTranslator initialized successfully with', this.fieldTranslator['mappings'].size, 'mappings');
+      // eslint-disable-next-line no-console
+      console.log(
+        'FieldTranslator initialized successfully with',
+        this.fieldTranslator['mappings'].size,
+        'mappings',
+      );
+      this.fieldMappingsInitialized = true;
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to initialize field mappings:', error);
       // GRACEFUL DEGRADATION: Don't fail startup if field mappings are missing
       // This allows the server to work with raw API codes as fallback
+      // eslint-disable-next-line no-console
       console.warn('Field mappings not available - server will use raw API field codes');
+      // Mark as initialized even though we failed, to avoid repeated attempts
+      this.fieldMappingsInitialized = true;
     }
   }
 
@@ -254,7 +281,6 @@ export class SmartSuiteShimServer {
     // Initialize field mappings on first use (lazy loading)
     if (!this.fieldMappingsInitialized) {
       await this.initializeFieldMappings();
-      this.fieldMappingsInitialized = true;
     }
 
     // ENVIRONMENT VARIABLE PRIORITY: If env vars are set, use them instead of provided config
@@ -266,7 +292,7 @@ export class SmartSuiteShimServer {
       effectiveConfig = {
         apiKey: envToken,
         workspaceId: envWorkspaceId,
-        baseUrl: config.baseUrl || 'https://app.smartsuite.com/api/v1', // Provide default if undefined
+        baseUrl: config.baseUrl ?? 'https://app.smartsuite.com', // Base URL without /api/v1 (added in client)
       };
       // Update stored config to reflect environment priority
       this.authConfig = effectiveConfig;
@@ -286,7 +312,6 @@ export class SmartSuiteShimServer {
     // Initialize field mappings on first use if not already done
     if (!this.fieldMappingsInitialized) {
       await this.initializeFieldMappings();
-      this.fieldMappingsInitialized = true;
     }
 
     // DRY-RUN pattern enforcement for mutations (North Star requirement)
@@ -319,13 +344,15 @@ export class SmartSuiteShimServer {
     const limit = args.limit as number | undefined;
 
     // Translate filters and sort options if field mappings exist
-    const translatedFilters = filters && this.fieldTranslator.hasMappings(appId)
-      ? this.fieldTranslator.humanToApi(appId, filters, false) // Non-strict mode for filters
-      : filters;
+    const translatedFilters =
+      filters && this.fieldTranslator.hasMappings(appId)
+        ? this.fieldTranslator.humanToApi(appId, filters, false) // Non-strict mode for filters
+        : filters;
 
-    const translatedSort = sort && this.fieldTranslator.hasMappings(appId)
-      ? this.fieldTranslator.humanToApi(appId, sort, false) // Non-strict mode for sort
-      : sort;
+    const translatedSort =
+      sort && this.fieldTranslator.hasMappings(appId)
+        ? this.fieldTranslator.humanToApi(appId, sort, false) // Non-strict mode for sort
+        : sort;
 
     const options = {
       ...(translatedFilters && { filter: translatedFilters }),
@@ -358,7 +385,7 @@ export class SmartSuiteShimServer {
     if (this.fieldTranslator.hasMappings(appId) && result && typeof result === 'object') {
       if (Array.isArray(result)) {
         // Handle array of records (list/search results)
-        return result.map(record =>
+        return result.map((record: unknown) =>
           typeof record === 'object' && record !== null
             ? this.fieldTranslator.apiToHuman(appId, record as Record<string, unknown>)
             : record,
@@ -390,9 +417,10 @@ export class SmartSuiteShimServer {
     }
 
     // Translate field names if mappings exist and data is provided
-    const translatedData = inputData && this.fieldTranslator.hasMappings(appId)
-      ? this.fieldTranslator.humanToApi(appId, inputData, true) // Strict mode for data
-      : inputData;
+    const translatedData =
+      inputData && this.fieldTranslator.hasMappings(appId)
+        ? this.fieldTranslator.humanToApi(appId, inputData, true) // Strict mode for data
+        : inputData;
 
     if (dry_run) {
       return {
@@ -424,7 +452,12 @@ export class SmartSuiteShimServer {
     }
 
     // FIELD TRANSLATION: Convert API response back to human-readable names
-    if (this.fieldTranslator.hasMappings(appId) && result && typeof result === 'object' && !('deleted' in (result as Record<string, unknown>))) {
+    if (
+      this.fieldTranslator.hasMappings(appId) &&
+      result &&
+      typeof result === 'object' &&
+      !('deleted' in (result as Record<string, unknown>))
+    ) {
       return this.fieldTranslator.apiToHuman(appId, result as Record<string, unknown>);
     }
 
@@ -442,7 +475,8 @@ export class SmartSuiteShimServer {
         ...schema,
         fieldMappings: {
           hasCustomMappings: true,
-          message: 'This table supports human-readable field names. Use field names from the mappings below instead of API codes.',
+          message:
+            'This table supports human-readable field names. Use field names from the mappings below instead of API codes.',
           // Note: We don't expose internal mapping structure for security
           // Users should refer to documentation for available field names
         },

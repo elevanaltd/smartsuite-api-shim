@@ -52,14 +52,14 @@ export class FieldTranslator {
   async loadAllMappings(mappingsDir: string): Promise<void> {
     try {
       const files = await fs.readdir(mappingsDir);
-      const yamlFiles = files.filter(f => f.endsWith('.yaml') || f.endsWith('.yml'));
+      const yamlFiles = files.filter((f) => f.endsWith('.yaml') || f.endsWith('.yml'));
 
       if (yamlFiles.length === 0) {
         throw new Error(`No YAML mapping files found in directory: ${mappingsDir}`);
       }
 
       // Use Promise.all for concurrent loading instead of sequential await in loop
-      const loadPromises = yamlFiles.map(file => {
+      const loadPromises = yamlFiles.map((file) => {
         const filePath = path.join(mappingsDir, file);
         return this.loadFromYaml(filePath);
       });
@@ -82,7 +82,11 @@ export class FieldTranslator {
    * Translate human-readable field names to API field codes
    * STRICT MODE: Throws errors for unmapped fields when mapping exists
    */
-  humanToApi(tableId: string, humanFields: Record<string, unknown>, strictMode: boolean = true): Record<string, unknown> {
+  humanToApi(
+    tableId: string,
+    humanFields: Record<string, unknown>,
+    strictMode: boolean = true,
+  ): Record<string, unknown> {
     const mapping = this.mappings.get(tableId);
     if (!mapping) {
       return humanFields;
@@ -108,7 +112,9 @@ export class FieldTranslator {
 
     // FAIL FAST: Enforce strict schema in default mode
     if (strictMode && unmappedFields.length > 0) {
-      throw new Error(`Unmapped fields found for table ${tableId} (${mapping.tableName}): ${unmappedFields.join(', ')}. Available fields: ${Object.keys(mapping.fields).join(', ')}`);
+      throw new Error(
+        `Unmapped fields found for table ${tableId} (${mapping.tableName}): ${unmappedFields.join(', ')}. Available fields: ${Object.keys(mapping.fields).join(', ')}`,
+      );
     }
 
     return result;

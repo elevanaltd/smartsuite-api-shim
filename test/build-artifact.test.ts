@@ -7,8 +7,8 @@ vi.mock('../src/smartsuite-client.js', () => ({
   createAuthenticatedClient: vi.fn(async (config) => {
     // Return a mock client for any valid-looking tokens
     if (config.apiKey && config.workspaceId) {
-      return { 
-        apiKey: config.apiKey, 
+      return {
+        apiKey: config.apiKey,
         workspaceId: config.workspaceId,
         // Add required methods for tests
         getSchema: vi.fn().mockResolvedValue({ fields: [] }),
@@ -93,15 +93,15 @@ describe('Build Artifact Verification', () => {
       await server.initialize();
 
       // Mock the client to avoid actual API calls
-      (server as any).client = { 
-        listRecords: vi.fn().mockResolvedValue({ records: [] }) 
+      (server as any).client = {
+        listRecords: vi.fn().mockResolvedValue({ records: [] }),
       };
 
       // Call executeTool
       try {
         await server.executeTool('smartsuite_query', {
           operation: 'list',
-          appId: 'test-app-id'
+          appId: 'test-app-id',
         });
       } catch (error) {
         // We expect this to fail with field mappings error, but that's OK
@@ -126,16 +126,20 @@ describe('Build Artifact Verification', () => {
       const server = new SmartSuiteShimServer();
 
       // Attempt to initialize - should fail
-      await expect(server.initialize()).rejects.toThrow('Could not authenticate server with environment credentials');
+      await expect(server.initialize()).rejects.toThrow(
+        'Could not authenticate server with environment credentials',
+      );
 
       // Server should NOT be authenticated after failure
       expect(server.isAuthenticated()).toBe(false);
 
       // Executing a tool should fail with auth error
-      await expect(server.executeTool('smartsuite_query', {
-        operation: 'list',
-        appId: 'test-app-id'
-      })).rejects.toThrow('Authentication required');
+      await expect(
+        server.executeTool('smartsuite_query', {
+          operation: 'list',
+          appId: 'test-app-id',
+        }),
+      ).rejects.toThrow('Authentication required');
     });
   });
 

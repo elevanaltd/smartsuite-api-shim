@@ -3,14 +3,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
 
-
 // Mock the createAuthenticatedClient to avoid real API calls in tests
 vi.mock('../src/smartsuite-client.js', () => ({
   createAuthenticatedClient: vi.fn(async (config) => {
     // Return a mock client for valid test tokens
     if (config.apiKey === 'test-api-token-12345' || config.apiKey === 'env-api-token') {
-      return { 
-        apiKey: config.apiKey, 
+      return {
+        apiKey: config.apiKey,
         workspaceId: config.workspaceId,
         // Add required methods for tests
         getSchema: vi.fn().mockResolvedValue({ fields: [] }),
@@ -56,12 +55,19 @@ describe('SmartSuiteShimServer', () => {
 
     const queryTool = tools.find((t: any) => t.name === 'smartsuite_query');
     expect((queryTool?.inputSchema?.properties?.operation as any)?.enum).toEqual([
-      'list', 'get', 'search', 'count',
+      'list',
+      'get',
+      'search',
+      'count',
     ]);
 
     const recordTool = tools.find((t: any) => t.name === 'smartsuite_record');
     expect((recordTool?.inputSchema?.properties?.operation as any)?.enum).toEqual([
-      'create', 'update', 'delete', 'bulk_update', 'bulk_delete',
+      'create',
+      'update',
+      'delete',
+      'bulk_update',
+      'bulk_delete',
     ]);
   });
 

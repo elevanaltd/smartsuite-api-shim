@@ -239,7 +239,9 @@ fields:
 
       try {
         // Should throw when no YAML files found
-        await expect(translator.loadAllMappings(emptyDir)).rejects.toThrow(/No YAML mapping files found/);
+        await expect(translator.loadAllMappings(emptyDir)).rejects.toThrow(
+          /No YAML mapping files found/,
+        );
       } finally {
         // Clean up
         await fs.remove(emptyDir);
