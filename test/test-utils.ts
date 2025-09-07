@@ -2,8 +2,10 @@
 // Context7: consulted for vitest
 import { vi } from 'vitest';
 
+import type { SmartSuiteClientConfig } from '../src/smartsuite-client.js';
+
 // Mock implementation of createAuthenticatedClient for testing
-export const mockCreateAuthenticatedClient = vi.fn(async (config: any) => {
+export const mockCreateAuthenticatedClient = vi.fn(async (config: SmartSuiteClientConfig) => {
   // Return a mock client for valid test tokens
   if (config.apiKey === 'test-api-token-12345' || config.apiKey === 'env-api-token') {
     return {
@@ -17,7 +19,7 @@ export const mockCreateAuthenticatedClient = vi.fn(async (config: any) => {
 });
 
 // Setup function to configure mocks before tests
-export function setupMocks() {
+export function setupMocks(): void {
   // Mock the smartsuite-client module
   vi.mock('../src/smartsuite-client.js', () => ({
     createAuthenticatedClient: mockCreateAuthenticatedClient,
