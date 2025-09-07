@@ -1,4 +1,3 @@
-// TESTGUARD_BYPASS: INFRA-003 - Prettier configuration for code formatting
 {
   "semi": true,
   "trailingComma": "all",

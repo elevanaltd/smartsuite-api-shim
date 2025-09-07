@@ -9,8 +9,8 @@ vi.mock('../src/smartsuite-client.js', () => ({
   createAuthenticatedClient: vi.fn(async (config) => {
     // Return a mock client for valid test tokens
     if (config.apiKey === 'test-api-token-12345' || config.apiKey === 'env-api-token') {
-      return { 
-        apiKey: config.apiKey, 
+      return {
+        apiKey: config.apiKey,
         workspaceId: config.workspaceId,
         // Add required methods for tests
         getSchema: vi.fn().mockResolvedValue({ fields: [] }),
@@ -61,10 +61,12 @@ describe('SmartSuiteShimServer - Authentication & Initialization', () => {
 
       // ACT: Create server and try to initialize
       const server = new SmartSuiteShimServer();
-      
+
       // ASSERT: Initialize should throw when authentication fails
-      await expect(server.initialize()).rejects.toThrow('Could not authenticate server with environment credentials.');
-      
+      await expect(server.initialize()).rejects.toThrow(
+        'Could not authenticate server with environment credentials.',
+      );
+
       // ASSERT: Server should not be authenticated after failed initialization
       expect(server.isAuthenticated()).toBe(false);
     });
@@ -95,12 +97,12 @@ describe('SmartSuiteShimServer - Authentication & Initialization', () => {
       await expect(
         server.executeTool('smartsuite_schema', {
           appId: '6613bedd1889d8deeaef8b0e',
-        })
+        }),
       ).rejects.toThrow('Authentication required: call authenticate() first');
     });
 
     it('should allow tool execution after successful initialization with env vars', async () => {
-      // ARRANGE: Set up valid environment variables  
+      // ARRANGE: Set up valid environment variables
       process.env.SMARTSUITE_API_TOKEN = 'test-api-token-12345';
       process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace-id';
 
@@ -112,7 +114,7 @@ describe('SmartSuiteShimServer - Authentication & Initialization', () => {
       await expect(
         server.executeTool('smartsuite_schema', {
           appId: '6613bedd1889d8deeaef8b0e',
-        })
+        }),
       ).resolves.not.toThrow();
     });
   });

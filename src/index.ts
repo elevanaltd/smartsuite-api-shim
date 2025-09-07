@@ -51,7 +51,10 @@ async function main(): Promise<number> {
   // Log available tools for debugging
   const tools = server.getTools();
   // eslint-disable-next-line no-console
-  console.log(`Server ready with ${tools.length} tools:`, tools.map(t => t.name));
+  console.log(
+    `Server ready with ${tools.length} tools:`,
+    tools.map((t) => t.name),
+  );
 
   // Check if we're in validation-only mode (for CI/testing)
   // Using explicit environment variable to avoid accidental production issues

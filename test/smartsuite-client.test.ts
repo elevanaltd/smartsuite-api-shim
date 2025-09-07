@@ -46,7 +46,7 @@ describe('SmartSuite Client Authentication', () => {
         expect.stringContaining('smartsuite.com/api/v1/applications'),
         expect.objectContaining({
           headers: expect.objectContaining({
-            'Authorization': 'Token valid-api-key-12345',
+            Authorization: 'Token valid-api-key-12345',
             'ACCOUNT-ID': 's3qnmox1',
             'Content-Type': 'application/json',
           }),
@@ -73,9 +73,9 @@ describe('SmartSuite Client Authentication', () => {
 
       const { createAuthenticatedClient } = await import('../src/smartsuite-client.js');
 
-      await expect(
-        createAuthenticatedClient({ apiKey, workspaceId }),
-      ).rejects.toThrow('Authentication failed: Invalid API key');
+      await expect(createAuthenticatedClient({ apiKey, workspaceId })).rejects.toThrow(
+        'Authentication failed: Invalid API key',
+      );
     });
   });
 
@@ -86,15 +86,13 @@ describe('SmartSuite Client Authentication', () => {
       const workspaceId = 's3qnmox1';
 
       // Simulate timeout
-      global.fetch = vi.fn().mockRejectedValueOnce(
-        new Error('Network request failed: ETIMEDOUT'),
-      );
+      global.fetch = vi.fn().mockRejectedValueOnce(new Error('Network request failed: ETIMEDOUT'));
 
       const { createAuthenticatedClient } = await import('../src/smartsuite-client.js');
 
-      await expect(
-        createAuthenticatedClient({ apiKey, workspaceId }),
-      ).rejects.toThrow(/Network error.*Please check your connection/);
+      await expect(createAuthenticatedClient({ apiKey, workspaceId })).rejects.toThrow(
+        /Network error.*Please check your connection/,
+      );
     });
   });
 });

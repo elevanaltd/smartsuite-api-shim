@@ -62,10 +62,7 @@ console.log(instance.getValue());`;
       },
       include: ['src/**/*'],
     };
-    await fs.writeFile(
-      path.join(testBuildDir, 'tsconfig.json'),
-      JSON.stringify(tsconfig, null, 2),
-    );
+    await fs.writeFile(path.join(testBuildDir, 'tsconfig.json'), JSON.stringify(tsconfig, null, 2));
 
     // Create package.json with type: module
     const packageJson = {
@@ -78,11 +75,7 @@ console.log(instance.getValue());`;
     );
 
     // Compile the TypeScript (using execFile to avoid shell injection)
-    const { stderr: tscError } = await execFileAsync(
-      'npx',
-      ['tsc'],
-      { cwd: testBuildDir },
-    );
+    const { stderr: tscError } = await execFileAsync('npx', ['tsc'], { cwd: testBuildDir });
 
     // TypeScript should compile successfully
     expect(tscError).toBe('');
@@ -112,7 +105,7 @@ console.log(instance.getValue());`;
     await fs.mkdir(testSrcDir, { recursive: true });
 
     // Create module
-    const moduleContent = 'export const badValue = \'This will fail\';';
+    const moduleContent = "export const badValue = 'This will fail';";
     await fs.writeFile(path.join(testSrcDir, 'bad-module.ts'), moduleContent);
 
     // Create main file WITHOUT .js extension (incorrect for ES modules)
@@ -138,19 +131,11 @@ console.log(badValue);`;
     );
 
     // Compile with the bad config (using execFile to avoid shell injection)
-    await execFileAsync(
-      'npx',
-      ['tsc', '-p', 'tsconfig-bad.json'],
-      { cwd: testBuildDir },
-    );
+    await execFileAsync('npx', ['tsc', '-p', 'tsconfig-bad.json'], { cwd: testBuildDir });
 
     // Try to run the compiled code - it should fail
     try {
-      await execFileAsync(
-        'node',
-        ['dist-bad/bad-main.js'],
-        { cwd: testBuildDir },
-      );
+      await execFileAsync('node', ['dist-bad/bad-main.js'], { cwd: testBuildDir });
       // If we get here, the test failed - it should have thrown
       expect(true).toBe(false);
     } catch (error: any) {
@@ -162,14 +147,10 @@ console.log(badValue);`;
 
   it('should validate build output can be executed by Node.js', async () => {
     // Test the actual build output (using execFile with env for security)
-    const { stderr } = await execFileAsync(
-      'node',
-      ['build/src/index.js'],
-      {
-        cwd: process.cwd(),
-        env: { ...process.env, MCP_VALIDATE_AND_EXIT: 'true' },
-      },
-    );
+    const { stderr } = await execFileAsync('node', ['build/src/index.js'], {
+      cwd: process.cwd(),
+      env: { ...process.env, MCP_VALIDATE_AND_EXIT: 'true' },
+    });
 
     // Should run without module resolution errors
     expect(stderr).not.toContain('ERR_MODULE_NOT_FOUND');

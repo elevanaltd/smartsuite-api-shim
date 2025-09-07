@@ -75,7 +75,10 @@ describe('MCP Stdio Integration (B3)', () => {
     expect(mockConnect).toHaveBeenCalled();
     // TESTGUARD-APPROVED: Verify MCP protocol handlers are registered
     expect(mockSetRequestHandler).toHaveBeenCalledTimes(2);
-    expect(mockSetRequestHandler).toHaveBeenCalledWith(ListToolsRequestSchema, expect.any(Function));
+    expect(mockSetRequestHandler).toHaveBeenCalledWith(
+      ListToolsRequestSchema,
+      expect.any(Function),
+    );
     expect(mockSetRequestHandler).toHaveBeenCalledWith(CallToolRequestSchema, expect.any(Function));
 
     vi.doUnmock('@modelcontextprotocol/sdk/server/index.js');

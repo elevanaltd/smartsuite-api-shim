@@ -149,7 +149,7 @@ fields:
       ];
 
       // Test each case - this enforces the contract
-      testCases.forEach(testCase => {
+      testCases.forEach((testCase) => {
         const result = labelToCamelCase(testCase.label);
         expect(result).toBe(testCase.expected);
       });
@@ -232,7 +232,9 @@ fields:
       process.argv = originalArgv;
 
       // Verify YAML generation output
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Complete YAML mapping file:'));
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('Complete YAML mapping file:'),
+      );
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('projectName: proj_name'));
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('initialCost: init_cost'));
     });

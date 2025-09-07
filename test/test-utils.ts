@@ -6,8 +6,8 @@ import { vi } from 'vitest';
 export const mockCreateAuthenticatedClient = vi.fn(async (config: any) => {
   // Return a mock client for valid test tokens
   if (config.apiKey === 'test-api-token-12345' || config.apiKey === 'env-api-token') {
-    return { 
-      apiKey: config.apiKey, 
+    return {
+      apiKey: config.apiKey,
       workspaceId: config.workspaceId,
       // Add any methods needed by tests
     };

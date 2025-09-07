@@ -126,16 +126,20 @@ describe('Build Artifact Verification', () => {
       const server = new SmartSuiteShimServer();
 
       // Attempt to initialize - should fail
-      await expect(server.initialize()).rejects.toThrow('Could not authenticate server with environment credentials');
+      await expect(server.initialize()).rejects.toThrow(
+        'Could not authenticate server with environment credentials',
+      );
 
       // Server should NOT be authenticated after failure
       expect(server.isAuthenticated()).toBe(false);
 
       // Executing a tool should fail with auth error
-      await expect(server.executeTool('smartsuite_query', {
-        operation: 'list',
-        appId: 'test-app-id',
-      })).rejects.toThrow('Authentication required');
+      await expect(
+        server.executeTool('smartsuite_query', {
+          operation: 'list',
+          appId: 'test-app-id',
+        }),
+      ).rejects.toThrow('Authentication required');
     });
   });
 

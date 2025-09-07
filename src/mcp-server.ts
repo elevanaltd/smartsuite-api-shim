@@ -13,10 +13,16 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 
 import { FieldTranslator } from './lib/field-translator.js';
-import { SmartSuiteClient, SmartSuiteClientConfig, createAuthenticatedClient } from './smartsuite-client.js';
+import {
+  SmartSuiteClient,
+  SmartSuiteClientConfig,
+  createAuthenticatedClient,
+} from './smartsuite-client.js';
 
 // Safe type conversion for lint cleanup - preserves runtime behavior
-function toListOptions(options: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+function toListOptions(
+  options: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
   // LINT_CLEANUP: Conservative conversion maintains existing behavior
   // TODO: Future enhancement - add Zod schema validation per Critical-Engineer recommendation
   return options;
@@ -76,14 +82,12 @@ export class SmartSuiteShimServer {
     return this.client !== undefined;
   }
 
-
   /**
    * Get current authentication configuration
    */
   getAuthConfig(): SmartSuiteClientConfig | undefined {
     return this.authConfig;
   }
-
 
   /**
    * Ensure authentication is complete before tool execution
@@ -97,7 +101,11 @@ export class SmartSuiteShimServer {
     return Promise.resolve();
   }
 
-  getTools(): Array<{name: string; description?: string; inputSchema: {type: string; properties: Record<string, unknown>; required?: string[]}}> {
+  getTools(): Array<{
+    name: string;
+    description?: string;
+    inputSchema: { type: string; properties: Record<string, unknown>; required?: string[] };
+  }> {
     // Return tools in MCP protocol-compliant format with proper schemas
     return [
       {
@@ -233,7 +241,7 @@ export class SmartSuiteShimServer {
           // Sequential checking is intentional - we stop at first valid path
           if (await fs.pathExists(tryPath)) {
             const files = await fs.readdir(tryPath);
-            if (files.some(f => f.endsWith('.yaml') || f.endsWith('.yml'))) {
+            if (files.some((f) => f.endsWith('.yaml') || f.endsWith('.yml'))) {
               configPath = tryPath;
               break;
             }
@@ -251,7 +259,11 @@ export class SmartSuiteShimServer {
       console.log('Loading field mappings from:', configPath);
       await this.fieldTranslator.loadAllMappings(configPath);
       // eslint-disable-next-line no-console
-      console.log('FieldTranslator initialized successfully with', this.fieldTranslator['mappings'].size, 'mappings');
+      console.log(
+        'FieldTranslator initialized successfully with',
+        this.fieldTranslator['mappings'].size,
+        'mappings',
+      );
       this.fieldMappingsInitialized = true;
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -280,7 +292,7 @@ export class SmartSuiteShimServer {
       effectiveConfig = {
         apiKey: envToken,
         workspaceId: envWorkspaceId,
-        baseUrl: config.baseUrl || 'https://app.smartsuite.com', // Base URL without /api/v1 (added in client)
+        baseUrl: config.baseUrl ?? 'https://app.smartsuite.com', // Base URL without /api/v1 (added in client)
       };
       // Update stored config to reflect environment priority
       this.authConfig = effectiveConfig;
@@ -332,13 +344,15 @@ export class SmartSuiteShimServer {
     const limit = args.limit as number | undefined;
 
     // Translate filters and sort options if field mappings exist
-    const translatedFilters = filters && this.fieldTranslator.hasMappings(appId)
-      ? this.fieldTranslator.humanToApi(appId, filters, false) // Non-strict mode for filters
-      : filters;
+    const translatedFilters =
+      filters && this.fieldTranslator.hasMappings(appId)
+        ? this.fieldTranslator.humanToApi(appId, filters, false) // Non-strict mode for filters
+        : filters;
 
-    const translatedSort = sort && this.fieldTranslator.hasMappings(appId)
-      ? this.fieldTranslator.humanToApi(appId, sort, false) // Non-strict mode for sort
-      : sort;
+    const translatedSort =
+      sort && this.fieldTranslator.hasMappings(appId)
+        ? this.fieldTranslator.humanToApi(appId, sort, false) // Non-strict mode for sort
+        : sort;
 
     const options = {
       ...(translatedFilters && { filter: translatedFilters }),
@@ -371,7 +385,7 @@ export class SmartSuiteShimServer {
     if (this.fieldTranslator.hasMappings(appId) && result && typeof result === 'object') {
       if (Array.isArray(result)) {
         // Handle array of records (list/search results)
-        return result.map(record =>
+        return result.map((record: unknown) =>
           typeof record === 'object' && record !== null
             ? this.fieldTranslator.apiToHuman(appId, record as Record<string, unknown>)
             : record,
@@ -403,9 +417,10 @@ export class SmartSuiteShimServer {
     }
 
     // Translate field names if mappings exist and data is provided
-    const translatedData = inputData && this.fieldTranslator.hasMappings(appId)
-      ? this.fieldTranslator.humanToApi(appId, inputData, true) // Strict mode for data
-      : inputData;
+    const translatedData =
+      inputData && this.fieldTranslator.hasMappings(appId)
+        ? this.fieldTranslator.humanToApi(appId, inputData, true) // Strict mode for data
+        : inputData;
 
     if (dry_run) {
       return {
@@ -437,7 +452,12 @@ export class SmartSuiteShimServer {
     }
 
     // FIELD TRANSLATION: Convert API response back to human-readable names
-    if (this.fieldTranslator.hasMappings(appId) && result && typeof result === 'object' && !('deleted' in (result as Record<string, unknown>))) {
+    if (
+      this.fieldTranslator.hasMappings(appId) &&
+      result &&
+      typeof result === 'object' &&
+      !('deleted' in (result as Record<string, unknown>))
+    ) {
       return this.fieldTranslator.apiToHuman(appId, result as Record<string, unknown>);
     }
 
@@ -455,7 +475,8 @@ export class SmartSuiteShimServer {
         ...schema,
         fieldMappings: {
           hasCustomMappings: true,
-          message: 'This table supports human-readable field names. Use field names from the mappings below instead of API codes.',
+          message:
+            'This table supports human-readable field names. Use field names from the mappings below instead of API codes.',
           // Note: We don't expose internal mapping structure for security
           // Users should refer to documentation for available field names
         },

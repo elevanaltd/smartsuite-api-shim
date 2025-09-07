@@ -12,12 +12,14 @@ describe('Field Translation Integration - Manual Path Test', () => {
 
     // Mock the client to avoid API calls
     (server as any).client = {
-      listRecords: vi.fn().mockResolvedValue([
-        { 'title': 'Test Project', 'autonumber': 'EAV001', 'project_name_actual': 'My Test Project' },
-      ]),
-      createRecord: vi.fn().mockImplementation((_appId, data) =>
-        Promise.resolve({ id: 'new-record', ...data }),
-      ),
+      listRecords: vi
+        .fn()
+        .mockResolvedValue([
+          { title: 'Test Project', autonumber: 'EAV001', project_name_actual: 'My Test Project' },
+        ]),
+      createRecord: vi
+        .fn()
+        .mockImplementation((_appId, data) => Promise.resolve({ id: 'new-record', ...data })),
       getSchema: vi.fn().mockResolvedValue({ fields: [], tableName: 'projects' }),
     };
   });

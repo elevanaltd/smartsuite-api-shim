@@ -49,7 +49,11 @@ export interface SmartSuiteClient {
   listRecords: (appId: string, options?: SmartSuiteListOptions) => Promise<SmartSuiteRecord[]>;
   getRecord: (appId: string, recordId: string) => Promise<SmartSuiteRecord>;
   createRecord: (appId: string, data: Record<string, unknown>) => Promise<SmartSuiteRecord>;
-  updateRecord: (appId: string, recordId: string, data: Record<string, unknown>) => Promise<SmartSuiteRecord>;
+  updateRecord: (
+    appId: string,
+    recordId: string,
+    data: Record<string, unknown>,
+  ) => Promise<SmartSuiteRecord>;
   deleteRecord: (appId: string, recordId: string) => Promise<void>;
   getSchema: (appId: string) => Promise<SmartSuiteSchema>;
 }
@@ -68,7 +72,7 @@ export async function createAuthenticatedClient(
     const response = await fetch(validationUrl, {
       method: 'GET',
       headers: {
-        'Authorization': 'Token ' + apiKey,
+        Authorization: 'Token ' + apiKey,
         'ACCOUNT-ID': workspaceId,
         'Content-Type': 'application/json',
       },
@@ -77,7 +81,7 @@ export async function createAuthenticatedClient(
     if (!response.ok) {
       let errorData: Record<string, unknown> = { error: response.statusText };
       try {
-        errorData = await response.json() as Record<string, unknown>;
+        errorData = (await response.json()) as Record<string, unknown>;
       } catch {
         // Use default error if JSON parsing fails
       }
@@ -96,10 +100,15 @@ export async function createAuthenticatedClient(
         throw new Error(message);
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle network errors
-    if (error.message && (error.message.includes('ETIMEDOUT') || error.message.includes('Network request failed'))) {
-      const message = 'Network error: ' + error.message + '. Please check your connection and try again.';
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (
+      errorMessage &&
+      (errorMessage.includes('ETIMEDOUT') || errorMessage.includes('Network request failed'))
+    ) {
+      const message =
+        'Network error: ' + errorMessage + '. Please check your connection and try again.';
       throw new Error(message);
     }
     // Re-throw other errors (including our custom auth errors)
@@ -116,7 +125,7 @@ export async function createAuthenticatedClient(
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': 'Token ' + apiKey,
+          Authorization: 'Token ' + apiKey,
           'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
@@ -134,7 +143,7 @@ export async function createAuthenticatedClient(
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': 'Token ' + apiKey,
+          Authorization: 'Token ' + apiKey,
           'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
@@ -152,7 +161,7 @@ export async function createAuthenticatedClient(
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': 'Token ' + apiKey,
+          Authorization: 'Token ' + apiKey,
           'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
@@ -171,7 +180,7 @@ export async function createAuthenticatedClient(
       const response = await fetch(url, {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Token ' + apiKey,
+          Authorization: 'Token ' + apiKey,
           'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
@@ -190,7 +199,7 @@ export async function createAuthenticatedClient(
       const response = await fetch(url, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'Token ' + apiKey,
+          Authorization: 'Token ' + apiKey,
           'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
@@ -206,7 +215,7 @@ export async function createAuthenticatedClient(
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': 'Token ' + apiKey,
+          Authorization: 'Token ' + apiKey,
           'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
