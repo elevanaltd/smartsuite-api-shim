@@ -31,7 +31,7 @@ export class SmartSuiteShimServer {
   constructor() {
     // Minimal implementation to make instantiation test pass
     this.fieldTranslator = new FieldTranslator();
-    
+
     // Critical-Engineer: consulted for server initialization and auto-authentication strategy
     // Constructor remains fast and non-blocking - no I/O operations here
   }
@@ -46,6 +46,7 @@ export class SmartSuiteShimServer {
     const workspaceId = process.env.SMARTSUITE_WORKSPACE_ID;
 
     if (apiToken && workspaceId) {
+      // eslint-disable-next-line no-console
       console.log('Auto-authenticating from environment variables...');
       this.authConfig = {
         apiKey: apiToken,
@@ -55,8 +56,10 @@ export class SmartSuiteShimServer {
       try {
         // BLOCKING call - server must be authenticated before starting
         await this.authenticate(this.authConfig);
+        // eslint-disable-next-line no-console
         console.log('Authentication successful.');
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('FATAL: Auto-authentication failed.', error);
         // Re-throw to prevent the server from starting
         throw new Error('Could not authenticate server with environment credentials.');
@@ -91,6 +94,7 @@ export class SmartSuiteShimServer {
       throw new Error('Authentication required: call authenticate() first');
     }
     // Client exists, we're authenticated
+    return Promise.resolve();
   }
 
   getTools(): Array<{name: string; description?: string; inputSchema: {type: string; properties: Record<string, unknown>; required?: string[]}}> {
@@ -218,11 +222,15 @@ export class SmartSuiteShimServer {
 
       let configPath: string | null = null;
 
+      // Import fs-extra once outside the loop for performance
+      const fs = await import('fs-extra');
+
       // Try each path until we find one that exists
+      // eslint-disable-next-line no-await-in-loop
       for (const tryPath of possiblePaths) {
         try {
           // Use fs-extra to check if directory exists and has files
-          const fs = await import('fs-extra');
+          // Sequential checking is intentional - we stop at first valid path
           if (await fs.pathExists(tryPath)) {
             const files = await fs.readdir(tryPath);
             if (files.some(f => f.endsWith('.yaml') || f.endsWith('.yml'))) {
@@ -239,14 +247,18 @@ export class SmartSuiteShimServer {
         throw new Error('No valid field mappings directory found');
       }
 
+      // eslint-disable-next-line no-console
       console.log('Loading field mappings from:', configPath);
       await this.fieldTranslator.loadAllMappings(configPath);
+      // eslint-disable-next-line no-console
       console.log('FieldTranslator initialized successfully with', this.fieldTranslator['mappings'].size, 'mappings');
       this.fieldMappingsInitialized = true;
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to initialize field mappings:', error);
       // GRACEFUL DEGRADATION: Don't fail startup if field mappings are missing
       // This allows the server to work with raw API codes as fallback
+      // eslint-disable-next-line no-console
       console.warn('Field mappings not available - server will use raw API field codes');
       // Mark as initialized even though we failed, to avoid repeated attempts
       this.fieldMappingsInitialized = true;
