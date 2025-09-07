@@ -62,12 +62,14 @@ export async function createAuthenticatedClient(
   const baseUrl = config.baseUrl ?? 'https://api.smartsuite.com';
 
   // Validate API key by making a test request
+  // SmartSuite uses "Token" format and "ACCOUNT-ID" header, not Bearer
   try {
-    const validationUrl = baseUrl + '/workspaces/' + workspaceId;
+    const validationUrl = baseUrl + '/api/v1/applications';
     const response = await fetch(validationUrl, {
       method: 'GET',
       headers: {
-        'Authorization': 'Bearer ' + apiKey,
+        'Authorization': 'Token ' + apiKey,
+        'ACCOUNT-ID': workspaceId,
         'Content-Type': 'application/json',
       },
     });
@@ -110,11 +112,12 @@ export async function createAuthenticatedClient(
     workspaceId: workspaceId,
 
     async listRecords(appId: string, _options?: any): Promise<any[]> {
-      const url = baseUrl + '/applications/' + appId + '/records';
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records';
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer ' + apiKey,
+          'Authorization': 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
       });
@@ -127,11 +130,12 @@ export async function createAuthenticatedClient(
     },
 
     async getRecord(appId: string, recordId: string): Promise<any> {
-      const url = baseUrl + '/applications/' + appId + '/records/' + recordId;
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId;
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer ' + apiKey,
+          'Authorization': 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
       });
@@ -144,11 +148,12 @@ export async function createAuthenticatedClient(
     },
 
     async createRecord(appId: string, data: any): Promise<any> {
-      const url = baseUrl + '/applications/' + appId + '/records';
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records';
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer ' + apiKey,
+          'Authorization': 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
@@ -162,11 +167,12 @@ export async function createAuthenticatedClient(
     },
 
     async updateRecord(appId: string, recordId: string, data: any): Promise<any> {
-      const url = baseUrl + '/applications/' + appId + '/records/' + recordId;
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId;
       const response = await fetch(url, {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer ' + apiKey,
+          'Authorization': 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
@@ -180,11 +186,12 @@ export async function createAuthenticatedClient(
     },
 
     async deleteRecord(appId: string, recordId: string): Promise<void> {
-      const url = baseUrl + '/applications/' + appId + '/records/' + recordId;
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId;
       const response = await fetch(url, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'Bearer ' + apiKey,
+          'Authorization': 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
       });
@@ -195,11 +202,12 @@ export async function createAuthenticatedClient(
     },
 
     async getSchema(appId: string): Promise<any> {
-      const url = baseUrl + '/applications/' + appId + '/structure';
+      const url = baseUrl + '/api/v1/applications/' + appId + '/structure';
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer ' + apiKey,
+          'Authorization': 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
       });

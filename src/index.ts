@@ -2,6 +2,7 @@
 // Critical-Engineer: consulted for Architecture pattern selection
 // Critical-Engineer: consulted for Node.js ESM module resolution strategy
 // Critical-Engineer: consulted for CI pipeline step-ordering and test strategy
+// Critical-Engineer: consulted for Build process and asset management
 // Context7: consulted for @modelcontextprotocol/sdk/server/index.js
 // Context7: consulted for @modelcontextprotocol/sdk/server/stdio.js
 // Context7: consulted for @modelcontextprotocol/sdk/types.js

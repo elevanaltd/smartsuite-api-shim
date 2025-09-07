@@ -43,10 +43,11 @@ describe('SmartSuite Client Authentication', () => {
 
       // Should have made validation request
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('smartsuite.com/workspaces/s3qnmox1'),
+        expect.stringContaining('smartsuite.com/api/v1/applications'),
         expect.objectContaining({
           headers: expect.objectContaining({
-            'Authorization': 'Bearer valid-api-key-12345',
+            'Authorization': 'Token valid-api-key-12345',
+            'ACCOUNT-ID': 's3qnmox1',
             'Content-Type': 'application/json',
           }),
         }),

@@ -242,11 +242,14 @@ export class SmartSuiteShimServer {
       console.log('Loading field mappings from:', configPath);
       await this.fieldTranslator.loadAllMappings(configPath);
       console.log('FieldTranslator initialized successfully with', this.fieldTranslator['mappings'].size, 'mappings');
+      this.fieldMappingsInitialized = true;
     } catch (error) {
       console.error('Failed to initialize field mappings:', error);
       // GRACEFUL DEGRADATION: Don't fail startup if field mappings are missing
       // This allows the server to work with raw API codes as fallback
       console.warn('Field mappings not available - server will use raw API field codes');
+      // Mark as initialized even though we failed, to avoid repeated attempts
+      this.fieldMappingsInitialized = true;
     }
   }
 
@@ -254,7 +257,6 @@ export class SmartSuiteShimServer {
     // Initialize field mappings on first use (lazy loading)
     if (!this.fieldMappingsInitialized) {
       await this.initializeFieldMappings();
-      this.fieldMappingsInitialized = true;
     }
 
     // ENVIRONMENT VARIABLE PRIORITY: If env vars are set, use them instead of provided config
@@ -266,7 +268,7 @@ export class SmartSuiteShimServer {
       effectiveConfig = {
         apiKey: envToken,
         workspaceId: envWorkspaceId,
-        baseUrl: config.baseUrl || 'https://app.smartsuite.com/api/v1', // Provide default if undefined
+        baseUrl: config.baseUrl || 'https://app.smartsuite.com', // Base URL without /api/v1 (added in client)
       };
       // Update stored config to reflect environment priority
       this.authConfig = effectiveConfig;
@@ -286,7 +288,6 @@ export class SmartSuiteShimServer {
     // Initialize field mappings on first use if not already done
     if (!this.fieldMappingsInitialized) {
       await this.initializeFieldMappings();
-      this.fieldMappingsInitialized = true;
     }
 
     // DRY-RUN pattern enforcement for mutations (North Star requirement)
