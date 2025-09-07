@@ -29,15 +29,29 @@ process.on('uncaughtException', (error: Error) => {
 });
 
 // Main server initialization - returns exit code for testability
-// eslint-disable-next-line @typescript-eslint/require-await
 async function main(): Promise<number> {
   // eslint-disable-next-line no-console
   console.log('SmartSuite API Shim MCP Server starting...');
   const server = new SmartSuiteShimServer();
+  
+  try {
+    // BLOCKING call - following fail-fast pattern per Critical-Engineer recommendation
+    // Server must be authenticated (if env vars present) before accepting connections
+    await server.initialize();
+    // eslint-disable-next-line no-console
+    console.log('Server initialization complete.');
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Server failed to initialize:', error);
+    // Exit with non-zero code - critical for CI/CD and orchestration
+    return 1;
+  }
+  
   // Log available tools for debugging
   const tools = server.getTools();
   // eslint-disable-next-line no-console
-  console.log(`Server initialized with ${tools.length} tools:`, tools.map(t => t.name));
+  console.log(`Server ready with ${tools.length} tools:`, tools.map(t => t.name));
+  
   // Check if we're in validation-only mode (for CI/testing)
   // Using explicit environment variable to avoid accidental production issues
   const isValidationOnly = process.env.MCP_VALIDATE_AND_EXIT === 'true';
@@ -56,13 +70,13 @@ async function main(): Promise<number> {
 
   // CRITICAL: Register our SmartSuiteShimServer tools with the MCP protocol
   // This was the missing piece - connecting our implementation to MCP
-  mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: server.getTools() };
+  mcpServer.setRequestHandler(ListToolsRequestSchema, () => {
+    return Promise.resolve({ tools: server.getTools() });
   });
 
   mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
-    const result = await server.executeTool(name, args || {});
+    const result = await server.executeTool(name, args ?? {});
     // MCP expects specific response format for tool calls
     return {
       content: [

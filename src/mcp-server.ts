@@ -26,10 +26,71 @@ export class SmartSuiteShimServer {
   private client?: SmartSuiteClient;
   private fieldTranslator: FieldTranslator;
   private fieldMappingsInitialized = false;
+  private authConfig?: SmartSuiteClientConfig;
 
   constructor() {
     // Minimal implementation to make instantiation test pass
     this.fieldTranslator = new FieldTranslator();
+    
+    // Critical-Engineer: consulted for server initialization and auto-authentication strategy
+    // Constructor remains fast and non-blocking - no I/O operations here
+  }
+
+  /**
+   * Initialize the server with auto-authentication if environment variables are present
+   * This is a blocking operation that ensures the server is ready before accepting connections
+   * Following fail-fast pattern: if auth fails, server should not start
+   */
+  public async initialize(): Promise<void> {
+    const apiToken = process.env.SMARTSUITE_API_TOKEN;
+    const workspaceId = process.env.SMARTSUITE_WORKSPACE_ID;
+
+    if (apiToken && workspaceId) {
+      console.log('Auto-authenticating from environment variables...');
+      this.authConfig = {
+        apiKey: apiToken,
+        workspaceId: workspaceId,
+      };
+
+      try {
+        // BLOCKING call - server must be authenticated before starting
+        await this.authenticate(this.authConfig);
+        console.log('Authentication successful.');
+      } catch (error) {
+        console.error('FATAL: Auto-authentication failed.', error);
+        // Re-throw to prevent the server from starting
+        throw new Error('Could not authenticate server with environment credentials.');
+      }
+    }
+    // If no env vars, server starts unauthenticated (for interactive use)
+  }
+
+  /**
+   * Check if server is authenticated (has valid client)
+   * With fail-fast initialization, authentication state is explicit
+   */
+  isAuthenticated(): boolean {
+    return this.client !== undefined;
+  }
+
+
+  /**
+   * Get current authentication configuration
+   */
+  getAuthConfig(): SmartSuiteClientConfig | undefined {
+    return this.authConfig;
+  }
+
+
+  /**
+   * Ensure authentication is complete before tool execution
+   * With fail-fast initialization, this is now much simpler
+   */
+  private async ensureAuthenticated(): Promise<void> {
+    if (!this.client) {
+      throw new Error('Authentication required: call authenticate() first');
+    }
+    // Client exists, we're authenticated
   }
 
   getTools(): Array<{name: string; description?: string; inputSchema: {type: string; properties: Record<string, unknown>; required?: string[]}}> {
@@ -196,15 +257,31 @@ export class SmartSuiteShimServer {
       this.fieldMappingsInitialized = true;
     }
 
+    // ENVIRONMENT VARIABLE PRIORITY: If env vars are set, use them instead of provided config
+    let effectiveConfig = config;
+    const envToken = process.env.SMARTSUITE_API_TOKEN;
+    const envWorkspaceId = process.env.SMARTSUITE_WORKSPACE_ID;
+
+    if (envToken && envWorkspaceId) {
+      effectiveConfig = {
+        apiKey: envToken,
+        workspaceId: envWorkspaceId,
+        baseUrl: config.baseUrl || 'https://app.smartsuite.com/api/v1', // Provide default if undefined
+      };
+      // Update stored config to reflect environment priority
+      this.authConfig = effectiveConfig;
+    } else {
+      // Store manual config when env vars not present
+      this.authConfig = config;
+    }
+
     // SIMPLE scope: Basic authentication with client storage
-    this.client = await createAuthenticatedClient(config);
+    this.client = await createAuthenticatedClient(effectiveConfig);
   }
 
   async executeTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
-    // SIMPLE scope: Basic tool dispatch
-    if (!this.client) {
-      throw new Error('Authentication required: call authenticate() first');
-    }
+    // AUTO-AUTHENTICATION: Ensure authentication is complete
+    await this.ensureAuthenticated();
 
     // Initialize field mappings on first use if not already done
     if (!this.fieldMappingsInitialized) {
