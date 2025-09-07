@@ -73,14 +73,6 @@ export class SmartSuiteShimServer {
     return this.client !== undefined;
   }
 
-  /**
-   * Check if environment has valid auth configuration
-   */
-  private hasValidEnvironmentConfig(): boolean {
-    const apiToken = process.env.SMARTSUITE_API_TOKEN;
-    const workspaceId = process.env.SMARTSUITE_WORKSPACE_ID;
-    return !!(apiToken && workspaceId);
-  }
 
   /**
    * Get current authentication configuration
