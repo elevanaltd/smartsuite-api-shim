@@ -120,7 +120,7 @@ export async function createAuthenticatedClient(
     apiKey: apiKey,
     workspaceId: workspaceId,
 
-    async listRecords(appId: string, _options?: any): Promise<any[]> {
+    async listRecords(appId: string, _options?: SmartSuiteListOptions): Promise<SmartSuiteRecord[]> {
       const url = baseUrl + '/api/v1/applications/' + appId + '/records';
       const response = await fetch(url, {
         method: 'GET',
@@ -135,10 +135,10 @@ export async function createAuthenticatedClient(
         throw new Error('Failed to list records: ' + response.statusText);
       }
 
-      return response.json();
+      return response.json() as Promise<SmartSuiteRecord[]>;
     },
 
-    async getRecord(appId: string, recordId: string): Promise<any> {
+    async getRecord(appId: string, recordId: string): Promise<SmartSuiteRecord> {
       const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId;
       const response = await fetch(url, {
         method: 'GET',
@@ -153,10 +153,10 @@ export async function createAuthenticatedClient(
         throw new Error('Failed to get record: ' + response.statusText);
       }
 
-      return response.json();
+      return response.json() as Promise<SmartSuiteRecord>;
     },
 
-    async createRecord(appId: string, data: any): Promise<any> {
+    async createRecord(appId: string, data: Record<string, unknown>): Promise<SmartSuiteRecord> {
       const url = baseUrl + '/api/v1/applications/' + appId + '/records';
       const response = await fetch(url, {
         method: 'POST',
@@ -172,10 +172,10 @@ export async function createAuthenticatedClient(
         throw new Error('Failed to create record: ' + response.statusText);
       }
 
-      return response.json();
+      return response.json() as Promise<SmartSuiteRecord>;
     },
 
-    async updateRecord(appId: string, recordId: string, data: any): Promise<any> {
+    async updateRecord(appId: string, recordId: string, data: Record<string, unknown>): Promise<SmartSuiteRecord> {
       const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId;
       const response = await fetch(url, {
         method: 'PATCH',
@@ -191,7 +191,7 @@ export async function createAuthenticatedClient(
         throw new Error('Failed to update record: ' + response.statusText);
       }
 
-      return response.json();
+      return response.json() as Promise<SmartSuiteRecord>;
     },
 
     async deleteRecord(appId: string, recordId: string): Promise<void> {
@@ -210,7 +210,7 @@ export async function createAuthenticatedClient(
       }
     },
 
-    async getSchema(appId: string): Promise<any> {
+    async getSchema(appId: string): Promise<SmartSuiteSchema> {
       const url = baseUrl + '/api/v1/applications/' + appId + '/structure';
       const response = await fetch(url, {
         method: 'GET',
@@ -225,7 +225,7 @@ export async function createAuthenticatedClient(
         throw new Error('Failed to get schema: ' + response.statusText);
       }
 
-      return response.json();
+      return response.json() as Promise<SmartSuiteSchema>;
     },
   };
 
