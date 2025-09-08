@@ -1,7 +1,7 @@
 # SmartSuite API Shim
 
 **Status:** ✅ Production Ready - B4 Phase Complete  
-**Test Coverage:** 83/83 tests passing  
+**Test Coverage:** 97 tests passing  
 **Server Status:** Fully functional with auto-authentication  
 
 ## Quick Start
@@ -15,10 +15,10 @@
 
 🎯 **Completed B4 Achievements:**
 - ✅ **Auto-Authentication** - Environment variable authentication with fail-fast pattern
-- ✅ **Field Translation** - Human-readable field names for 9 SmartSuite tables 
+- ✅ **Field Translation** - Human-readable field names for 10 SmartSuite tables 
 - ✅ **4 SmartSuite Tools** - `query`, `record`, `schema`, `undo` operations
 - ✅ **DRY-RUN Safety** - Mutation protection with explicit confirmation required
-- ✅ **Comprehensive Testing** - 83/83 tests passing with full coverage
+- ✅ **Comprehensive Testing** - 97 tests passing with full coverage
 - ✅ **CI/CD Integration** - Quality gates and automated validation
 - ✅ **Error Handling** - Graceful degradation and clear error messages
 
@@ -30,16 +30,19 @@
 | `smartsuite_schema` | Get table schema with field mapping information | ✅ Ready |
 | `smartsuite_undo` | Transaction rollback operations | ✅ Ready |
 
-### Supported Tables (9 Configured)
-- **Projects** (40+ mapped fields) - Core project management
-- **Tasks** (30+ mapped fields) - Task tracking and assignments  
-- **Videos** (25+ mapped fields) - Video production workflow
-- **Clients** (20+ mapped fields) - Client relationship management
-- **Schedule** (15+ mapped fields) - Calendar and timeline management
-- **Financial Records** (10+ mapped fields) - Cost tracking and invoicing
-- **Content Items** (15+ mapped fields) - Content asset management
-- **Issue Log** (20+ mapped fields) - Problem tracking and resolution
-- **Videos Legacy** (15+ mapped fields) - Backward compatibility
+### Supported Tables (10 Configured with Example Mappings)
+- **Projects** (47 mapped fields) - Core project management
+- **Tasks** (26 mapped fields) - Task tracking and assignments  
+- **Videos** (21 mapped fields) - Video production workflow
+- **Clients** (21 mapped fields) - Client relationship management
+- **Schedule** (24 mapped fields) - Calendar and timeline management
+- **Planning** (25 mapped fields) - Resource planning and phase management
+- **Financial Records** - Cost tracking and invoicing
+- **Services** - Service catalog and offerings
+- **Content Items** - Content asset management
+- **Issue Log** (26 mapped fields) - Problem tracking and resolution
+
+**Note:** Field mappings are workspace-specific. Copy examples from `config/field-mappings/examples/` to create your own mappings.
 
 ## Development
 
@@ -70,6 +73,16 @@ This is a TypeScript project. The source code is located in the `/src` directory
 - `reports/` - Build phase reports
 
 ## Configuration & Usage
+
+### Field Mappings Setup
+Since field mappings are workspace-specific and not included in the repository:
+
+1. **Copy example mappings** from `config/field-mappings/examples/`
+2. **Remove `.example` suffix** from filenames  
+3. **Place in** `config/field-mappings/` directory
+4. **Customize** field mappings for your SmartSuite workspace
+
+The system automatically loads all `.yaml` files from `config/field-mappings/` on startup.
 
 ### Environment Variables (Required for Auto-Authentication)
 ```bash
@@ -108,8 +121,8 @@ Add to your Claude Desktop MCP configuration:
 ## Documentation
 
 ### User Guide
-- **Complete User Guide**: [`docs/007-DOC-B4-USER-GUIDE.md`](./docs/007-DOC-B4-USER-GUIDE.md) - Detailed usage instructions with examples
-- **Technical Handoff**: [`docs/006-DOC-B4-HANDOFF.md`](./docs/006-DOC-B4-HANDOFF.md) - Implementation details and architecture
+- **Complete User Guide**: [`docs/guides/001-DOC-GUIDE-USER-GUIDE.md`](./docs/guides/001-DOC-GUIDE-USER-GUIDE.md) - Detailed usage instructions with examples
+- **Technical Handoff**: [`docs/delivery/001-DOC-DELIVERY-B4-HANDOFF.md`](./docs/delivery/001-DOC-DELIVERY-B4-HANDOFF.md) - Implementation details and architecture
 
 ### Example Usage
 ```javascript
