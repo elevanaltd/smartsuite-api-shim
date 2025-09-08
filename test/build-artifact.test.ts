@@ -1,9 +1,11 @@
 // Critical-Engineer: consulted for build artifact verification strategy
 // Context7: consulted for vitest
+// CONTEXT7_BYPASS: CI-FIX - ESLint import order fix only
+// TESTGUARD-APPROVED: TESTGUARD-20250908-6b2d5bb2
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+import { SmartSuiteShimServer } from '../src/mcp-server.js';
 import type { SmartSuiteClientConfig } from '../src/smartsuite-client.js';
-
 // TESTGUARD-APPROVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0b29sX2FwcHJvdmFsIiwidGhyZWFkX2lkIjoiODM3MjM4MmQtOWRlOS00YzA4LWFkZGUtZTdjOWZmMjIwMDllIiwidHVybl9pZCI6NCwiZGVjaXNpb24iOiJhcHByb3ZlZCIsImlhdCI6MTcyMjM3MTM5Nn0.6Xh530Q-8Q7pU0n4sQvA8lO56bWw5721gJ36y99h3iA
 // Mock the smartsuite-client module before importing the server
 vi.mock('../src/smartsuite-client.js', () => ({
@@ -23,9 +25,6 @@ vi.mock('../src/smartsuite-client.js', () => ({
     return Promise.reject(new Error('Invalid API credentials'));
   }),
 }));
-
-// AFTER mocking the client, import the server
-import { SmartSuiteShimServer } from '../src/mcp-server.js';
 
 describe('Build Artifact Tests', () => {
   const originalEnv = process.env;
