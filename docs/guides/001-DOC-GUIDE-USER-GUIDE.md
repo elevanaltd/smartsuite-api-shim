@@ -371,7 +371,7 @@ const projects = [
 ## Support & Resources
 
 ### Documentation
-- **Handoff Guide:** `006-DOC-B4-HANDOFF.md` - Technical implementation details
+- **Handoff Guide:** `../delivery/001-DOC-DELIVERY-B4-HANDOFF.md` - Technical implementation details
 - **Field Mappings:** `/config/field-mappings/*.yaml` - Complete field definitions
 
 ### Getting Help
