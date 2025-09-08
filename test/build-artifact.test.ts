@@ -79,7 +79,7 @@ describe('Build Artifact Tests', () => {
       // TESTGUARD-APPROVED: TESTGUARD-20250908-38bf9a44
       // Act: Create the server (constructor is synchronous)
       const server = new SmartSuiteShimServer();
-      
+
       // Assert: The initialize method should throw in fail-fast mode
       await expect(server.initialize()).rejects.toThrow('Could not authenticate server with environment credentials.');
     });

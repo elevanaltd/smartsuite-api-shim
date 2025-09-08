@@ -39,7 +39,7 @@ describe('Field Translation Integration - Manual Path Test', () => {
 
   it('should translate human-readable field names for record creation', async () => {
     const projectsAppId = '68a8ff5237fde0bf797c05b3';
-    
+
     // Mock the fieldTranslator for this specific test only
     // This ensures the test contract for field translation is properly tested
     (server as any).fieldTranslator.hasMappings = vi.fn().mockReturnValue(true);
@@ -84,7 +84,7 @@ describe('Field Translation Integration - Manual Path Test', () => {
 
   it('should gracefully handle tables without field mappings', async () => {
     const unknownAppId = 'unknown-table-id';
-    
+
     // Ensure this test uses unmocked field translator behavior
     (server as any).fieldTranslator.hasMappings = vi.fn().mockReturnValue(false);
     (server as any).fieldMappingsInitialized = true;
