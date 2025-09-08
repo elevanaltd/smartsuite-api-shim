@@ -63,7 +63,7 @@ export async function createAuthenticatedClient(
 ): Promise<SmartSuiteClient> {
   const apiKey = config.apiKey;
   const workspaceId = config.workspaceId;
-  const baseUrl = config.baseUrl ?? 'https://api.smartsuite.com';
+  const baseUrl = config.baseUrl ?? 'https://app.smartsuite.com';
 
   // Validate API key by making a test request
   // SmartSuite uses "Token" format and "ACCOUNT-ID" header, not Bearer
@@ -120,15 +120,16 @@ export async function createAuthenticatedClient(
     apiKey: apiKey,
     workspaceId: workspaceId,
 
-    async listRecords(appId: string, _options?: SmartSuiteListOptions): Promise<SmartSuiteRecord[]> {
-      const url = baseUrl + '/api/v1/applications/' + appId + '/records';
+    async listRecords(appId: string, options?: SmartSuiteListOptions): Promise<SmartSuiteRecord[]> {
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/list/';
       const response = await fetch(url, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           Authorization: 'Token ' + apiKey,
           'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify(options ?? {}),
       });
 
       if (!response.ok) {
@@ -211,7 +212,7 @@ export async function createAuthenticatedClient(
     },
 
     async getSchema(appId: string): Promise<SmartSuiteSchema> {
-      const url = baseUrl + '/api/v1/applications/' + appId + '/structure';
+      const url = baseUrl + '/api/v1/applications/' + appId + '/';
       const response = await fetch(url, {
         method: 'GET',
         headers: {
