@@ -224,14 +224,14 @@ export class SmartSuiteShimServer {
 
       // Multiple path resolution strategies for different environments
       const possiblePaths = [
+        // Development: Load directly from source (no rebuild needed!)
+        path.resolve(process.cwd(), 'config/field-mappings'),
+        // Absolute path for dev environment
+        '/Volumes/HestAI-Projects/smartsuite-api-shim/dev/config/field-mappings',
         // Production: from build/src/mcp-server.js -> ../../config/field-mappings
         path.resolve(__dirname, '../../config/field-mappings'),
-        // Development: from src/mcp-server.js -> ../config/field-mappings
+        // Alternative: from src/mcp-server.js -> ../config/field-mappings
         path.resolve(__dirname, '../config/field-mappings'),
-        // Test environment: from process.cwd()
-        path.resolve(process.cwd(), 'config/field-mappings'),
-        // Absolute fallback for dev environment
-        '/Volumes/HestAI-Projects/smartsuite-api-shim/dev/config/field-mappings',
       ];
 
       let configPath: string | null = null;
