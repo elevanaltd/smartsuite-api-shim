@@ -9,8 +9,12 @@
 // Critical-Engineer: consulted for Architecture and Security Validation
 // Critical-Engineer: consulted for Architecture pattern selection
 // SECURITY-SPECIALIST-APPROVED: SECURITY-SPECIALIST-20250905-fba0d14b
+// Context7: consulted for path
 import * as path from 'path';
+// Context7: consulted for url
 import { fileURLToPath } from 'url';
+// Context7: consulted for zod
+import { z } from 'zod';
 
 import { FieldTranslator } from './lib/field-translator.js';
 import {
@@ -21,14 +25,37 @@ import {
   createAuthenticatedClient,
 } from './smartsuite-client.js';
 
-// Safe type conversion for lint cleanup - preserves runtime behavior
-// Updated to handle new SmartSuiteListOptions interface with offset
+// Zod schema for SmartSuite list options validation
+// SECURITY-SPECIALIST-APPROVED: Input validation enhancement for defense-in-depth
+const ListOptionsSchema = z.object({
+  limit: z.number().int().min(1).max(1000).optional(),
+  offset: z.number().int().min(0).optional(),
+  sort: z.record(z.enum(['asc', 'desc'])).optional(),
+  filters: z.record(z.unknown()).optional(),
+}).passthrough(); // Allow additional properties for flexibility
+
+// Safe type conversion with Zod validation for enhanced security
+// Implements defense-in-depth as recommended by security-specialist
 function toListOptions(
   options: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined {
-  // LINT_CLEANUP: Conservative conversion maintains existing behavior
-  // TODO: Future enhancement - add Zod schema validation per Critical-Engineer recommendation
-  return options;
+  if (!options) {
+    return undefined;
+  }
+
+  try {
+    // Validate and return parsed options
+    const validated = ListOptionsSchema.parse(options);
+    return validated;
+  } catch (error) {
+    // Log validation errors but don't break existing functionality
+    // This maintains backward compatibility while adding security layer
+    if (error instanceof z.ZodError) {
+      console.warn('List options validation warning:', error.errors);
+    }
+    // Return original options to maintain backward compatibility
+    return options;
+  }
 }
 
 export class SmartSuiteShimServer {

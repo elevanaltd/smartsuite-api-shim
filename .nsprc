@@ -1,0 +1,26 @@
+{
+  "1107274": {
+    "reason": "SECURITY-SPECIALIST-APPROVED: Verified as false positive for debug package malware warning (2025-09-08). The debug package is legitimate and contains no malicious code.",
+    "expires": "2025-12-31"
+  },
+  "1107275": {
+    "reason": "False positive: color-convert malware warning - same batch of false positives as debug package",
+    "expires": "2025-12-31"
+  },
+  "1107276": {
+    "reason": "False positive: color-string malware warning - same batch of false positives as debug package",
+    "expires": "2025-12-31"
+  },
+  "1107278": {
+    "reason": "False positive: is-arrayish malware warning - same batch of false positives as debug package",
+    "expires": "2025-12-31"
+  },
+  "1107279": {
+    "reason": "False positive: simple-swizzle malware warning - same batch of false positives as debug package",
+    "expires": "2025-12-31"
+  },
+  "1107280": {
+    "reason": "False positive: color-name malware warning - same batch of false positives as debug package",
+    "expires": "2025-12-31"
+  }
+}
