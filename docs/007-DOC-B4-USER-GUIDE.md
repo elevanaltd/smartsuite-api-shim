@@ -1,8 +1,8 @@
 # SmartSuite API Shim - User Guide
 
-**Version:** 1.0.0  
-**Date:** 2025-09-06  
-**Status:** ✅ Production Ready
+**Version:** 1.1.0  
+**Date:** 2025-09-08  
+**Status:** ✅ Production Ready with Critical Fixes
 
 ## Getting Started
 
