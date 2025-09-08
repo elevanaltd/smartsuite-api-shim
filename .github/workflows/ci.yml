@@ -134,8 +134,8 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: javascript-typescript
-        # Specify CodeQL CLI version to avoid deprecation warnings
-        tools: latest
+        # Use 'linked' instead of deprecated 'latest'
+        tools: linked
         
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3

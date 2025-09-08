@@ -13,6 +13,7 @@
 import * as path from 'path';
 // Context7: consulted for url
 import { fileURLToPath } from 'url';
+
 // Context7: consulted for zod
 import { z } from 'zod';
 
@@ -51,6 +52,7 @@ function toListOptions(
     // Log validation errors but don't break existing functionality
     // This maintains backward compatibility while adding security layer
     if (error instanceof z.ZodError) {
+      // eslint-disable-next-line no-console
       console.warn('List options validation warning:', error.errors);
     }
     // Return original options to maintain backward compatibility
@@ -646,7 +648,7 @@ export class SmartSuiteShimServer {
     appId: string,
     recordId?: string,
   ): string {
-    return `${operation}:${appId}:${recordId || 'new'}`;
+    return `${operation}:${appId}:${recordId ?? 'new'}`;
   }
 
   /**
