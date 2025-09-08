@@ -36,10 +36,10 @@ export class SmartSuiteShimServer {
   private fieldTranslator: FieldTranslator;
   private fieldMappingsInitialized = false;
   private authConfig?: SmartSuiteClientConfig;
-  
+
   // Validation enforcement: Track recent dry-runs to ensure validation before execution
-  private validationCache = new Map<string, { 
-    timestamp: number; 
+  private validationCache = new Map<string, {
+    timestamp: number;
     dataHash: string;
     validated: boolean;
     errors?: string[];
@@ -502,50 +502,50 @@ export class SmartSuiteShimServer {
     // ENFORCEMENT: Check if a successful dry-run was performed for this operation
     const operationKey = this.generateOperationKey(operation, appId, recordId);
     const dataHash = this.generateDataHash(translatedData);
-    
+
     // Clean expired validations
     this.cleanExpiredValidations();
-    
+
     // Check for valid prior validation
     const priorValidation = this.validationCache.get(operationKey);
-    
+
     if (!priorValidation) {
       throw new Error(
-        `Validation required: No dry-run found for this operation. ` +
-        `You must perform a dry-run (dry_run: true) before executing. ` +
-        `This ensures the operation is validated before execution.`
+        'Validation required: No dry-run found for this operation. ' +
+        'You must perform a dry-run (dry_run: true) before executing. ' +
+        'This ensures the operation is validated before execution.',
       );
     }
-    
+
     // Check if validation is expired
     if (Date.now() - priorValidation.timestamp > this.VALIDATION_EXPIRY_MS) {
       this.validationCache.delete(operationKey);
       throw new Error(
-        `Validation expired: The dry-run for this operation has expired (>5 minutes old). ` +
-        `Please perform a new dry-run before executing.`
+        'Validation expired: The dry-run for this operation has expired (>5 minutes old). ' +
+        'Please perform a new dry-run before executing.',
       );
     }
-    
+
     // Check if data has changed
     if (priorValidation.dataHash !== dataHash) {
       this.validationCache.delete(operationKey);
       throw new Error(
-        `Data mismatch: The data has changed since the dry-run validation. ` +
-        `The data must be identical between dry-run and execution. ` +
-        `Please perform a new dry-run with the current data.`
+        'Data mismatch: The data has changed since the dry-run validation. ' +
+        'The data must be identical between dry-run and execution. ' +
+        'Please perform a new dry-run with the current data.',
       );
     }
-    
+
     // Check if prior validation failed
     if (!priorValidation.validated) {
       this.validationCache.delete(operationKey);
-      const errors = priorValidation.errors?.join(', ') || 'Validation failed';
+      const errors = priorValidation.errors?.join(', ') ?? 'Validation failed';
       throw new Error(
         `Cannot execute: The dry-run validation failed with errors: ${errors}. ` +
-        `Please fix the issues and perform a new dry-run.`
+        'Please fix the issues and perform a new dry-run.',
       );
     }
-    
+
     // Validation passed - clear it from cache (single use)
     this.validationCache.delete(operationKey);
 
@@ -666,7 +666,7 @@ export class SmartSuiteShimServer {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       validationErrors.push(`API connectivity check failed: ${errorMessage}`);
-      
+
       // Early return if we can't even connect
       return {
         dry_run: true,
@@ -688,9 +688,9 @@ export class SmartSuiteShimServer {
       const schemaErrors = this.validateDataAgainstSchema(
         operation,
         translatedData,
-        schema,
+        schema as unknown as Record<string, unknown>,
       );
-      
+
       if (schemaErrors.length > 0) {
         validationErrors.push(...schemaErrors);
       } else {
@@ -707,10 +707,10 @@ export class SmartSuiteShimServer {
     // Store validation result in cache for enforcement
     const operationKey = this.generateOperationKey(operation, appId, recordId);
     const dataHash = this.generateDataHash(translatedData);
-    
+
     // Clean old validations first
     this.cleanExpiredValidations();
-    
+
     // Store this validation
     const cacheEntry: {
       timestamp: number;
@@ -722,11 +722,11 @@ export class SmartSuiteShimServer {
       dataHash,
       validated: validationPassed,
     };
-    
+
     if (validationErrors.length > 0) {
       cacheEntry.errors = validationErrors;
     }
-    
+
     this.validationCache.set(operationKey, cacheEntry);
 
     return {
@@ -745,8 +745,8 @@ export class SmartSuiteShimServer {
       ...(validationErrors.length > 0 && { errors: validationErrors }),
       ...(validationWarnings.length > 0 && { warnings: validationWarnings }),
       message: validationPassed
-        ? `DRY-RUN PASSED: Operation validated successfully. Connectivity and schema checks passed. You may now execute with dry_run:false within 5 minutes.`
-        : `DRY-RUN FAILED: Operation validation failed. See errors for details.`,
+        ? 'DRY-RUN PASSED: Operation validated successfully. Connectivity and schema checks passed. You may now execute with dry_run:false within 5 minutes.'
+        : 'DRY-RUN FAILED: Operation validation failed. See errors for details.',
       note: 'This dry-run validates connectivity, authentication, and schema compliance. Server-side business rules and automations are not tested.',
     };
   }
@@ -758,19 +758,21 @@ export class SmartSuiteShimServer {
   private validateDataAgainstSchema(
     operation: string,
     data: Record<string, unknown>,
-    schema: any, // SmartSuiteSchema type
+    schema: Record<string, unknown>, // SmartSuiteSchema type
   ): string[] {
     const errors: string[] = [];
-    
+
     if (!schema.structure || !Array.isArray(schema.structure)) {
       return ['Schema structure not available for validation'];
     }
 
     // Build a map of field slugs to field definitions
-    const fieldMap = new Map<string, any>();
-    for (const field of schema.structure) {
-      if (field.slug) {
-        fieldMap.set(field.slug, field);
+    const fieldMap = new Map<string, Record<string, unknown>>();
+    const structureArray = schema.structure as Array<Record<string, unknown>>;
+    for (const field of structureArray) {
+      const slug = field.slug as string | undefined;
+      if (slug) {
+        fieldMap.set(slug, field);
       }
     }
 
@@ -785,9 +787,10 @@ export class SmartSuiteShimServer {
     if (operation === 'create') {
       for (const [fieldSlug, fieldDef] of fieldMap) {
         // Check if field is required
-        if (fieldDef.params?.required === true) {
+        const params = fieldDef.params as Record<string, unknown> | undefined;
+        if (params?.required === true) {
           // Skip system-generated fields
-          const fieldType = fieldDef.field_type;
+          const fieldType = fieldDef.field_type as string;
           const systemGeneratedTypes = [
             'autonumberfield',
             'firstcreatedfield',
@@ -798,14 +801,14 @@ export class SmartSuiteShimServer {
             'countfield',
             'commentscountfield',
           ];
-          
+
           if (systemGeneratedTypes.includes(fieldType)) {
             continue; // Skip validation for system-generated fields
           }
 
           // Check if required field is missing
           if (!(fieldSlug in data) || data[fieldSlug] === null || data[fieldSlug] === undefined) {
-            const label = fieldDef.label || fieldSlug;
+            const label = (fieldDef.label as string) ?? fieldSlug;
             errors.push(`Required field missing: '${fieldSlug}' (${label})`);
           }
         }
@@ -838,8 +841,8 @@ export class SmartSuiteShimServer {
       const fieldDef = fieldMap.get(key);
       if (!fieldDef) continue; // Already reported as unknown field
 
-      const fieldType = fieldDef.field_type;
-      const label = fieldDef.label || key;
+      const fieldType = fieldDef.field_type as string;
+      const label = (fieldDef.label as string) ?? key;
 
       // Basic type validation
       switch (fieldType) {
@@ -849,33 +852,36 @@ export class SmartSuiteShimServer {
             errors.push(`Field '${key}' (${label}) must be a number, got ${typeof value}`);
           }
           break;
-        
+
         case 'datefield':
         case 'duedatefield':
           if (value !== null && typeof value !== 'object') {
             errors.push(`Field '${key}' (${label}) must be a date object`);
           }
           break;
-        
+
         case 'linkedrecordfield':
         case 'userfield':
           if (value !== null && !Array.isArray(value)) {
             errors.push(`Field '${key}' (${label}) must be an array of record IDs`);
           }
           break;
-        
-        case 'singleselectfield':
+
+        case 'singleselectfield': {
           if (value !== null && typeof value !== 'string') {
             errors.push(`Field '${key}' (${label}) must be a string value`);
           }
           // Could also validate against allowed choices if available
-          if (fieldDef.params?.choices && value !== null) {
-            const validValues = fieldDef.params.choices.map((c: any) => c.value);
-            if (!validValues.includes(value)) {
-              errors.push(`Field '${key}' (${label}) value '${value}' is not in allowed choices: ${validValues.join(', ')}`);
+          const params = fieldDef.params as Record<string, unknown> | undefined;
+          if (params?.choices && value !== null) {
+            const choices = params.choices as Array<Record<string, unknown>>;
+            const validValues = choices.map((c) => c.value as string);
+            if (!validValues.includes(value as string)) {
+              errors.push(`Field '${key}' (${label}) value '${String(value)}' is not in allowed choices: ${validValues.join(', ')}`);
             }
           }
           break;
+        }
       }
     }
 

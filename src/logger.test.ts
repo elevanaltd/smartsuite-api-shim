@@ -100,7 +100,7 @@ describe('Logger Configuration', () => {
     // Test that console.log has been replaced
     console.log('test message', 'arg2');
 
-    expect(mockLogger.info).toHaveBeenCalledWith('test message', 'arg2');
+    expect(mockLogger.info).toHaveBeenCalledWith('test message', { metadata: ['arg2'] });
   });
 
   it('should redirect console.info to logger.info', async () => {
@@ -124,7 +124,7 @@ describe('Logger Configuration', () => {
 
     console.error('error message', { error: 'details' });
 
-    expect(mockLogger.error).toHaveBeenCalledWith('error message', { error: 'details' });
+    expect(mockLogger.error).toHaveBeenCalledWith('error message', { metadata: [{ error: 'details' }] });
   });
 
   it('should export the logger instance as default', async () => {
@@ -140,7 +140,7 @@ describe('Logger Configuration', () => {
     const num = 42;
     console.log('multiple', 'args', obj, num);
 
-    expect(mockLogger.info).toHaveBeenCalledWith('multiple', 'args', obj, num);
+    expect(mockLogger.info).toHaveBeenCalledWith('multiple', { metadata: ['args', obj, num] });
   });
 
   describe('MCP Protocol Safety', () => {

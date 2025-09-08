@@ -6,7 +6,7 @@
 
 import winston from 'winston';
 
-const level = process.env.LOG_LEVEL || 'info';
+const level = process.env.LOG_LEVEL ?? 'info';
 
 const logger = winston.createLogger({
   level: level,
@@ -22,46 +22,51 @@ const logger = winston.createLogger({
 
 // CRITICAL: Capture and redirect all console.log/warn/error from dependencies
 // This prevents any third-party library from contaminating stdout
-console.log = (...args: any[]) => {
+// eslint-disable-next-line no-console
+console.log = (...args: unknown[]): void => {
   // Convert multiple args to a single message object for winston
   if (args.length === 0) return;
   if (args.length === 1) {
-    logger.info(args[0]);
+    logger.info(String(args[0]));
   } else {
     // For multiple args, use first as message, rest as metadata
     const [message, ...meta] = args;
-    logger.info(message, { metadata: meta });
+    logger.info(String(message), { metadata: meta });
   }
 };
 
-console.info = (...args: any[]) => {
+// eslint-disable-next-line no-console
+console.info = (...args: unknown[]): void => {
   if (args.length === 0) return;
   if (args.length === 1) {
-    logger.info(args[0]);
+    logger.info(String(args[0]));
   } else {
     const [message, ...meta] = args;
-    logger.info(message, { metadata: meta });
+    logger.info(String(message), { metadata: meta });
   }
 };
 
-console.warn = (...args: any[]) => {
+// eslint-disable-next-line no-console
+console.warn = (...args: unknown[]): void => {
   if (args.length === 0) return;
   if (args.length === 1) {
-    logger.warn(args[0]);
+    logger.warn(String(args[0]));
   } else {
     const [message, ...meta] = args;
-    logger.warn(message, { metadata: meta });
+    logger.warn(String(message), { metadata: meta });
   }
 };
 
-console.error = (...args: any[]) => {
+// eslint-disable-next-line no-console
+console.error = (...args: unknown[]): void => {
   if (args.length === 0) return;
   if (args.length === 1) {
-    logger.error(args[0]);
+    logger.error(String(args[0]));
   } else {
     const [message, ...meta] = args;
-    logger.error(message, { metadata: meta });
+    logger.error(String(message), { metadata: meta });
   }
 };
 
+// eslint-disable-next-line import/no-default-export
 export default logger;
