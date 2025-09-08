@@ -46,6 +46,14 @@ describe('Field Translation Integration - Manual Path Test', () => {
     (server as any).fieldTranslator.humanToApi = vi.fn().mockImplementation((_appId, data) => data);
     (server as any).fieldMappingsInitialized = true;
 
+    // Mock the client's getSchema to return a schema that includes the fields we're using
+    (server as any).client.getSchema = vi.fn().mockResolvedValue({
+      structure: [
+        { slug: 'projectName', field_type: 'textfield', params: {} },
+        { slug: 'priority', field_type: 'textfield', params: {} },
+      ],
+    });
+
     const result = await server.executeTool('smartsuite_record', {
       operation: 'create',
       appId: projectsAppId,
@@ -61,7 +69,7 @@ describe('Field Translation Integration - Manual Path Test', () => {
       operation: 'create',
       appId: projectsAppId,
       fieldMappingsUsed: expect.any(Boolean),
-      message: expect.stringContaining('field translation'),
+      message: expect.stringContaining('DRY-RUN PASSED'),
     });
   });
 
