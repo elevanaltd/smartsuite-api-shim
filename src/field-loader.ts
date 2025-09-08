@@ -3,12 +3,12 @@
  * Supports: local > examples > defaults hierarchy
  */
 
-// Context7: consulted for fs-extra
-// Context7: consulted for path
 // Context7: consulted for js-yaml
-import * as fs from 'fs-extra';
-import * as path from 'path';
 import * as yaml from 'js-yaml';
+// Context7: consulted for fs-extra
+import * as fs from 'fs-extra';
+// Context7: consulted for path
+import * as path from 'path';
 
 interface FieldMapping {
   [fieldId: string]: string;
@@ -36,7 +36,7 @@ export class EnhancedFieldLoader {
 
     // First, try to load local mappings
     const localMappings = await this.loadMappingsFromDir(localDir, '.yaml');
-    
+
     if (localMappings.size > 0) {
       // User has local mappings - use them exclusively
       this.mappings = localMappings;
@@ -49,15 +49,14 @@ export class EnhancedFieldLoader {
 
     // No local mappings found - check if this is a fresh setup
     const exampleMappings = await this.loadMappingsFromDir(examplesDir, '.example.yaml');
-    
+
     if (exampleMappings.size > 0) {
       // Use examples as starting point
       this.mappings = exampleMappings;
       warnings.push(
         'No local field mappings found. Using examples as templates.',
-        'Run: npm run setup:mappings to create your local configuration'
+        'Run: npm run setup:mappings to create your local configuration',
       );
-      
       // Also check for any defaults to merge
       const defaultMappings = await this.loadMappingsFromDir(defaultsDir, '.yaml');
       if (defaultMappings.size > 0) {
@@ -68,7 +67,7 @@ export class EnhancedFieldLoader {
           }
         }
       }
-      
+
       return {
         source: 'example',
         mappings: this.mappings,
@@ -82,7 +81,7 @@ export class EnhancedFieldLoader {
       this.mappings = defaultMappings;
       warnings.push(
         'Using default field mappings only.',
-        'Consider creating local mappings for your workspace.'
+        'Consider creating local mappings for your workspace.',
       );
       return {
         source: 'default',
@@ -95,9 +94,8 @@ export class EnhancedFieldLoader {
     warnings.push(
       'No field mappings found in any location.',
       'Server will use raw API field codes.',
-      'Run: npm run discover:fields to generate mappings from your SmartSuite workspace'
+      'Run: npm run discover:fields to generate mappings from your SmartSuite workspace',
     );
-    
     return {
       source: 'none',
       mappings: this.mappings,
@@ -122,26 +120,45 @@ export class EnhancedFieldLoader {
       const files = await fs.readdir(dir);
       const yamlFiles = files.filter(f => f.endsWith(suffix));
 
-      for (const file of yamlFiles) {
+      // Load all files in parallel to avoid await-in-loop
+      const loadPromises = yamlFiles.map(async (file) => {
         try {
           const filePath = path.join(dir, file);
           const content = await fs.readFile(filePath, 'utf8');
-          const mapping = yaml.load(content) as FieldMapping;
+          // Use safeLoad to prevent code execution
+          const mapping = yaml.load(content, { schema: yaml.JSON_SCHEMA }) as FieldMapping;
           
           // Extract table name from filename
           let tableName = file.replace(suffix, '');
           if (suffix === '.example.yaml') {
             tableName = tableName.replace('.example', '');
           }
-          
-          mappings.set(tableName, mapping);
-          this.loadedSources.set(tableName, filePath);
+
+          return { tableName, mapping, filePath };
         } catch (error) {
-          console.warn(`Failed to load mapping from ${file}:`, error);
+          // Use logger instead of console in production
+          if (process.env.NODE_ENV !== 'test') {
+            process.stderr.write(`Warning: Failed to load mapping from ${file}: ${error}\n`);
+          }
+          return null;
+        }
+      });
+
+      // Wait for all files to load
+      const results = await Promise.all(loadPromises);
+
+      // Process successful loads
+      for (const result of results) {
+        if (result) {
+          mappings.set(result.tableName, result.mapping);
+          this.loadedSources.set(result.tableName, result.filePath);
         }
       }
     } catch (error) {
-      console.warn(`Failed to read directory ${dir}:`, error);
+      // Use logger instead of console in production
+      if (process.env.NODE_ENV !== 'test') {
+        process.stderr.write(`Warning: Failed to read directory ${dir}: ${error}\n`);
+      }
     }
 
     return mappings;
