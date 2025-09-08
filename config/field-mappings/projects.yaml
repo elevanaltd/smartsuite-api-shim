@@ -1,6 +1,7 @@
 # SmartSuite Projects Table Field Mappings
 # SOLUTION 1: EAV Projects (68b6d66b33630eb365ae54cb)
-# TABLE 1: Projects (68a8ff5237fde0bf797c05b3)
+# TABLE: Projects (68a8ff5237fde0bf797c05b3)
+# Last Audit: 2025-09-07
 
 tableName: projects
 tableId: 68a8ff5237fde0bf797c05b3
@@ -9,12 +10,12 @@ solutionId: 68b6d66b33630eb365ae54cb
 # Field mappings (human name → actual API slug)
 fields:
   # Core Project Fields
-  title: title                           # Project - Auto generated
+  title: title                           # Project - Record Title (Auto generated)
   eavCode: autonumber                     # EAV Code - Auto: EAV001, EAV002...
-  projectName: project_name_actual        # Project Name
-  client: sbfc98645c                      # Client - Linked Record
-  projectManager: project_manager         # Project Manager - Members
-  primaryContactEmail: primary_contact    # Primary Contact Email
+  projectName: project_name_actual        # Project Name - Text Field
+  client: sbfc98645c                      # Client - Linked Record to Clients table
+  projectManager: project_manager         # Project Manager - User Field
+  primaryContactEmail: primary_contact    # Primary Contact Email - Email Field
   clientContacts: client_contacts         # Client Contacts - Rich Text
   projectBrief: project_brief             # Project Brief - Rich Text
   
@@ -28,40 +29,48 @@ fields:
   # Financial Fields
   initialProjectCost: initial_cost        # Initial Project Cost - Currency
   percentageUpfront: percent_upfront      # Percentage Upfront - Number
-  upfrontAmount: upfront_calc            # Upfront Amount - Formula
-  dateUpfrontInvoiced: upfront_invoiced   # Date Upfront Invoiced
+  upfrontAmount: upfront_calc            # Upfront Amount Calculated - Formula
+  dateUpfrontInvoiced: upfront_invoiced   # Date Upfront Invoiced - Date
   totalAdditionalCosts: total_addl_costs  # Total Additional Costs - Rollup
-  totalProjectExpenses: total_proj_exp    # Total Project Expenses - Rollup
+  totalProjectExpenses: total_proj_exp    # Total Expenses (Net) - Rollup
   finalProjectCost: final_proj_cost      # Final Project Cost - Formula
   finalInvoiceAmount: final_invoice       # Final Invoice Amount - Formula
-  finalInvoiceSent: final_invoice_sent    # Final Invoice Sent
+  finalInvoiceSent: final_invoice_sent    # Final Invoice Sent - Date
   
   # Timeline Fields
-  agreementDate: agreement_date           # Agreement Date
+  agreementDate: agreement_date           # Agreement Date - Date
   projectLifecycle: project_lifecycle     # Project Lifecycle - Date Range
-  scriptsDeadline: scripts_deadline       # Scripts Deadline
-  assetsDeadline: assets_deadline         # Assets Deadline
-  filmingDeadline: filming_deadline       # Filming Deadline
-  voDeadline: vo_deadline                 # VO Deadline
-  finalDelivery: final_delivery           # Final Delivery
+  scriptsDeadline: scripts_deadline       # Scripts Deadline - Date
+  assetsDeadline: assets_deadline         # Assets Deadline - Date
+  filmingDeadline: filming_deadline       # Filming Deadline - Date
+  voDeadline: vo_deadline                 # VO Deadline - Date
+  finalDelivery: final_delivery           # Final Delivery - Date
+  dueDate: projdue456                     # Due Date - Due Date Field
+  pcDate: pcdate001                       # PC Date - Date
+  pcOffsetDays: sd83adba1e               # PC offset (days) - Number
   
   # Stream Status Fields (4-Stream Architecture)
-  bookingStreamStatus: bkgstream          # Booking Stream Status
-  assetStreamStatus: assetstream          # Asset Stream Status
-  mainStreamStatus: mainstream            # Main Stream Status
+  bookingStreamStatus: bkgstream          # Booking Stream Status - Status Field
+  assetStreamStatus: assetstream          # Asset Stream Status - Status Field
+  mainStreamStatus: mainstream            # Main Stream Status - Status Field
   
   # Readiness & Blockers
   filmingBlockers: se202948fd             # Filming Blockers - Count Field
   
-  # Linked Records
-  videosOld: si8yx4fb                     # Videos (OLD) - TO BE REMOVED
-  linkToVideos2: solamlxu                 # Link to Videos 2 (NEW)
-  financialRecords: sn0a32ss              # Financial Records
-  schedule: sscbseo4                      # Schedule
+  # Linked Records (UPDATED 2025-09-07)
+  linkToVideos: sdqlkcdx                  # Link to Videos - Links to Videos in EAV Operations
+  financialRecords: sn0a32ss              # Link to Financial Records
+  schedule: sscbseo4                      # Link to Schedule
+  linkToIssueLog: sempl0ue                # Link to Issue Log - Links to EAV System
+  services: seed4f6e94                    # Services - Linked Record
+  linkToPlanning: szcd0lir                # Link to Planning - Linked Record
+  linkToAdditionalCostsCopy: sh1shu2w     # Link to Additional Costs Copy
+  linkToAdditionalCostsCopy1: slvuhdtc    # Link to Additional Costs Copy 1
   
   # System Fields
   firstCreated: first_created             # First Created - Created Time
   lastUpdated: last_updated               # Last Updated - Updated Time
+  followedBy: followed_by                 # Followed by - User Field
   openComments: comments_count            # Open Comments - Comments Count
 
 # Status Field Options
@@ -97,3 +106,9 @@ mainStreamStatusOptions:
   - PEND SPEC
   - PEND COMPLETION
   - COMPLETED
+
+# NOTES:
+# - Removed videosOld (si8yx4fb) and linkToVideos2 (solamlxu) - these fields no longer exist
+# - Added new linked fields discovered in audit
+# - Due Date is type "duedatefield" not regular date
+# - All slugs verified against actual SmartSuite API response 2025-09-07

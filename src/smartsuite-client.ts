@@ -1,4 +1,5 @@
 // Context7: consulted for node fetch
+// Context7: consulted for URL (built-in)
 // SECURITY-SPECIALIST-APPROVED: SECURITY-SPECIALIST-20250905-ad1233d9
 // GREEN phase implementation to make authentication tests pass
 
@@ -43,10 +44,18 @@ export interface SmartSuiteSchema {
   }>;
 }
 
+export interface SmartSuiteListResponse {
+  items: SmartSuiteRecord[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
 export interface SmartSuiteClient {
   apiKey: string;
   workspaceId: string;
-  listRecords: (appId: string, options?: SmartSuiteListOptions) => Promise<SmartSuiteRecord[]>;
+  listRecords: (appId: string, options?: SmartSuiteListOptions) => Promise<SmartSuiteListResponse>;
+  countRecords: (appId: string, options?: SmartSuiteListOptions) => Promise<number>;
   getRecord: (appId: string, recordId: string) => Promise<SmartSuiteRecord>;
   createRecord: (appId: string, data: Record<string, unknown>) => Promise<SmartSuiteRecord>;
   updateRecord: (
@@ -120,23 +129,76 @@ export async function createAuthenticatedClient(
     apiKey: apiKey,
     workspaceId: workspaceId,
 
-    async listRecords(appId: string, options?: SmartSuiteListOptions): Promise<SmartSuiteRecord[]> {
-      const url = baseUrl + '/api/v1/applications/' + appId + '/records/list/';
-      const response = await fetch(url, {
+    async listRecords(appId: string, options?: SmartSuiteListOptions): Promise<SmartSuiteListResponse> {
+      // Apply defaults and constraints for MCP token optimization
+      const limit = Math.min(options?.limit ?? 200, 1000); // Default 200, max 1000
+      const offset = options?.offset ?? 0;
+
+      // Build URL with query parameters (SmartSuite requirement)
+      const url = new URL(baseUrl + '/api/v1/applications/' + appId + '/records/list/');
+      url.searchParams.set('limit', limit.toString());
+      url.searchParams.set('offset', offset.toString());
+
+      // Build request body with filters/sort and optimization settings
+      const requestBody: Record<string, unknown> = {
+        hydrated: false, // Reduce payload size for token optimization
+      };
+
+      if (options?.filter) {
+        requestBody.filter = options.filter;
+      }
+      if (options?.sort) {
+        requestBody.sort = options.sort;
+      }
+
+      const response = await fetch(url.toString(), {
         method: 'POST',
         headers: {
           Authorization: 'Token ' + apiKey,
           'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(options ?? {}),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         throw new Error('Failed to list records: ' + response.statusText);
       }
 
-      return response.json() as Promise<SmartSuiteRecord[]>;
+      return await response.json() as SmartSuiteListResponse;
+    },
+
+    async countRecords(appId: string, options?: SmartSuiteListOptions): Promise<number> {
+      // Build URL with query parameters for minimal request
+      const url = new URL(baseUrl + '/api/v1/applications/' + appId + '/records/list/');
+      url.searchParams.set('limit', '1'); // Minimal limit for count
+      url.searchParams.set('offset', '0');
+
+      // Build request body with only filters (no sort needed for count)
+      const requestBody: Record<string, unknown> = {
+        hydrated: false, // Reduce payload size
+      };
+
+      if (options?.filter) {
+        requestBody.filter = options.filter;
+      }
+
+      const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers: {
+          Authorization: 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to count records: ' + response.statusText);
+      }
+
+      const data = await response.json() as SmartSuiteListResponse;
+      return data.total;
     },
 
     async getRecord(appId: string, recordId: string): Promise<SmartSuiteRecord> {
