@@ -43,7 +43,7 @@ describe('Build Artifact Tests', () => {
   describe('Server Startup', () => {
     it('should create a valid build artifact when started with environment variables', async () => {
       // Arrange: Set environment variables
-      process.env.SMARTSUITE_API_KEY = 'test-api-key-12345';
+      process.env.SMARTSUITE_API_TOKEN = 'test-api-key-12345';
       process.env.SMARTSUITE_WORKSPACE_ID = 'workspace-test-67890';
 
       // Act: Create the server (this should succeed without throwing)
@@ -56,7 +56,7 @@ describe('Build Artifact Tests', () => {
 
     it('should create a valid build artifact when started without environment variables', async () => {
       // Arrange: Clear any existing environment variables
-      delete process.env.SMARTSUITE_API_KEY;
+      delete process.env.SMARTSUITE_API_TOKEN;
       delete process.env.SMARTSUITE_WORKSPACE_ID;
 
       // Act: Create the server (should succeed in deferred mode)
@@ -69,17 +69,19 @@ describe('Build Artifact Tests', () => {
 
     it('should handle invalid credentials gracefully in fail-fast mode', async () => {
       // Arrange: Set invalid environment variables
-      process.env.SMARTSUITE_API_KEY = 'invalid-key';
+      process.env.SMARTSUITE_API_TOKEN = 'invalid-key';
       process.env.SMARTSUITE_WORKSPACE_ID = 'invalid-workspace';
 
       // Force the mock to throw for these specific values
       const { createAuthenticatedClient } = await import('../src/smartsuite-client.js');
       (createAuthenticatedClient as any).mockRejectedValueOnce(new Error('Invalid API credentials'));
 
-      // Act & Assert: Server creation should throw in fail-fast mode
-      await expect(async () => {
-        new SmartSuiteShimServer();
-      }).rejects.toThrow('Invalid API credentials');
+      // TESTGUARD-APPROVED: TESTGUARD-20250908-38bf9a44
+      // Act: Create the server (constructor is synchronous)
+      const server = new SmartSuiteShimServer();
+      
+      // Assert: The initialize method should throw in fail-fast mode
+      await expect(server.initialize()).rejects.toThrow('Could not authenticate server with environment credentials.');
     });
   });
 
