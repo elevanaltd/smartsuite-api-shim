@@ -79,24 +79,32 @@ The EAV system organizes video production into 4 parallel workflow streams:
 
 Each stream has status tracking at the project level (Projects table) and task execution at the operational level (Tasks table).
 
-## Important: Two-Step Validation Process
+## Important: Mandatory Two-Step Validation Process
 
-⚠️ **All record mutations (create, update, delete) require a two-step validation process for safety:**
+⚠️ **All record mutations (create, update, delete) REQUIRE a two-step validation process:**
 
-1. **Step 1 - Validation (dry_run: true):** Validates your data and returns a unique token
-2. **Step 2 - Execution (dry_run: false + token):** Uses the token to execute the actual operation
+1. **Step 1 - Validation (dry_run: true):** Validates connectivity, permissions, and data against schema
+2. **Step 2 - Execution (dry_run: false):** Executes the operation if validation passed
 
-This ensures:
-- ✅ **Safety**: No accidental mutations
-- ✅ **Validation**: Data checked before execution  
-- ✅ **Auditability**: Clear intent with validation step
-- ✅ **Consistency**: Exact operation executed as validated
+### What Gets Validated
 
-**Key Rules:**
-- Tokens expire after 5 minutes
-- Tokens are single-use only
-- Data must be identical between steps
-- All parameters must match exactly
+The dry-run performs **real validation** against the SmartSuite API:
+
+✅ **Connectivity & Authentication**: Tests API access and permissions  
+✅ **Schema Validation**: Checks required fields, field types, and valid values  
+✅ **Field Name Validation**: Ensures all fields exist in the table  
+✅ **System Field Protection**: Prevents setting auto-generated fields  
+
+⚠️ **Not Validated**: Server-side business rules, automations, or complex validations
+
+### Enforcement Rules
+
+The system **enforces** proper validation:
+- **Must validate first**: Cannot execute without a successful dry-run
+- **Validation expires**: After 5 minutes, must re-validate
+- **Data must match**: Any change to data requires new validation
+- **Single use**: Each validation is used once then cleared
+- **Must pass**: Failed validations cannot be executed
 
 ## Using the Tools
 
@@ -143,7 +151,7 @@ This ensures:
 
 ⚠️ **IMPORTANT: All mutations require a two-step validation process:**
 
-#### Step 1: Validate with Dry-Run (Get Token)
+#### Step 1: Validate with Dry-Run
 ```javascript
 {
   "operation": "create",
@@ -161,19 +169,21 @@ This ensures:
 // Returns:
 {
   "dry_run": true,
-  "validation_token": "val_1234567890_abc123",  // SAVE THIS TOKEN!
-  "token_expires_in": "5 minutes",
-  "message": "Use the validation_token to execute the actual operation"
+  "validation": "passed",              // or "failed" with errors
+  "validationChecks": {
+    "connectivity": "passed",
+    "schema": "passed"
+  },
+  "message": "DRY-RUN PASSED: Operation validated successfully. You may now execute with dry_run:false within 5 minutes."
 }
 ```
 
-#### Step 2: Execute with Validation Token
+#### Step 2: Execute After Successful Validation
 ```javascript
 {
   "operation": "create",
   "appId": "68a8ff5237fde0bf797c05b3",
   "dry_run": false,                          // NOW set to false
-  "validation_token": "val_1234567890_abc123", // Token from Step 1
   "data": {
     "projectName": "New Website",           // MUST be identical to Step 1
     "client": "client-xyz-789",
@@ -191,22 +201,21 @@ This ensures:
   "operation": "update",
   "appId": "68a8ff5237fde0bf797c05b3", 
   "recordId": "project-id-123",
-  "dry_run": true,                    // Get validation token first
+  "dry_run": true,                    // Validate first
   "data": {
     "projectPhase": "PRODUCTION",     // Human-readable status
     "priority": "Urgent"              // Human-readable priority
   }
 }
 
-// Step 2: Execute with token
+// Step 2: Execute (if validation passed)
 {
   "operation": "update",
   "appId": "68a8ff5237fde0bf797c05b3", 
   "recordId": "project-id-123",
-  "dry_run": false,
-  "validation_token": "val_xxx_from_step1",  // Required!
+  "dry_run": false,                   // Execute after validation
   "data": {
-    "projectPhase": "PRODUCTION",
+    "projectPhase": "PRODUCTION",     // MUST be identical to Step 1
     "priority": "Urgent"
   }
 }
@@ -326,43 +335,43 @@ relatedProject: projectlnk        # Related Project Link
 
 ## Error Handling & Safety
 
-### Two-Step Validation Pattern
-All mutation operations (create/update/delete) **require** a two-step validation process with tokens:
+### Two-Step Validation Pattern (Enforced)
+All mutation operations (create/update/delete) **require** a two-step validation process:
 
 ```javascript
-// ❌ This will fail - No token provided
+// ❌ This will fail - No prior validation
 {
   "operation": "create",
   "appId": "table-id",
   "dry_run": false,
   "data": { "field": "value" }
-  // Error: Mutation requires either dry_run:true or a valid validation_token
+  // Error: Validation required: No dry-run found for this operation
 }
 
-// ✅ Step 1: Get validation token
+// ✅ Step 1: Validate with dry-run
 {
   "operation": "create",
   "appId": "table-id", 
   "data": { "field": "value" },
   "dry_run": true  // REQUIRED first step
 }
-// Returns: { validation_token: "val_xxx", ... }
+// Returns: { validation: "passed", validationChecks: {...} }
 
-// ✅ Step 2: Execute with token
+// ✅ Step 2: Execute (only if validation passed)
 {
   "operation": "create",
   "appId": "table-id",
-  "dry_run": false,
-  "validation_token": "val_xxx",  // Token from Step 1
+  "dry_run": false,              // No token needed
   "data": { "field": "value" }    // Must be identical to Step 1
 }
 ```
 
-**Token Rules:**
-- Tokens expire after 5 minutes
-- Tokens are single-use only
+**Validation Rules (Enforced by Server):**
+- Dry-run validation expires after 5 minutes
+- Each validation is single-use only
 - Data must be identical between steps
 - All parameters must match exactly
+- The server tracks and enforces these rules automatically
 
 ### Field Validation
 When using human-readable field names, the system validates against known mappings:
@@ -418,12 +427,12 @@ Unmapped fields found for table projects: invalidField. Available fields: projec
 - **Solution:** Use one of the listed available field names
 - **Reference:** Check YAML mapping files for correct field names
 
-**3. Validation token required:**
+**3. Validation required:**
 ```  
-Mutation requires either dry_run:true or a valid validation_token
+Validation required: No dry-run found for this operation
 ```
-- **Solution:** Always start with `"dry_run": true` to get validation token
-- **Execute:** Use token with `"dry_run": false` within 5 minutes
+- **Solution:** Always start with `"dry_run": true` to validate
+- **Execute:** Use `"dry_run": false` within 5 minutes (no token needed)
 
 **Token-related errors:**
 - **"Token expired"** - Token older than 5 minutes, get a new one
