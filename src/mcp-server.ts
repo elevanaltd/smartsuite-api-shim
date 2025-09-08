@@ -16,10 +16,12 @@ import { FieldTranslator } from './lib/field-translator.js';
 import {
   SmartSuiteClient,
   SmartSuiteClientConfig,
+  SmartSuiteListResponse,
   createAuthenticatedClient,
 } from './smartsuite-client.js';
 
 // Safe type conversion for lint cleanup - preserves runtime behavior
+// Updated to handle new SmartSuiteListOptions interface with offset
 function toListOptions(
   options: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined {
@@ -137,7 +139,11 @@ export class SmartSuiteShimServer {
             },
             limit: {
               type: 'number',
-              description: 'Maximum number of records to return',
+              description: 'Maximum number of records to return (default 200, max 1000)',
+            },
+            offset: {
+              type: 'number',
+              description: 'Starting offset for pagination (default 0)',
             },
           },
           required: ['operation', 'appId'],
@@ -342,6 +348,7 @@ export class SmartSuiteShimServer {
     const filters = args.filters as Record<string, unknown> | undefined;
     const sort = args.sort as Record<string, unknown> | undefined;
     const limit = args.limit as number | undefined;
+    const offset = args.offset as number | undefined;
 
     // Translate filters and sort options if field mappings exist
     const translatedFilters =
@@ -358,20 +365,27 @@ export class SmartSuiteShimServer {
       ...(translatedFilters && { filter: translatedFilters }),
       ...(translatedSort && { sort: translatedSort }),
       ...(limit && { limit }),
+      ...(offset !== undefined && { offset }),
     };
 
     let result: unknown;
     switch (operation) {
-      case 'list':
-        result = await this.client!.listRecords(appId, toListOptions(options));
+      case 'list': {
+        const listResponse = await this.client!.listRecords(appId, toListOptions(options));
+        // Handle both new API format and legacy test mocks
+        result = this.handleListResponse(appId, listResponse);
         break;
+      }
       case 'get':
         result = await this.client!.getRecord(appId, recordId);
         break;
-      case 'search':
+      case 'search': {
         // SIMPLE scope: search is just list with filter
-        result = await this.client!.listRecords(appId, toListOptions(options));
+        const searchResponse = await this.client!.listRecords(appId, toListOptions(options));
+        // Handle both new API format and legacy test mocks
+        result = this.handleListResponse(appId, searchResponse);
         break;
+      }
       case 'count': {
         const count = await this.client!.countRecords(appId, toListOptions(options));
         result = { count };
@@ -381,17 +395,13 @@ export class SmartSuiteShimServer {
         throw new Error(`Unknown query operation: ${operation}`);
     }
 
-    // FIELD TRANSLATION: Convert API response back to human-readable names
+    // FIELD TRANSLATION: Convert API response back to human-readable names for single record
     if (this.fieldTranslator.hasMappings(appId) && result && typeof result === 'object') {
-      if (Array.isArray(result)) {
-        // Handle array of records (list/search results)
-        return result.map((record: unknown) =>
-          typeof record === 'object' && record !== null
-            ? this.fieldTranslator.apiToHuman(appId, record as Record<string, unknown>)
-            : record,
-        );
-      } else if ('count' in (result as Record<string, unknown>)) {
+      if ('count' in (result as Record<string, unknown>)) {
         // Handle count result - no field translation needed
+        return result;
+      } else if ('items' in (result as Record<string, unknown>)) {
+        // Handle paginated list/search results - already processed by formatMcpPaginationResponse
         return result;
       } else {
         // Handle single record (get result)
@@ -400,6 +410,56 @@ export class SmartSuiteShimServer {
     }
 
     return result;
+  }
+
+  /**
+   * Handle list response - supports both new API format and legacy test mocks
+   */
+  private handleListResponse(appId: string, response: unknown): Record<string, unknown> {
+    // Check if it's an array (legacy test mock format)
+    if (Array.isArray(response)) {
+      // Convert legacy mock format to new pagination response
+      const legacyResponse: SmartSuiteListResponse = {
+        items: response,
+        total: response.length,
+        offset: 0,
+        limit: response.length,
+      };
+      return this.formatMcpPaginationResponse(appId, legacyResponse);
+    }
+    
+    // Handle new API format
+    return this.formatMcpPaginationResponse(appId, response as SmartSuiteListResponse);
+  }
+
+  /**
+   * Format SmartSuite API response for MCP protocol with cursor-based pagination
+   */
+  private formatMcpPaginationResponse(appId: string, response: SmartSuiteListResponse): Record<string, unknown> {
+    // Handle undefined response items (for test compatibility)
+    const items = response.items ?? [];
+    
+    // Translate field names if mappings exist
+    const translatedItems = this.fieldTranslator.hasMappings(appId)
+      ? items.map((record) => 
+          this.fieldTranslator.apiToHuman(appId, record as Record<string, unknown>)
+        )
+      : items;
+
+    // Calculate next offset for cursor-based pagination
+    const offset = response.offset ?? 0;
+    const limit = response.limit ?? 200;
+    const total = response.total ?? 0;
+    const nextOffset = offset + limit;
+    const hasMore = nextOffset < total;
+
+    return {
+      total,
+      items: translatedItems,
+      limit,
+      offset,
+      ...(hasMore && { nextOffset }),
+    };
   }
 
   private async handleRecord(args: Record<string, unknown>): Promise<unknown> {

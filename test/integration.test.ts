@@ -198,7 +198,13 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         appId: 'test-app',
       });
 
-      expect(result).toEqual([{ id: '1', name: 'Test' }]);
+      // After API change, MCP server returns paginated response format
+      expect(result).toEqual({
+        total: 1,
+        items: [{ id: '1', name: 'Test' }],
+        limit: 1,
+        offset: 0,
+      });
       expect((server as any).client.listRecords).toHaveBeenCalledWith('test-app', {});
     });
 
