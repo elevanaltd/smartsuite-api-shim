@@ -15,6 +15,7 @@ export default defineConfig({
     // Only run TypeScript source files, never compiled JS
     include: [
       'test/**/*.{test,spec}.ts',
+      'tests/**/*.{test,spec}.ts',
       'src/**/*.{test,spec}.ts',
     ],
     exclude: [
