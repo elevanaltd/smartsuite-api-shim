@@ -147,6 +147,13 @@ Thumbs.db
 # SmartSuite MCP specific
 .smartsuite-mcp/
 
+# Local field mappings (workspace-specific)
+config/field-mappings/*.yaml
+config/field-mappings/*.yml
+# Keep examples and defaults
+!config/field-mappings/examples/
+!config/field-mappings/defaults/
+
 # Temporary files
 *.tmp
 *.temp
