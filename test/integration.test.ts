@@ -4,16 +4,23 @@
 // Time Budget: 5 minutes validation
 
 // Context7: consulted for vitest
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
 
 describe('ERROR-ARCHITECT: Integration Validation', () => {
   let server: SmartSuiteShimServer;
+  let originalFetch: typeof global.fetch;
 
   beforeEach(() => {
     server = new SmartSuiteShimServer();
+    originalFetch = global.fetch;
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    // Restore fetch after each test to prevent race conditions
+    global.fetch = originalFetch;
   });
 
   describe('Integration Point 1: MCP Server ↔ SmartSuite Client', () => {
@@ -25,15 +32,12 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       };
 
       // Mock fetch for authentication
-      const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ success: true }),
       });
 
       await expect(server.authenticate(config)).resolves.not.toThrow();
-
-      global.fetch = originalFetch;
     });
 
     it('should require authentication before tool execution', async () => {
@@ -46,7 +50,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
   describe('Integration Point 2: DRY-RUN ↔ Mutation Safety', () => {
     it('should enforce dry-run pattern for mutations', async () => {
       // Mock authentication
-      const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ success: true }),
@@ -58,7 +61,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-      global.fetch = originalFetch;
+
 
       // Attempt mutation without dry_run
       await expect(
@@ -72,7 +75,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
     it('should allow dry-run mutations', async () => {
       // Mock authentication
-      const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ success: true }),
@@ -84,7 +86,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-      global.fetch = originalFetch;
+
 
       const result = (await server.executeTool('smartsuite_record', {
         operation: 'create',
@@ -101,7 +103,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
   describe('Integration Point 3: Error Handling ↔ User Experience', () => {
     it('should provide clear error for unknown tools', async () => {
       // Mock authentication
-      const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ success: true }),
@@ -113,7 +114,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-      global.fetch = originalFetch;
+
 
       await expect(server.executeTool('unknown_tool', {})).rejects.toThrow(
         'Unknown tool: unknown_tool',
@@ -122,7 +123,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
     it('should provide clear error for unknown operations', async () => {
       // Mock authentication
-      const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ success: true }),
@@ -134,7 +134,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-      global.fetch = originalFetch;
+
 
       await expect(
         server.executeTool('smartsuite_query', {
@@ -146,7 +146,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
     it('should handle authentication errors gracefully', async () => {
       // Mock fetch to simulate auth failure
-      const originalFetch = global.fetch;
       global.fetch = vi.fn().mockRejectedValue(new Error('Authentication failed: Invalid token'));
 
       await expect(
@@ -157,14 +156,13 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         }),
       ).rejects.toThrow('Authentication failed');
 
-      global.fetch = originalFetch;
+
     });
   });
 
   describe('Integration Point 4: Tool Execution Pipeline', () => {
     beforeEach(async () => {
       // Mock authentication
-      const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ success: true }),
@@ -177,7 +175,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-      global.fetch = originalFetch;
+
 
       // Mock the client methods by replacing the private client
       // This is testing the tool execution pipeline, not the client itself
@@ -247,7 +245,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       ).rejects.toThrow(/Authentication required.*authenticate\(\) first/);
 
       // Invalid operation
-      const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ success: true }),
@@ -259,7 +256,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-      global.fetch = originalFetch;
+
 
       await expect(
         server.executeTool('smartsuite_query', { operation: 'invalid', appId: 'test' }),
@@ -268,7 +265,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
     it('should not implement complex features outside SIMPLE scope', async () => {
       // Mock authentication
-      const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ success: true }),
@@ -280,7 +276,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-      global.fetch = originalFetch;
+
 
       // Bulk operations not needed for personal automation
       await expect(

@@ -3,12 +3,13 @@
  * Supports: local > examples > defaults hierarchy
  */
 
+// Context7: consulted for fs-extra
+import * as path from 'path';
+
+import * as fs from 'fs-extra';
 // Context7: consulted for js-yaml
 import * as yaml from 'js-yaml';
-// Context7: consulted for fs-extra
-import * as fs from 'fs-extra';
 // Context7: consulted for path
-import * as path from 'path';
 
 interface FieldMapping {
   [fieldId: string]: string;
@@ -108,10 +109,10 @@ export class EnhancedFieldLoader {
    */
   private async loadMappingsFromDir(
     dir: string,
-    suffix: string
+    suffix: string,
   ): Promise<Map<string, FieldMapping>> {
     const mappings = new Map<string, FieldMapping>();
-    
+
     try {
       if (!await fs.pathExists(dir)) {
         return mappings;
@@ -127,7 +128,7 @@ export class EnhancedFieldLoader {
           const content = await fs.readFile(filePath, 'utf8');
           // Use safeLoad to prevent code execution
           const mapping = yaml.load(content, { schema: yaml.JSON_SCHEMA }) as FieldMapping;
-          
+
           // Extract table name from filename
           let tableName = file.replace(suffix, '');
           if (suffix === '.example.yaml') {
@@ -138,7 +139,7 @@ export class EnhancedFieldLoader {
         } catch (error) {
           // Use logger instead of console in production
           if (process.env.NODE_ENV !== 'test') {
-            process.stderr.write(`Warning: Failed to load mapping from ${file}: ${error}\n`);
+            process.stderr.write(`Warning: Failed to load mapping from ${file}: ${String(error)}\n`);
           }
           return null;
         }
@@ -157,7 +158,7 @@ export class EnhancedFieldLoader {
     } catch (error) {
       // Use logger instead of console in production
       if (process.env.NODE_ENV !== 'test') {
-        process.stderr.write(`Warning: Failed to read directory ${dir}: ${error}\n`);
+        process.stderr.write(`Warning: Failed to read directory ${dir}: ${String(error)}\n`);
       }
     }
 
