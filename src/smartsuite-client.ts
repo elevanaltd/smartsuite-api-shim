@@ -202,7 +202,7 @@ export async function createAuthenticatedClient(
     },
 
     async getRecord(appId: string, recordId: string): Promise<SmartSuiteRecord> {
-      const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId;
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId + '/';
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -220,7 +220,7 @@ export async function createAuthenticatedClient(
     },
 
     async createRecord(appId: string, data: Record<string, unknown>): Promise<SmartSuiteRecord> {
-      const url = baseUrl + '/api/v1/applications/' + appId + '/records';
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/';
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -239,7 +239,7 @@ export async function createAuthenticatedClient(
     },
 
     async updateRecord(appId: string, recordId: string, data: Record<string, unknown>): Promise<SmartSuiteRecord> {
-      const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId;
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId + '/';
       const response = await fetch(url, {
         method: 'PATCH',
         headers: {
@@ -258,7 +258,7 @@ export async function createAuthenticatedClient(
     },
 
     async deleteRecord(appId: string, recordId: string): Promise<void> {
-      const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId;
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/' + recordId + '/';
       const response = await fetch(url, {
         method: 'DELETE',
         headers: {

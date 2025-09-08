@@ -1,12 +1,18 @@
 # SmartSuite API Shim - User Guide
 
-**Version:** 1.1.0  
+**Version:** 1.2.0  
 **Date:** 2025-09-08  
-**Status:** ✅ Production Ready with Critical Fixes
+**Status:** ✅ Production Ready - EAV Workspace Configured
+
+## System Overview
+
+**Workspace:** s3qnmox1  
+**Architecture:** 3 Solutions, 10 Active Tables, 4-Stream Workflow  
+**Purpose:** Elevana AV video production management with human-readable field access
 
 ## Getting Started
 
-The SmartSuite API Shim transforms cryptic SmartSuite API field codes into human-readable names, making database operations intuitive and error-free.
+The SmartSuite API Shim transforms cryptic SmartSuite API field codes into human-readable names, making database operations intuitive and error-free for the EAV video production workflow.
 
 ### Quick Start Example
 
@@ -30,31 +36,77 @@ The SmartSuite API Shim transforms cryptic SmartSuite API field codes into human
 }
 ```
 
-## Available Tables
+## EAV Solutions & Tables
 
-The system supports 9 pre-configured SmartSuite tables with human-readable field mappings:
+The system manages 3 SmartSuite solutions for comprehensive video production workflow:
 
-| Table | Table ID | Description | Fields Mapped |
-|-------|----------|-------------|---------------|
-| **Projects** | `68a8ff5237fde0bf797c05b3` | Project management | 40+ fields |
-| **Tasks** | `6613bedd1889d8deeaef8b0e` | Task tracking | 30+ fields |
-| **Videos** | `67ae89f5eb9ccd5cb4ae9b85` | Video production | 25+ fields |
-| **Clients** | `6646a2edefe5c3eb5f4b9fb7` | Client management | 20+ fields |
-| **Schedule** | `674c30fa0a4b6f966e5a91d0` | Calendar events | 15+ fields |
-| **Financial Records** | `667b0d9b22bb04e966a5b3d7` | Financial tracking | 10+ fields |
-| **Content Items** | `661a2f9e9e3c4b5a7f8e9d0c` | Content assets | 15+ fields |
-| **Issue Log** | `663d4e5f6a7b8c9d0e1f2a3b` | Issue tracking | 20+ fields |
-| **Videos Legacy** | `657f8e9d0c1b2a3b4c5d6e7f` | Legacy support | 15+ fields |
+### Solution 1: EAV Projects (68b6d66b33630eb365ae54cb)
+Manages project lifecycle, client relationships, and financial tracking.
+
+| Table | Table ID | Description | Fields |
+|-------|----------|-------------|---------|
+| **Projects** | `68a8ff5237fde0bf797c05b3` | Project management with 4-stream status tracking | 47 fields |
+| **Clients** | `68a8ff34dc58deda12a3bc02` | Client management and relationships | 21 fields |
+| **Financial Records** | `68b1cecc4b54c373a5f6fdf5` | Financial tracking and invoicing | Active |
+| **Services** | `68b7fb8ed78e0c91416c1787` | Service catalog and offerings | Active |
+| **Planning** | `68bace6c51dce2f0d0f5073b` | Resource planning and phase management | 25 fields |
+
+### Solution 2: EAV Operations (68a8eedc2271ce265ebdae8f)
+Handles workflow execution, task management, and content production.
+
+| Table | Table ID | Description | Fields |
+|-------|----------|-------------|---------|
+| **Tasks** | `68a8ffac490e5496953e5b1c` | Streamlined task workflow (4 streams) | 26 fields |
+| **Videos** | `68b2437a8f1755b055e0a124` | Video production tracking (Main/VO status) | 21 fields |
+| **Schedule** | `68a8ffb767da02533af2bc9c` | Booking and calendar management | 24 fields |
+| **Content Items** | `68a8ffc3a38c8a5a547c05b6` | Content asset management | Active |
+
+### Solution 3: EAV System (68ac236dc90313c20428b15d)
+System administration and issue tracking.
+
+| Table | Table ID | Description | Fields |
+|-------|----------|-------------|---------|
+| **Issue Log** | `68ac236dc90313c20428b15f` | Operational issues and enhancement tracking | 26 fields |
+
+## 4-Stream Workflow Architecture
+
+The EAV system organizes video production into 4 parallel workflow streams:
+
+1. **BOOKING Stream**: Project readiness and scheduling (P1-P3 tasks)
+2. **ASSET Stream**: Resource collection and preparation (P4-P8 tasks)  
+3. **MAIN Stream**: Core production pipeline (V1-V10 + P9-P12 tasks)
+4. **VO Stream**: Voice generation workflow (V6 task)
+
+Each stream has status tracking at the project level (Projects table) and task execution at the operational level (Tasks table).
+
+## Important: Two-Step Validation Process
+
+⚠️ **All record mutations (create, update, delete) require a two-step validation process for safety:**
+
+1. **Step 1 - Validation (dry_run: true):** Validates your data and returns a unique token
+2. **Step 2 - Execution (dry_run: false + token):** Uses the token to execute the actual operation
+
+This ensures:
+- ✅ **Safety**: No accidental mutations
+- ✅ **Validation**: Data checked before execution  
+- ✅ **Auditability**: Clear intent with validation step
+- ✅ **Consistency**: Exact operation executed as validated
+
+**Key Rules:**
+- Tokens expire after 5 minutes
+- Tokens are single-use only
+- Data must be identical between steps
+- All parameters must match exactly
 
 ## Using the Tools
 
 ### 1. Query Records (`smartsuite_query`)
 
-**List all projects with human-readable filters:**
+**List all projects with human-readable filters (EAV Projects solution):**
 ```javascript
 {
   "operation": "list",
-  "appId": "68a8ff5237fde0bf797c05b3",
+  "appId": "68a8ff5237fde0bf797c05b3",  // Projects table
   "filters": {
     "projectPhase": "PRODUCTION",    // Instead of "status"
     "priority": "High",              // Instead of raw priority code
@@ -89,12 +141,14 @@ The system supports 9 pre-configured SmartSuite tables with human-readable field
 
 ### 2. Create/Update Records (`smartsuite_record`)
 
-**Create new project (DRY-RUN first):**
+⚠️ **IMPORTANT: All mutations require a two-step validation process:**
+
+#### Step 1: Validate with Dry-Run (Get Token)
 ```javascript
 {
   "operation": "create",
   "appId": "68a8ff5237fde0bf797c05b3",
-  "dry_run": true,                    // REQUIRED for safety
+  "dry_run": true,                    // MUST be true for validation
   "data": {
     "projectName": "New Website",     // Instead of "project_name_actual"
     "client": "client-xyz-789",       // Instead of "sbfc98645c"
@@ -103,18 +157,57 @@ The system supports 9 pre-configured SmartSuite tables with human-readable field
     "initialProjectCost": 15000       // Instead of "initial_cost"
   }
 }
+
+// Returns:
+{
+  "dry_run": true,
+  "validation_token": "val_1234567890_abc123",  // SAVE THIS TOKEN!
+  "token_expires_in": "5 minutes",
+  "message": "Use the validation_token to execute the actual operation"
+}
 ```
 
-**Update existing project:**
+#### Step 2: Execute with Validation Token
 ```javascript
+{
+  "operation": "create",
+  "appId": "68a8ff5237fde0bf797c05b3",
+  "dry_run": false,                          // NOW set to false
+  "validation_token": "val_1234567890_abc123", // Token from Step 1
+  "data": {
+    "projectName": "New Website",           // MUST be identical to Step 1
+    "client": "client-xyz-789",
+    "priority": "High",
+    "projectPhase": "PRE-PRODUCTION",
+    "initialProjectCost": 15000
+  }
+}
+```
+
+**Update existing project (also requires two steps):**
+```javascript
+// Step 1: Validate
 {
   "operation": "update",
   "appId": "68a8ff5237fde0bf797c05b3", 
   "recordId": "project-id-123",
-  "dry_run": false,                   // Set to false for actual update
+  "dry_run": true,                    // Get validation token first
   "data": {
     "projectPhase": "PRODUCTION",     // Human-readable status
     "priority": "Urgent"              // Human-readable priority
+  }
+}
+
+// Step 2: Execute with token
+{
+  "operation": "update",
+  "appId": "68a8ff5237fde0bf797c05b3", 
+  "recordId": "project-id-123",
+  "dry_run": false,
+  "validation_token": "val_xxx_from_step1",  // Required!
+  "data": {
+    "projectPhase": "PRODUCTION",
+    "priority": "Urgent"
   }
 }
 ```
@@ -141,65 +234,135 @@ The system supports 9 pre-configured SmartSuite tables with human-readable field
 
 ## Field Name Examples by Table
 
-### Projects Table
+### Projects Table (EAV Projects - 68a8ff5237fde0bf797c05b3)
 ```yaml
 # Human Name → API Code
-title: title                         # Project Title
+title: title                         # Project Title (Record Title)
 projectName: project_name_actual     # Actual Project Name  
 client: sbfc98645c                   # Client (Linked Record)
 projectManager: project_manager      # Project Manager
 priority: priority                   # Priority Level
-projectPhase: status                 # Current Phase
-initialProjectCost: initial_cost     # Budget
+projectPhase: status                 # Project Phase (Status Field)
+initialProjectCost: initial_cost     # Initial Budget
 agreementDate: agreement_date        # Contract Date
-finalDelivery: final_delivery        # Delivery Date
+finalDelivery: final_delivery        # Final Delivery Date
+scriptsDeadline: scripts_deadline    # Scripts Deadline
+assetsDeadline: assets_deadline      # Assets Collection Deadline
+voDeadline: vo_deadline              # Voiceover Deadline
+filmingDeadline: filming_deadline    # Filming Completion Date
+eavCode: autonumber                 # EAV Project Code
+bookingStreamStatus: bkgstream       # Booking Stream Status
+assetStreamStatus: assetstream       # Asset Stream Status
+mainStreamStatus: mainstream         # Main Stream Status
+dueDate: projdue456                  # Project Due Date
+pcDate: pcdate001                    # Practical Completion Date
 ```
 
-### Tasks Table  
+### Tasks Table (EAV Operations - 68a8ffac490e5496953e5b1c)
+**Note: Streamlined to 26 fields (2025-09-08)**
 ```yaml
 # Human Name → API Code
-taskTitle: title                     # Task Name
+taskTitle: title                     # Task Description
+description: description             # Detailed Description
 assignedTo: assigned_to              # Task Owner
-status: status                       # Task Status
+status: taskstatus                   # Task Status
 priority: priority                   # Priority Level
-dueDate: due_date                   # Deadline
-estimatedHours: estimated_hours      # Time Estimate
-actualHours: actual_hours           # Time Spent
+duration: due_date                   # Due Date (Duration field)
+taskCode: task_code                 # Task Code (P1-P12, V1-V10)
+taskVariant: task_variant           # Variant (Multi-select)
+workflowStream: work1stream         # Workflow Stream (BOOKING/ASSET/MAIN/VO)
+taskLevel: task2level               # Task Level (Project/Video)
+project: project_id                 # Project Link
+projectCode: sb22aa25c1             # EAV Code (Lookup)
+estimatedHours: estimated_hours     # Time Estimate
+confirmedHours: confirmed_h         # Confirmed Hours (Editor quoting)
+actualHours: actual_hours           # Time Logged
+roleCategory: role_category         # Role Classification
+workContext: work_context           # Work Environment
+dependency: dependency              # Task Dependencies
+batchAllocate: batch_alloc         # Batch Video Allocation
 ```
 
-### Videos Table
+### Videos Table (EAV Operations - 68b2437a8f1755b055e0a124)
 ```yaml
 # Human Name → API Code  
-videoTitle: title                    # Video Title
-videoStatus: status                  # Production Status
-videoType: video_type               # Content Type
-client: client                      # Client Reference
-shootDate: shoot_date               # Filming Date
-deliveryDate: delivery_date         # Final Delivery
+videoTitle: title                    # Video Title (Record Title)
+videoName: video_name               # Video Name (Text)
+mainStreamStatus: main_status       # Main Stream Status
+voStreamStatus: vo_status           # VO Stream Status
+priority: priority                  # Priority Level
+projectCode: s16f0c5a34            # Project Code (Lookup)
+project: projects_link             # Project (Linked Record)
+assignedTo: assignedto1            # Assigned To
+targetDuration: target_duration    # Target Duration (minutes)
+sequence: video_seq01              # Video Sequence Number
+make: make1field                   # Equipment Make
+model: model2fld1                  # Equipment Model
+videoType: vidtype123              # Video Type
+productionType: prodtype01         # Production Type
+dueDate: duedate123               # Due Date
+```
+
+### Issue Log Table (EAV System - 68ac236dc90313c20428b15f)
+```yaml
+# Human Name → API Code
+title: title                        # Issue Title
+description: description            # Issue Description
+assignedTo: assigned_to            # Assigned To
+status: status                     # Issue Status
+dueDate: due_date                 # Due Date
+priority: priority                 # Priority Level
+type: op_type                     # Issue Type
+priorityLevel: op_priority        # Priority Classification
+affectedSystems: op_affected_systems # Affected Systems (Multi)
+actionItems: op_action_items      # Action Items
+solutionNotes: op_solution_notes  # Solution Notes
+impactLevel: op_impact_level      # Impact Level
+dateResolved: op_date_resolved    # Resolution Date
+reporter: reporter001              # Reporter
+dateReported: date_rep01          # Date Reported
+relatedProject: projectlnk        # Related Project Link
 ```
 
 ## Error Handling & Safety
 
-### DRY-RUN Pattern
-All mutation operations (create/update/delete) **require** the `dry_run` parameter:
+### Two-Step Validation Pattern
+All mutation operations (create/update/delete) **require** a two-step validation process with tokens:
 
 ```javascript
-// ❌ This will fail
+// ❌ This will fail - No token provided
 {
   "operation": "create",
   "appId": "table-id",
+  "dry_run": false,
   "data": { "field": "value" }
-  // Missing dry_run parameter
+  // Error: Mutation requires either dry_run:true or a valid validation_token
 }
 
-// ✅ This works  
+// ✅ Step 1: Get validation token
 {
   "operation": "create",
   "appId": "table-id", 
   "data": { "field": "value" },
-  "dry_run": true  // REQUIRED for safety
+  "dry_run": true  // REQUIRED first step
+}
+// Returns: { validation_token: "val_xxx", ... }
+
+// ✅ Step 2: Execute with token
+{
+  "operation": "create",
+  "appId": "table-id",
+  "dry_run": false,
+  "validation_token": "val_xxx",  // Token from Step 1
+  "data": { "field": "value" }    // Must be identical to Step 1
 }
 ```
+
+**Token Rules:**
+- Tokens expire after 5 minutes
+- Tokens are single-use only
+- Data must be identical between steps
+- All parameters must match exactly
 
 ### Field Validation
 When using human-readable field names, the system validates against known mappings:
@@ -255,12 +418,17 @@ Unmapped fields found for table projects: invalidField. Available fields: projec
 - **Solution:** Use one of the listed available field names
 - **Reference:** Check YAML mapping files for correct field names
 
-**3. DRY-RUN required:**
+**3. Validation token required:**
 ```  
-Dry-run pattern required: mutation tools must specify dry_run parameter
+Mutation requires either dry_run:true or a valid validation_token
 ```
-- **Solution:** Add `"dry_run": true` to create/update/delete operations
-- **Production:** Set `"dry_run": false` only when you're certain
+- **Solution:** Always start with `"dry_run": true` to get validation token
+- **Execute:** Use token with `"dry_run": false` within 5 minutes
+
+**Token-related errors:**
+- **"Token expired"** - Token older than 5 minutes, get a new one
+- **"Token validation failed"** - Data changed between steps, keep identical
+- **"Token not found"** - Invalid or already used token, tokens are single-use
 
 **4. Authentication failed:**
 ```
@@ -283,13 +451,27 @@ Use `smartsuite_schema` tool to check if a table has field mappings available.
 
 ## Best Practices
 
-### 1. Always DRY-RUN First
+### 1. Always Use Two-Step Validation
 ```javascript
-// Step 1: Test with dry-run
-{ "operation": "create", "dry_run": true, "data": {...} }
+// Step 1: Validate and get token
+const validation = await smartsuite_record({
+  "operation": "create", 
+  "appId": "table-id",
+  "dry_run": true, 
+  "data": {...}
+});
 
-// Step 2: Review the translation output  
-// Step 3: Execute with dry_run: false if satisfied
+// Step 2: Review the validation response
+console.log(validation.validation_token);  // Save this token
+
+// Step 3: Execute with token within 5 minutes
+const result = await smartsuite_record({
+  "operation": "create",
+  "appId": "table-id", 
+  "dry_run": false,
+  "validation_token": validation.validation_token,
+  "data": {...}  // Must be identical to Step 1
+});
 ```
 
 ### 2. Use Human-Readable Names
@@ -345,6 +527,26 @@ const projects = [
     "priority": "Normal"  
   }
 ];
+
+// Note: Each record creation still requires the two-step validation process
+for (const project of projects) {
+  // Step 1: Get validation token
+  const validation = await smartsuite_record({
+    operation: "create",
+    appId: "68a8ff5237fde0bf797c05b3",
+    dry_run: true,
+    data: project
+  });
+  
+  // Step 2: Execute with token
+  await smartsuite_record({
+    operation: "create",
+    appId: "68a8ff5237fde0bf797c05b3",
+    dry_run: false,
+    validation_token: validation.validation_token,
+    data: project
+  });
+}
 ```
 
 ### Complex Filtering
@@ -373,6 +575,7 @@ const projects = [
 ### Documentation
 - **Handoff Guide:** `../delivery/001-DOC-DELIVERY-B4-HANDOFF.md` - Technical implementation details
 - **Field Mappings:** `/config/field-mappings/*.yaml` - Complete field definitions
+- **EAV System Design:** `/Volumes/EAV/new-system/data/EAV-Final-Table-Field-List.md` - Authoritative field reference
 
 ### Getting Help
 1. **Check Schema:** Use `smartsuite_schema` tool to verify field mappings
@@ -380,8 +583,22 @@ const projects = [
 3. **Test with DRY-RUN:** Always test mutations before executing
 4. **Check Logs:** Review server startup logs for field mapping loading
 
+## Change Log
+
+### Version 1.2.0 (2025-09-08)
+- **Updated**: Complete EAV solution and table documentation
+- **Added**: All 3 EAV solutions with correct table IDs
+- **Added**: 4-Stream workflow architecture explanation
+- **Updated**: Field examples for all major tables (Projects, Tasks, Videos, Issue Log)
+- **Note**: Tasks table streamlined to 26 fields (down from 44)
+
+### Version 1.1.0 (2025-09-08)
+- **Fixed**: Two-step validation process
+- **Added**: Token expiration and single-use enforcement
+- **Improved**: Error messages and safety features
+
 ---
 
 **🎯 Transform your SmartSuite experience from cryptic codes to intuitive field names!**
 
-*This guide enables you to leverage the full power of SmartSuite's API through human-readable field names, making database operations faster, safer, and more maintainable.*
+*This guide enables you to leverage the full power of SmartSuite's API through human-readable field names, making database operations faster, safer, and more maintainable for the EAV video production workflow.*
