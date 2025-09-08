@@ -17,6 +17,7 @@ import {
   SmartSuiteClient,
   SmartSuiteClientConfig,
   SmartSuiteListResponse,
+  SmartSuiteRecord,
   createAuthenticatedClient,
 } from './smartsuite-client.js';
 
@@ -245,7 +246,9 @@ export class SmartSuiteShimServer {
         try {
           // Use fs-extra to check if directory exists and has files
           // Sequential checking is intentional - we stop at first valid path
+          // eslint-disable-next-line no-await-in-loop
           if (await fs.pathExists(tryPath)) {
+            // eslint-disable-next-line no-await-in-loop
             const files = await fs.readdir(tryPath);
             if (files.some((f) => f.endsWith('.yaml') || f.endsWith('.yml'))) {
               configPath = tryPath;
@@ -420,14 +423,14 @@ export class SmartSuiteShimServer {
     if (Array.isArray(response)) {
       // Convert legacy mock format to new pagination response
       const legacyResponse: SmartSuiteListResponse = {
-        items: response,
+        items: response as unknown as SmartSuiteRecord[],
         total: response.length,
         offset: 0,
         limit: response.length,
       };
       return this.formatMcpPaginationResponse(appId, legacyResponse);
     }
-    
+
     // Handle new API format
     return this.formatMcpPaginationResponse(appId, response as SmartSuiteListResponse);
   }
@@ -438,11 +441,11 @@ export class SmartSuiteShimServer {
   private formatMcpPaginationResponse(appId: string, response: SmartSuiteListResponse): Record<string, unknown> {
     // Handle undefined response items (for test compatibility)
     const items = response.items ?? [];
-    
+
     // Translate field names if mappings exist
     const translatedItems = this.fieldTranslator.hasMappings(appId)
-      ? items.map((record) => 
-          this.fieldTranslator.apiToHuman(appId, record as Record<string, unknown>)
+      ? items.map((record) =>
+          this.fieldTranslator.apiToHuman(appId, record as Record<string, unknown>),
         )
       : items;
 

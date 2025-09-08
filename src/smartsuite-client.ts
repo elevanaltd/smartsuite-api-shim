@@ -133,24 +133,24 @@ export async function createAuthenticatedClient(
       // Apply defaults and constraints for MCP token optimization
       const limit = Math.min(options?.limit ?? 200, 1000); // Default 200, max 1000
       const offset = options?.offset ?? 0;
-      
+
       // Build URL with query parameters (SmartSuite requirement)
       const url = new URL(baseUrl + '/api/v1/applications/' + appId + '/records/list/');
       url.searchParams.set('limit', limit.toString());
       url.searchParams.set('offset', offset.toString());
-      
+
       // Build request body with filters/sort and optimization settings
       const requestBody: Record<string, unknown> = {
         hydrated: false, // Reduce payload size for token optimization
       };
-      
+
       if (options?.filter) {
         requestBody.filter = options.filter;
       }
       if (options?.sort) {
         requestBody.sort = options.sort;
       }
-      
+
       const response = await fetch(url.toString(), {
         method: 'POST',
         headers: {
@@ -173,16 +173,16 @@ export async function createAuthenticatedClient(
       const url = new URL(baseUrl + '/api/v1/applications/' + appId + '/records/list/');
       url.searchParams.set('limit', '1'); // Minimal limit for count
       url.searchParams.set('offset', '0');
-      
+
       // Build request body with only filters (no sort needed for count)
       const requestBody: Record<string, unknown> = {
         hydrated: false, // Reduce payload size
       };
-      
+
       if (options?.filter) {
         requestBody.filter = options.filter;
       }
-      
+
       const response = await fetch(url.toString(), {
         method: 'POST',
         headers: {

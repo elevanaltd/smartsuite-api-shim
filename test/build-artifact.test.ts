@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock the smartsuite-client module before importing the server
 vi.mock('../src/smartsuite-client.js', () => ({
-  createAuthenticatedClient: vi.fn(async (config) => {
+  createAuthenticatedClient: vi.fn((config): Promise<any> => Promise.resolve((() => {
     // Return a mock client for any valid-looking tokens
     if (config.apiKey && config.workspaceId) {
       return {
@@ -18,7 +18,7 @@ vi.mock('../src/smartsuite-client.js', () => ({
     }
     // Throw for invalid tokens to test fail-fast behavior
     throw new Error('Invalid API credentials');
-  }),
+  })())),
   SmartSuiteClient: vi.fn(),
   SmartSuiteClientConfig: {},
 }));
@@ -115,9 +115,9 @@ describe('Build Artifact Verification', () => {
     it('should handle auto-authentication failure gracefully', async () => {
       // Mock createAuthenticatedClient to simulate API failure for invalid tokens
       const { createAuthenticatedClient } = await import('../src/smartsuite-client.js');
-      (createAuthenticatedClient as any).mockImplementationOnce(async () => {
-        throw new Error('API error 400: Bad Request');
-      });
+      (createAuthenticatedClient as any).mockImplementationOnce(() =>
+        Promise.reject(new Error('API error 400: Bad Request')),
+      );
 
       // Set mock environment variables with invalid tokens
       process.env.SMARTSUITE_API_TOKEN = 'invalid-token';

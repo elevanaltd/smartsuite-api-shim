@@ -28,7 +28,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true }),
+        json: () => Promise.resolve({ success: true }),
       });
 
       await expect(server.authenticate(config)).resolves.not.toThrow();
@@ -49,7 +49,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true }),
+        json: () => Promise.resolve({ success: true }),
       });
 
       await server.authenticate({
@@ -75,7 +75,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true }),
+        json: () => Promise.resolve({ success: true }),
       });
 
       await server.authenticate({
@@ -104,7 +104,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true }),
+        json: () => Promise.resolve({ success: true }),
       });
 
       await server.authenticate({
@@ -125,7 +125,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true }),
+        json: () => Promise.resolve({ success: true }),
       });
 
       await server.authenticate({
@@ -167,7 +167,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true }),
+        json: () => Promise.resolve({ success: true }),
       });
 
       // Setup authenticated server with mocked client
@@ -250,7 +250,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true }),
+        json: () => Promise.resolve({ success: true }),
       });
 
       await server.authenticate({
@@ -271,7 +271,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true }),
+        json: () => Promise.resolve({ success: true }),
       });
 
       await server.authenticate({

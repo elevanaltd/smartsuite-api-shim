@@ -52,6 +52,9 @@ describe('SmartSuite API Pagination', () => {
       expect(mockFetch).toHaveBeenCalledTimes(2);
 
       const listRecordsCall = mockFetch.mock.calls[1];
+      if (!listRecordsCall) {
+        throw new Error('Expected listRecords call not found');
+      }
       const [url, options] = listRecordsCall;
 
       // URL should contain limit and offset as query parameters
@@ -60,7 +63,7 @@ describe('SmartSuite API Pagination', () => {
       expect(url).toMatch(/\/records\/list\/\?.*limit=25.*offset=50/);
 
       // Request body should NOT contain limit/offset
-      const requestBody = JSON.parse(options.body);
+      const requestBody = JSON.parse(options.body as string);
       expect(requestBody).not.toHaveProperty('limit');
       expect(requestBody).not.toHaveProperty('offset');
 
@@ -100,7 +103,10 @@ describe('SmartSuite API Pagination', () => {
       await client.listRecords(appId);
 
       const listRecordsCall = mockFetch.mock.calls[1];
-      const requestBody = JSON.parse(listRecordsCall[1].body);
+      if (!listRecordsCall) {
+        throw new Error('Expected listRecords call not found');
+      }
+      const requestBody = JSON.parse(listRecordsCall[1].body as string);
 
       // Should set hydrated=false to reduce token usage
       expect(requestBody).toHaveProperty('hydrated', false);
@@ -182,6 +188,9 @@ describe('SmartSuite API Pagination', () => {
       await client.listRecords(appId);
 
       const listRecordsCall = mockFetch.mock.calls[1];
+      if (!listRecordsCall) {
+        throw new Error('Expected listRecords call not found');
+      }
       const [url] = listRecordsCall;
 
       // Should default to limit=200
@@ -220,6 +229,9 @@ describe('SmartSuite API Pagination', () => {
       await client.listRecords(appId, { limit: 5000 });
 
       const listRecordsCall = mockFetch.mock.calls[1];
+      if (!listRecordsCall) {
+        throw new Error('Expected listRecords call not found');
+      }
       const [url] = listRecordsCall;
 
       // Should cap at 1000
