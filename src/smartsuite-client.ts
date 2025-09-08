@@ -47,6 +47,7 @@ export interface SmartSuiteClient {
   apiKey: string;
   workspaceId: string;
   listRecords: (appId: string, options?: SmartSuiteListOptions) => Promise<SmartSuiteRecord[]>;
+  countRecords: (appId: string, options?: SmartSuiteListOptions) => Promise<number>;
   getRecord: (appId: string, recordId: string) => Promise<SmartSuiteRecord>;
   createRecord: (appId: string, data: Record<string, unknown>) => Promise<SmartSuiteRecord>;
   updateRecord: (
@@ -136,7 +137,30 @@ export async function createAuthenticatedClient(
         throw new Error('Failed to list records: ' + response.statusText);
       }
 
-      return response.json() as Promise<SmartSuiteRecord[]>;
+      const data = await response.json() as { items: SmartSuiteRecord[]; total: number; offset: number; limit: number };
+      return data.items;
+    },
+
+    async countRecords(appId: string, options?: SmartSuiteListOptions): Promise<number> {
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/list/';
+      // For count, we only need to get 1 record to get the total
+      const countOptions = { ...options, limit: 1 };
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(countOptions),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to count records: ' + response.statusText);
+      }
+
+      const data = await response.json() as { items: SmartSuiteRecord[]; total: number; offset: number; limit: number };
+      return data.total;
     },
 
     async getRecord(appId: string, recordId: string): Promise<SmartSuiteRecord> {

@@ -183,6 +183,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       // This is testing the tool execution pipeline, not the client itself
       (server as any).client = {
         listRecords: vi.fn().mockResolvedValue([{ id: '1', name: 'Test' }]),
+        countRecords: vi.fn().mockResolvedValue(1),
         getRecord: vi.fn().mockResolvedValue({ id: '1', name: 'Test' }),
         createRecord: vi.fn().mockResolvedValue({ id: '2', name: 'New' }),
         updateRecord: vi.fn().mockResolvedValue({ id: '1', name: 'Updated' }),

@@ -373,8 +373,8 @@ export class SmartSuiteShimServer {
         result = await this.client!.listRecords(appId, toListOptions(options));
         break;
       case 'count': {
-        const records = await this.client!.listRecords(appId, toListOptions(options));
-        result = { count: records.length };
+        const count = await this.client!.countRecords(appId, toListOptions(options));
+        result = { count };
         break;
       }
       default:
