@@ -47,18 +47,20 @@ describe('IntelligentOperationHandler', () => {
         };
 
         const mockKnowledge: KnowledgeMatch[] = [{
-          pattern: /GET.*\/records/,
-          safetyLevel: 'RED' as const,
-          failureModes: [{
-            description: 'Wrong HTTP method for record listing',
-            cause: 'Using GET instead of POST for /records/list/',
-            prevention: 'Always use POST /applications/{id}/records/list/',
-            exampleError: '404 Not Found',
-          }],
-          protocols: [],
-          examples: [],
-          validationRules: [],
-          templates: [],
+          entry: {
+            pattern: /GET.*\/records/,
+            safetyLevel: 'RED' as const,
+            failureModes: [{
+              description: 'Wrong HTTP method for record listing',
+              cause: 'Using GET instead of POST for /records/list/',
+              prevention: 'Always use POST /applications/{id}/records/list/',
+              exampleError: '404 Not Found',
+            }],
+            protocols: [],
+            examples: [],
+            validationRules: [],
+            templates: [],
+          },
           confidence: 0.9,
           matchReason: 'Wrong HTTP method detected',
         }];
@@ -152,22 +154,23 @@ describe('IntelligentOperationHandler', () => {
         };
 
         const mockKnowledge: KnowledgeMatch[] = [{
-          pattern: /singleselectfield.*options/,
-          safetyLevel: 'RED' as const,
-          failureModes: [{
-            description: 'UUID Corruption',
-            cause: 'Using "options" parameter destroys existing UUIDs',
-            prevention: 'Use "choices" parameter instead of "options"',
-            safeAlternative: 'payload.choices = [...]; delete payload.options;',
-          }],
-          protocols: [],
-          examples: [],
-          validationRules: [],
-          templates: [],
+          entry: {
+            pattern: /singleselectfield.*options/,
+            safetyLevel: 'RED' as const,
+            failureModes: [{
+              description: 'UUID Corruption',
+              cause: 'Using "options" parameter destroys existing UUIDs',
+              prevention: 'Use "choices" parameter instead of "options"',
+              safeAlternative: 'payload.choices = [...]; delete payload.options;',
+            }],
+            protocols: [],
+            examples: [],
+            validationRules: [],
+            templates: [],
+          },
           confidence: 1.0,
           matchReason: 'Critical UUID corruption risk detected',
         }];
-
         // TEST-METHODOLOGY-GUARDIAN-20250909-17574053
         vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue(mockKnowledge);
         vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue({
@@ -199,21 +202,22 @@ describe('IntelligentOperationHandler', () => {
         };
 
         const mockKnowledge: KnowledgeMatch[] = [{
-          pattern: /\/bulk/,
-          safetyLevel: 'YELLOW' as const,
-          failureModes: [{
-            description: 'Bulk operation limit exceeded',
-            cause: 'API limits bulk operations to 25 records',
-            prevention: 'Split into batches of 25 or fewer records',
-          }],
-          protocols: [],
-          examples: [],
-          validationRules: [],
-          templates: [],
+          entry: {
+            pattern: /\/bulk/,
+            safetyLevel: 'YELLOW' as const,
+            failureModes: [{
+              description: 'Bulk operation limit exceeded',
+              cause: 'API limits bulk operations to 25 records',
+              prevention: 'Split into batches of 25 or fewer records',
+            }],
+            protocols: [],
+            examples: [],
+            validationRules: [],
+            templates: [],
+          },
           confidence: 0.8,
           matchReason: 'Bulk operation limit warning',
         }];
-
         // TEST-METHODOLOGY-GUARDIAN-20250909-17574053
         vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue(mockKnowledge);
         vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue({
@@ -240,7 +244,7 @@ describe('IntelligentOperationHandler', () => {
         const mockClient = {
           request: vi.fn().mockResolvedValue({}),
         } as any;
-        
+
         // Create handler with client to initialize apiProxy
         const handlerWithClient = new IntelligentOperationHandler(
           mockKnowledgeLibrary,
@@ -269,7 +273,7 @@ describe('IntelligentOperationHandler', () => {
         const mockClient = {
           request: vi.fn().mockResolvedValue({ success: true }),
         } as any;
-        
+
         // Create handler with client to initialize apiProxy
         const handlerWithClient = new IntelligentOperationHandler(
           mockKnowledgeLibrary,

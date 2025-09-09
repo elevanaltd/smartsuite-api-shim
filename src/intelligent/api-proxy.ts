@@ -5,7 +5,6 @@ import { SafetyEngine } from './safety-engine.js';
 import type {
   IntelligentToolInput,
   OperationResult,
-  OperationAnalysis,
   HttpMethod,
 } from './types.js';
 
@@ -53,7 +52,7 @@ export class SmartSuiteAPIProxy {
             safetyLevel: 'RED',
             requiresConfirmation: true,
             warnings: safetyAssessment.warnings,
-            recommendations: safetyAssessment.recommendations,
+            recommendations: safetyAssessment.recommendations || [],
           },
           error: 'Operation requires confirmation due to high risk level',
           performanceMs: performance.now() - startTime,
@@ -67,11 +66,14 @@ export class SmartSuiteAPIProxy {
       const fullEndpoint = this.buildFullEndpoint(correctedInput);
 
       // 5. Execute the API call directly
-      const response = await this.client.request({
-        method: correctedInput.method as any,
+      const requestOptions: any = {
+        method: correctedInput.method,
         endpoint: fullEndpoint,
-        data: correctedInput.payload,
-      });
+      };
+      if (correctedInput.payload !== undefined) {
+        requestOptions.data = correctedInput.payload;
+      }
+      const response = await this.client.request(requestOptions);
 
       // 6. Capture learning from successful operation
       this.captureSuccessPattern(correctedInput, response);
@@ -136,10 +138,10 @@ export class SmartSuiteAPIProxy {
         method: correctedInput.method,
         safetyLevel: safetyAssessment.level,
         warnings: safetyAssessment.warnings,
-        recommendations: safetyAssessment.recommendations,
+        recommendations: safetyAssessment.recommendations || [],
         appliedCorrections: this.getAppliedCorrections(input, correctedInput),
         connectivityValid,
-        wouldExecute: safetyAssessment.level !== 'RED' || input.confirmed,
+        wouldExecute: safetyAssessment.level !== 'RED' || input.confirmed || false,
       },
       performanceMs: performance.now() - startTime,
     };
@@ -256,12 +258,12 @@ export class SmartSuiteAPIProxy {
     _response: any,
   ): void {
     // TODO: Implement learning engine integration
-    // For now, log for analysis
-    console.debug('Success pattern captured:', {
+    // Success pattern would be sent to learning engine here
+    void {
       endpoint: input.endpoint,
       method: input.method,
       timestamp: new Date().toISOString(),
-    });
+    };
   }
 
   /**
@@ -272,12 +274,13 @@ export class SmartSuiteAPIProxy {
     error: unknown,
   ): void {
     // TODO: Implement learning engine integration
-    console.debug('Failure pattern captured:', {
+    // Failure pattern would be sent to learning engine here
+    void {
       endpoint: input.endpoint,
       method: input.method,
       error: error instanceof Error ? error.message : 'Unknown',
       timestamp: new Date().toISOString(),
-    });
+    };
   }
 
   /**

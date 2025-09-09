@@ -407,15 +407,18 @@ export async function createAuthenticatedClient(
 
     async request(options: SmartSuiteRequestOptions): Promise<any> {
       const url = baseUrl + '/api/v1' + options.endpoint;
-      const response = await fetch(url, {
+      const fetchOptions: RequestInit = {
         method: options.method,
         headers: {
           Authorization: 'Token ' + apiKey,
           'ACCOUNT-ID': workspaceId,
           'Content-Type': 'application/json',
         },
-        body: options.data ? JSON.stringify(options.data) : undefined,
-      });
+      };
+      if (options.data) {
+        fetchOptions.body = JSON.stringify(options.data);
+      }
+      const response = await fetch(url, fetchOptions);
 
       if (!response.ok) {
         let errorMessage = `API error ${response.status}: ${response.statusText}`;

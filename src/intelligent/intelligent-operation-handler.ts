@@ -84,12 +84,13 @@ export class IntelligentOperationHandler {
 
         default:
           return {
+            success: false,
             mode: input.mode,
             status: 'error',
             endpoint: input.endpoint,
             method: input.method,
             operation_description: input.operation_description,
-            error: `Unknown mode: ${input.mode}. Supported modes: learn, dry_run, execute`,
+            error: `Unknown mode: ${String(input.mode)}. Supported modes: learn, dry_run, execute`,
             knowledge_applied: false,
             performance_ms: performance.now() - startTime,
             knowledge_version: this.knowledgeLibrary.getVersion().version,
@@ -162,6 +163,7 @@ export class IntelligentOperationHandler {
       return response;
     } catch (error) {
       return {
+        success: false,
         mode: input.mode,
         status: 'error',
         endpoint: input.endpoint,
@@ -221,6 +223,7 @@ export class IntelligentOperationHandler {
     );
 
     const result: OperationResult = {
+      success: true,
       mode: input.mode,
       status: 'analyzed',
       endpoint: input.endpoint,
@@ -265,8 +268,8 @@ export class IntelligentOperationHandler {
     }
 
     // Add failure mode information
-    for (const entry of knowledge) {
-      for (const failure of entry.failureModes ?? []) {
+    for (const match of knowledge) {
+      for (const failure of match.entry.failureModes ?? []) {
         guidanceLines.push(`\n⚠️  ${failure.description}`);
         guidanceLines.push(`   Cause: ${failure.cause}`);
         guidanceLines.push(`   Prevention: ${failure.prevention}`);
@@ -351,7 +354,7 @@ export class IntelligentOperationHandler {
    */
   private hasUUIDCorruptionRisk(input: IntelligentToolInput, knowledge: KnowledgeMatch[]): boolean {
     return knowledge.some(k =>
-      (k.failureModes ?? []).some((f: FailureMode) =>
+      (k.entry.failureModes ?? []).some((f: FailureMode) =>
         f.description.toLowerCase().includes('uuid') &&
         input.payload?.[SAFETY_CONSTANTS.UUID_CORRUPTION.WRONG_PARAM] !== undefined,
       ),
@@ -363,7 +366,7 @@ export class IntelligentOperationHandler {
    */
   private hasWrongMethodIssue(_input: IntelligentToolInput, knowledge: KnowledgeMatch[]): boolean {
     return knowledge.some(k =>
-      (k.failureModes ?? []).some((f: FailureMode) =>
+      (k.entry.failureModes ?? []).some((f: FailureMode) =>
         f.description.toLowerCase().includes('wrong') &&
         f.description.toLowerCase().includes('method'),
       ),
@@ -376,7 +379,7 @@ export class IntelligentOperationHandler {
   private hasBulkLimitIssue(input: IntelligentToolInput, knowledge: KnowledgeMatch[]): boolean {
     const recordCount = this.countRecords(input.payload);
     return knowledge.some(k =>
-      (k.failureModes ?? []).some((f: FailureMode) =>
+      (k.entry.failureModes ?? []).some((f: FailureMode) =>
         f.description.toLowerCase().includes('bulk') &&
         recordCount > SAFETY_CONSTANTS.BULK_OPERATIONS.MAX_RECORDS,
       ),

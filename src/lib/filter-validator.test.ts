@@ -1,7 +1,7 @@
 // Context7: consulted for vitest
 import { describe, it, expect } from 'vitest';
 
-import { FilterValidator } from './filter-validator';
+import { FilterValidator } from './filter-validator.js';
 
 describe('FilterValidator', () => {
   describe('validate', () => {
