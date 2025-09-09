@@ -3,6 +3,8 @@
 // SECURITY-SPECIALIST-APPROVED: SECURITY-SPECIALIST-20250905-ad1233d9
 // GREEN phase implementation to make authentication tests pass
 
+import { FilterValidator } from './lib/filter-validator.js';
+
 export interface SmartSuiteClientConfig {
   apiKey: string;
   workspaceId: string;
@@ -131,7 +133,7 @@ export async function createAuthenticatedClient(
 
     async listRecords(appId: string, options?: SmartSuiteListOptions): Promise<SmartSuiteListResponse> {
       // Apply defaults and constraints for MCP token optimization
-      const limit = Math.min(options?.limit ?? 200, 1000); // Default 200, max 1000
+      const limit = Math.min(options?.limit ?? 25, 1000); // REDUCED DEFAULT from 200 to 25
       const offset = options?.offset ?? 0;
 
       // Build URL with query parameters (SmartSuite requirement)
@@ -142,9 +144,16 @@ export async function createAuthenticatedClient(
       // Build request body with filters/sort and optimization settings
       const requestBody: Record<string, unknown> = {
         hydrated: false, // Reduce payload size for token optimization
+        // CONTEXT OPTIMIZATION: Request minimal fields when possible
+        fields_to_include: options?.filter ? undefined : ['id', 'title', 'status'], // Basic fields only when no filter
       };
 
       if (options?.filter) {
+        // Validate filter structure before sending
+        const filterError = FilterValidator.validate(options.filter);
+        if (filterError) {
+          throw new Error(`Invalid filter structure: ${filterError}\nFilter: ${FilterValidator.format(options.filter)}`);
+        }
         requestBody.filter = options.filter;
       }
       if (options?.sort) {
@@ -162,7 +171,21 @@ export async function createAuthenticatedClient(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to list records: ' + response.statusText);
+        let errorMessage = 'Failed to list records: ' + response.statusText;
+        try {
+          const errorData = await response.json() as SmartSuiteApiError;
+          if (errorData.error) {
+            errorMessage += ' - ' + errorData.error;
+          } else if (errorData.message) {
+            errorMessage += ' - ' + errorData.message;
+          }
+          if (errorData.details) {
+            errorMessage += ' (Details: ' + JSON.stringify(errorData.details) + ')';
+          }
+        } catch {
+          // If we can't parse the error response, stick with statusText
+        }
+        throw new Error(errorMessage);
       }
 
       return await response.json() as SmartSuiteListResponse;
@@ -194,7 +217,21 @@ export async function createAuthenticatedClient(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to count records: ' + response.statusText);
+        let errorMessage = 'Failed to count records: ' + response.statusText;
+        try {
+          const errorData = await response.json() as SmartSuiteApiError;
+          if (errorData.error) {
+            errorMessage += ' - ' + errorData.error;
+          } else if (errorData.message) {
+            errorMessage += ' - ' + errorData.message;
+          }
+          if (errorData.details) {
+            errorMessage += ' (Details: ' + JSON.stringify(errorData.details) + ')';
+          }
+        } catch {
+          // If we can't parse the error response, stick with statusText
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json() as SmartSuiteListResponse;
@@ -213,7 +250,21 @@ export async function createAuthenticatedClient(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get record: ' + response.statusText);
+        let errorMessage = 'Failed to get record: ' + response.statusText;
+        try {
+          const errorData = await response.json() as SmartSuiteApiError;
+          if (errorData.error) {
+            errorMessage += ' - ' + errorData.error;
+          } else if (errorData.message) {
+            errorMessage += ' - ' + errorData.message;
+          }
+          if (errorData.details) {
+            errorMessage += ' (Details: ' + JSON.stringify(errorData.details) + ')';
+          }
+        } catch {
+          // If we can't parse the error response, stick with statusText
+        }
+        throw new Error(errorMessage);
       }
 
       return response.json() as Promise<SmartSuiteRecord>;
@@ -232,7 +283,21 @@ export async function createAuthenticatedClient(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create record: ' + response.statusText);
+        let errorMessage = 'Failed to create record: ' + response.statusText;
+        try {
+          const errorData = await response.json() as SmartSuiteApiError;
+          if (errorData.error) {
+            errorMessage += ' - ' + errorData.error;
+          } else if (errorData.message) {
+            errorMessage += ' - ' + errorData.message;
+          }
+          if (errorData.details) {
+            errorMessage += ' (Details: ' + JSON.stringify(errorData.details) + ')';
+          }
+        } catch {
+          // If we can't parse the error response, stick with statusText
+        }
+        throw new Error(errorMessage);
       }
 
       return response.json() as Promise<SmartSuiteRecord>;
@@ -251,7 +316,21 @@ export async function createAuthenticatedClient(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update record: ' + response.statusText);
+        let errorMessage = 'Failed to update record: ' + response.statusText;
+        try {
+          const errorData = await response.json() as SmartSuiteApiError;
+          if (errorData.error) {
+            errorMessage += ' - ' + errorData.error;
+          } else if (errorData.message) {
+            errorMessage += ' - ' + errorData.message;
+          }
+          if (errorData.details) {
+            errorMessage += ' (Details: ' + JSON.stringify(errorData.details) + ')';
+          }
+        } catch {
+          // If we can't parse the error response, stick with statusText
+        }
+        throw new Error(errorMessage);
       }
 
       return response.json() as Promise<SmartSuiteRecord>;
@@ -269,7 +348,21 @@ export async function createAuthenticatedClient(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete record: ' + response.statusText);
+        let errorMessage = 'Failed to delete record: ' + response.statusText;
+        try {
+          const errorData = await response.json() as SmartSuiteApiError;
+          if (errorData.error) {
+            errorMessage += ' - ' + errorData.error;
+          } else if (errorData.message) {
+            errorMessage += ' - ' + errorData.message;
+          }
+          if (errorData.details) {
+            errorMessage += ' (Details: ' + JSON.stringify(errorData.details) + ')';
+          }
+        } catch {
+          // If we can't parse the error response, stick with statusText
+        }
+        throw new Error(errorMessage);
       }
     },
 
@@ -285,7 +378,21 @@ export async function createAuthenticatedClient(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get schema: ' + response.statusText);
+        let errorMessage = 'Failed to get schema: ' + response.statusText;
+        try {
+          const errorData = await response.json() as SmartSuiteApiError;
+          if (errorData.error) {
+            errorMessage += ' - ' + errorData.error;
+          } else if (errorData.message) {
+            errorMessage += ' - ' + errorData.message;
+          }
+          if (errorData.details) {
+            errorMessage += ' (Details: ' + JSON.stringify(errorData.details) + ')';
+          }
+        } catch {
+          // If we can't parse the error response, stick with statusText
+        }
+        throw new Error(errorMessage);
       }
 
       return response.json() as Promise<SmartSuiteSchema>;

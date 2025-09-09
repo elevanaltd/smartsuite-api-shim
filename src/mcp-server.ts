@@ -103,7 +103,12 @@ export class SmartSuiteShimServer {
       const knowledgePath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'knowledge');
       await knowledgeLibrary.loadFromResearch(knowledgePath);
       const safetyEngine = new SafetyEngine(knowledgeLibrary);
-      this.intelligentHandler = new IntelligentOperationHandler(knowledgeLibrary, safetyEngine);
+      // Pass the SmartSuiteClient to enable execute and dry_run modes
+      this.intelligentHandler = new IntelligentOperationHandler(
+        knowledgeLibrary, 
+        safetyEngine,
+        this.client  // Now passes client for API proxy functionality
+      );
     }
   }
 
@@ -202,7 +207,7 @@ export class SmartSuiteShimServer {
             },
             limit: {
               type: 'number',
-              description: 'Maximum number of records to return (default 200, max 1000)',
+              description: 'Maximum number of records to return (default 5 for MCP context optimization, max 1000)',
             },
             offset: {
               type: 'number',
@@ -621,12 +626,17 @@ export class SmartSuiteShimServer {
     // Handle undefined response items (for test compatibility)
     const items = response.items ?? [];
 
+    // CONTEXT OPTIMIZATION: Limit default response size
+    const MAX_ITEMS_FOR_MCP = 5; // Reduce from unlimited to 5 items by default
+    const truncatedItems = items.slice(0, MAX_ITEMS_FOR_MCP);
+    const wasTruncated = items.length > MAX_ITEMS_FOR_MCP;
+
     // Translate field names if mappings exist
     const translatedItems = this.fieldTranslator.hasMappings(appId)
-      ? items.map((record) =>
+      ? truncatedItems.map((record) =>
           this.fieldTranslator.apiToHuman(appId, record as Record<string, unknown>),
         )
-      : items;
+      : truncatedItems;
 
     // Calculate next offset for cursor-based pagination
     const offset = response.offset ?? 0;
@@ -638,9 +648,14 @@ export class SmartSuiteShimServer {
     return {
       total,
       items: translatedItems,
-      limit,
+      limit: wasTruncated ? MAX_ITEMS_FOR_MCP : limit,
       offset,
       ...(hasMore && { nextOffset }),
+      ...(wasTruncated && { 
+        truncated: true,
+        originalCount: items.length,
+        message: `Response truncated to ${MAX_ITEMS_FOR_MCP} items to optimize context. Use limit parameter to control size.`
+      }),
     };
   }
 
@@ -906,9 +921,13 @@ export class SmartSuiteShimServer {
     }
 
     // All modes supported: learn, dry_run, execute
+    // Validate client is available for dry_run and execute modes
+    if ((input.mode === 'dry_run' || input.mode === 'execute') && !this.client) {
+      throw new Error(`Client not initialized. Cannot use ${input.mode} mode without authentication.`);
+    }
 
     // Use the intelligent handler to process the operation
-    const result = this.intelligentHandler!.handleIntelligentOperation(input);
+    const result = await this.intelligentHandler!.handleIntelligentOperation(input);
     return result;
   }
 

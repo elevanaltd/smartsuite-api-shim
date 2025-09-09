@@ -1,5 +1,7 @@
 import { KnowledgeLibrary } from './knowledge-library.js';
 import { SafetyEngine } from './safety-engine.js';
+import { SmartSuiteAPIProxy } from './api-proxy.js';
+import { SmartSuiteClient } from '../smartsuite-client.js';
 import type {
   IntelligentToolInput,
   OperationResult,
@@ -25,20 +27,34 @@ const SAFETY_CONSTANTS = {
 
 /**
  * IntelligentOperationHandler - Core handler for intelligent tool operations
- * MVP Focus: Learn mode only
+ * Now supports: Learn, Dry Run, and Execute modes for true 90% API coverage
  *
  * Critical-Engineer: consulted for Architecture pattern selection
+ * Technical-Architect: Approved API proxy integration for direct execution
  */
 export class IntelligentOperationHandler {
+  private apiProxy?: SmartSuiteAPIProxy;
+
   constructor(
     private knowledgeLibrary: KnowledgeLibrary,
     private safetyEngine: SafetyEngine,
-  ) {}
+    client?: SmartSuiteClient,
+  ) {
+    // Initialize API proxy if client is provided
+    if (client) {
+      this.apiProxy = new SmartSuiteAPIProxy(
+        client,
+        this.knowledgeLibrary,
+        this.safetyEngine
+      );
+    }
+  }
 
   /**
    * Main entry point for intelligent operations
+   * Supports learn, dry_run, and execute modes for comprehensive API coverage
    */
-  handleIntelligentOperation(input: IntelligentToolInput): OperationResult {
+  async handleIntelligentOperation(input: IntelligentToolInput): Promise<OperationResult> {
     const startTime = performance.now();
 
     try {
@@ -47,7 +63,37 @@ export class IntelligentOperationHandler {
         throw new Error('Missing required input fields: endpoint, method, operation_description');
       }
 
-      // All modes supported: learn, dry_run, execute
+      // Route to appropriate handler based on mode
+      switch (input.mode) {
+        case 'dry_run':
+          if (!this.apiProxy) {
+            throw new Error('API proxy not initialized. SmartSuiteClient required for dry_run mode.');
+          }
+          return await this.apiProxy.performDryRun(input);
+
+        case 'execute':
+          if (!this.apiProxy) {
+            throw new Error('API proxy not initialized. SmartSuiteClient required for execute mode.');
+          }
+          return await this.apiProxy.executeOperation(input);
+
+        case 'learn':
+          // Continue with learn mode logic below
+          break;
+
+        default:
+          return {
+            mode: input.mode,
+            status: 'error',
+            endpoint: input.endpoint,
+            method: input.method,
+            operation_description: input.operation_description,
+            error: `Unknown mode: ${input.mode}. Supported modes: learn, dry_run, execute`,
+            knowledge_applied: false,
+            performance_ms: performance.now() - startTime,
+            knowledge_version: this.knowledgeLibrary.getVersion().version,
+          };
+      }
 
       // Analyze operation context
       const context = this.analyzeContext(input);
