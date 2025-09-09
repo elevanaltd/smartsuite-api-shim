@@ -28,9 +28,9 @@ describe('KnowledgeLibrary', () => {
       const match = matches[0];
       expect(match).toBeDefined();
       if (match) {
-        expect(match.failureModes).toBeDefined();
-        expect(match.failureModes?.[0]).toHaveProperty('description');
-        expect(match.failureModes?.[0]).toHaveProperty('prevention');
+        expect(match.entry.failureModes).toBeDefined();
+        expect(match.entry.failureModes?.[0]).toHaveProperty('description');
+        expect(match.entry.failureModes?.[0]).toHaveProperty('prevention');
       }
     });
   });
@@ -47,9 +47,9 @@ describe('KnowledgeLibrary', () => {
       const match = matches[0];
       expect(match).toBeDefined();
       if (match) {
-        expect(match.safetyLevel).toBe('RED');
-        expect(match.failureModes).toBeDefined();
-        expect(match.failureModes?.[0]?.prevention).toContain('POST');
+        expect(match.entry.safetyLevel).toBe('RED');
+        expect(match.entry.failureModes).toBeDefined();
+        expect(match.entry.failureModes?.[0]?.prevention).toContain('POST');
       }
     });
 
@@ -63,9 +63,9 @@ describe('KnowledgeLibrary', () => {
       const match = matches[0];
       expect(match).toBeDefined();
       if (match) {
-        expect(match.safetyLevel).toBe('RED');
-        expect(match.protocols).toBeDefined();
-        expect(match.protocols?.[0]?.prevention).toContain('choices');
+        expect(match.entry.safetyLevel).toBe('RED');
+        expect(match.entry.protocols).toBeDefined();
+        expect(match.entry.protocols?.[0]?.prevention).toContain('choices');
       }
     });
 
@@ -78,9 +78,10 @@ describe('KnowledgeLibrary', () => {
       const match = matches[0];
       expect(match).toBeDefined();
       if (match) {
-        expect(match.safetyLevel).toBe('YELLOW');
-        expect(match.validationRules).toBeDefined();
-        expect(match.validationRules?.[0]?.limit).toBe(25);
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-58bf125c
+        expect(match.entry.safetyLevel).toBe('YELLOW');
+        expect(match.entry.validationRules).toBeDefined();
+        expect(match.entry.validationRules?.[0]?.limit).toBe(25);
       }
     });
 
@@ -116,7 +117,7 @@ describe('KnowledgeLibrary', () => {
       const match = matches[0];
       expect(match).toBeDefined();
       if (match) {
-        expect(match.examples).toBeDefined();
+        expect(match.entry.examples).toBeDefined();
       }
     });
 
@@ -140,8 +141,8 @@ describe('KnowledgeLibrary', () => {
       const match = matches[0];
       expect(match).toBeDefined();
       if (match) {
-        expect(match.failureModes).toBeDefined();
-        expect(match.failureModes?.length).toBeGreaterThan(0);
+        expect(match.entry.failureModes).toBeDefined();
+        expect(match.entry.failureModes?.length).toBeGreaterThan(0);
       }
     });
   });

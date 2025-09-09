@@ -156,7 +156,7 @@ describe('SmartSuite API Pagination', () => {
   });
 
   describe('MCP token limit defaults', () => {
-    it('should default to limit=200 for safe token usage', async () => {
+    it('should default to limit=25 for MCP token optimization', async () => {
       const apiKey = 'test-key';
       const workspaceId = 'test-workspace';
       const appId = 'test-app-id';
@@ -193,8 +193,8 @@ describe('SmartSuite API Pagination', () => {
       }
       const [url] = listRecordsCall;
 
-      // Should default to limit=200
-      expect(url).toContain('limit=200');
+      // Should default to limit=25 (optimized for MCP token limits)
+      expect(url).toContain('limit=25');
     });
 
     it('should cap limit at 1000 (SmartSuite maximum)', async () => {

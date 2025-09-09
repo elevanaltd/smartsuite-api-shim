@@ -344,7 +344,7 @@ export class KnowledgeLibrary {
         }
 
         matches.push({
-          ...entry,
+          entry,
           confidence,
           matchReason,
         });
@@ -356,7 +356,7 @@ export class KnowledgeLibrary {
     for (const entry of anyEntries) {
       if (entry.pattern.test(endpoint)) {
         matches.push({
-          ...entry,
+          entry,
           confidence: 0.7,
           matchReason: 'General pattern match',
         });
@@ -407,11 +407,11 @@ export class KnowledgeLibrary {
     if (matches.length > 0) {
       // Update first match with new example
       const match = matches[0];
-      if (match) {
-        if (!match.examples) {
-          match.examples = [];
+      if (match?.entry) {
+        if (!match.entry.examples) {
+          match.entry.examples = [];
         }
-        match.examples.push(example);
+        match.entry.examples.push(example);
       }
     } else {
       // Create new entry for this operation pattern
