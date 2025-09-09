@@ -53,6 +53,12 @@ export interface SmartSuiteListResponse {
   limit: number;
 }
 
+export interface SmartSuiteRequestOptions {
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  endpoint: string;
+  data?: Record<string, unknown>;
+}
+
 export interface SmartSuiteClient {
   apiKey: string;
   workspaceId: string;
@@ -67,6 +73,7 @@ export interface SmartSuiteClient {
   ) => Promise<SmartSuiteRecord>;
   deleteRecord: (appId: string, recordId: string) => Promise<void>;
   getSchema: (appId: string) => Promise<SmartSuiteSchema>;
+  request: (options: SmartSuiteRequestOptions) => Promise<any>;
 }
 
 export async function createAuthenticatedClient(
@@ -396,6 +403,41 @@ export async function createAuthenticatedClient(
       }
 
       return response.json() as Promise<SmartSuiteSchema>;
+    },
+
+    async request(options: SmartSuiteRequestOptions): Promise<any> {
+      const url = baseUrl + '/api/v1' + options.endpoint;
+      const response = await fetch(url, {
+        method: options.method,
+        headers: {
+          Authorization: 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
+          'Content-Type': 'application/json',
+        },
+        body: options.data ? JSON.stringify(options.data) : undefined,
+      });
+
+      if (!response.ok) {
+        let errorMessage = `API error ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = (await response.json()) as SmartSuiteApiError;
+          if (errorData.error) {
+            errorMessage = `API error ${response.status}: ${errorData.error}`;
+          } else if (errorData.message) {
+            errorMessage = `API error ${response.status}: ${errorData.message}`;
+          }
+        } catch {
+          // Use default error message
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Handle 204 No Content
+      if (response.status === 204) {
+        return { success: true };
+      }
+
+      return response.json() as Promise<any>;
     },
   };
 

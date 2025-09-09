@@ -2,9 +2,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { SmartSuiteAPIProxy } from './api-proxy.js';
-import { SmartSuiteClient } from '../smartsuite-client.js';
-import { KnowledgeLibrary } from './knowledge-library.js';
-import { SafetyEngine } from './safety-engine.js';
 import type { IntelligentToolInput } from './types.js';
 
 describe('SmartSuiteAPIProxy', () => {
@@ -34,9 +31,9 @@ describe('SmartSuiteAPIProxy', () => {
     };
 
     proxy = new SmartSuiteAPIProxy(
-      mockClient as any,
+      mockClient,
       mockKnowledgeLibrary,
-      mockSafetyEngine
+      mockSafetyEngine,
     );
   });
 
@@ -205,7 +202,7 @@ describe('SmartSuiteAPIProxy', () => {
       expect(result.mode).toBe('dry_run');
       expect(result.analysis?.connectivityValid).toBe(true);
       expect(result.analysis?.wouldExecute).toBe(true);
-      
+
       // Should only call for connectivity check, not actual operation
       expect(mockClient.request).toHaveBeenCalledTimes(1);
       expect(mockClient.request).toHaveBeenCalledWith({

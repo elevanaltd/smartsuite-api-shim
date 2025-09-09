@@ -38,7 +38,7 @@ describe('IntelligentOperationHandler', () => {
 
   describe('handleIntelligentOperation', () => {
     describe('learn mode', () => {
-      it('should return learning response for known patterns', () => {
+      it('should return learning response for known patterns', async () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/applications/123/records/list/',
@@ -75,7 +75,8 @@ describe('IntelligentOperationHandler', () => {
         vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue(mockKnowledge);
         vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue(mockAssessment);
 
-        const result = handler.handleIntelligentOperation(input);
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-4e46140e
+        const result = await handler.handleIntelligentOperation(input);
 
         expect(result.mode).toBe('learn');
         expect(result.status).toBe('analyzed');
@@ -86,7 +87,7 @@ describe('IntelligentOperationHandler', () => {
         expect(result.suggested_correction?.method).toBe('POST');
       });
 
-      it('should provide guidance for unknown patterns', () => {
+      it('should provide guidance for unknown patterns', async () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/unknown/endpoint',
@@ -104,7 +105,8 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         });
 
-        const result = handler.handleIntelligentOperation(input);
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-4e46140e
+        const result = await handler.handleIntelligentOperation(input);
 
         expect(result.mode).toBe('learn');
         expect(result.status).toBe('analyzed');
@@ -112,7 +114,7 @@ describe('IntelligentOperationHandler', () => {
         expect(result.guidance).toContain('No known patterns');
       });
 
-      it('should include performance metrics', () => {
+      it('should include performance metrics', async () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/test',
@@ -130,13 +132,14 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         });
 
-        const result = handler.handleIntelligentOperation(input);
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-4e46140e
+        const result = await handler.handleIntelligentOperation(input);
 
         expect(result.performance_ms).toBeDefined();
         expect(result.performance_ms).toBeLessThan(100);
       });
 
-      it('should handle UUID corruption prevention', () => {
+      it('should handle UUID corruption prevention', async () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/applications/123/fields/status/change_field',
@@ -175,7 +178,8 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         });
 
-        const result = handler.handleIntelligentOperation(input);
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-4e46140e
+        const result = await handler.handleIntelligentOperation(input);
 
         expect(result.safety_assessment?.level).toBe('RED');
         expect(result.guidance).toContain('UUID');
@@ -183,7 +187,7 @@ describe('IntelligentOperationHandler', () => {
         expect(result.suggested_correction?.payload).not.toHaveProperty('options');
       });
 
-      it('should handle bulk operation limits', () => {
+      it('should handle bulk operation limits', async () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/applications/123/records/bulk',
@@ -220,7 +224,8 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         });
 
-        const result = handler.handleIntelligentOperation(input);
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-4e46140e
+        const result = await handler.handleIntelligentOperation(input);
 
         expect(result.safety_assessment?.level).toBe('YELLOW');
         expect(result.guidance).toContain('25');
@@ -229,7 +234,20 @@ describe('IntelligentOperationHandler', () => {
     });
 
     describe('dry_run mode', () => {
-      it('should process dry_run mode successfully', () => {
+      it('should process dry_run mode successfully', async () => {
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-b0203b3c
+        // Create mock client for dry_run/execute modes
+        const mockClient = {
+          request: vi.fn().mockResolvedValue({}),
+        } as any;
+        
+        // Create handler with client to initialize apiProxy
+        const handlerWithClient = new IntelligentOperationHandler(
+          mockKnowledgeLibrary,
+          mockSafetyEngine,
+          mockClient,
+        );
+
         const input: IntelligentToolInput = {
           mode: 'dry_run',
           endpoint: '/test',
@@ -237,15 +255,28 @@ describe('IntelligentOperationHandler', () => {
           operation_description: 'Test dry run',
         };
 
-        const result = handler.handleIntelligentOperation(input);
+        const result = await handlerWithClient.handleIntelligentOperation(input);
 
-        expect(result.status).toBe('analyzed');
+        expect(result.success).toBe(true);
         expect(result.mode).toBe('dry_run');
       });
     });
 
     describe('execute mode', () => {
-      it('should process execute mode successfully', () => {
+      it('should process execute mode successfully', async () => {
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-93cefbba
+        // Create mock client for execute mode
+        const mockClient = {
+          request: vi.fn().mockResolvedValue({ success: true }),
+        } as any;
+        
+        // Create handler with client to initialize apiProxy
+        const handlerWithClient = new IntelligentOperationHandler(
+          mockKnowledgeLibrary,
+          mockSafetyEngine,
+          mockClient,
+        );
+
         const input: IntelligentToolInput = {
           mode: 'execute',
           endpoint: '/test',
@@ -253,16 +284,16 @@ describe('IntelligentOperationHandler', () => {
           operation_description: 'Test execute',
         };
 
-        const result = handler.handleIntelligentOperation(input);
+        const result = await handlerWithClient.handleIntelligentOperation(input);
 
-        expect(result.status).toBe('analyzed');
+        expect(result.success).toBe(true);
         expect(result.mode).toBe('execute');
       });
     });
   });
 
   describe('generateLearningResponse', () => {
-    it('should format response with all required fields', () => {
+    it('should format response with all required fields', async () => {
       const input: IntelligentToolInput = {
         mode: 'learn',
         endpoint: '/test',
@@ -280,7 +311,8 @@ describe('IntelligentOperationHandler', () => {
         protocols: [],
       });
 
-      const result = handler.handleIntelligentOperation(input);
+      // TESTGUARD-APPROVED: TESTGUARD-20250909-d7ed17f1
+      const result = await handler.handleIntelligentOperation(input);
 
       expect(result).toHaveProperty('mode');
       expect(result).toHaveProperty('status');

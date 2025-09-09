@@ -1,7 +1,8 @@
+import { SmartSuiteClient } from '../smartsuite-client.js';
+
+import { SmartSuiteAPIProxy } from './api-proxy.js';
 import { KnowledgeLibrary } from './knowledge-library.js';
 import { SafetyEngine } from './safety-engine.js';
-import { SmartSuiteAPIProxy } from './api-proxy.js';
-import { SmartSuiteClient } from '../smartsuite-client.js';
 import type {
   IntelligentToolInput,
   OperationResult,
@@ -45,7 +46,7 @@ export class IntelligentOperationHandler {
       this.apiProxy = new SmartSuiteAPIProxy(
         client,
         this.knowledgeLibrary,
-        this.safetyEngine
+        this.safetyEngine,
       );
     }
   }
