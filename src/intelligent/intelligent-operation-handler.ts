@@ -184,7 +184,7 @@ export class IntelligentOperationHandler {
       safetyAssessment,
     );
 
-    return {
+    const result: OperationResult = {
       mode: 'learn',
       status: 'analyzed',
       endpoint: input.endpoint,
@@ -193,12 +193,18 @@ export class IntelligentOperationHandler {
       knowledge_applied: hasKnowledge,
       safety_assessment: safetyAssessment,
       guidance,
-      suggested_correction: suggestedCorrection,
       warnings: safetyAssessment.warnings.map(w => typeof w === 'string' ? w : w.message),
       knowledge_matches: knowledge.length,
       performance_ms: 0, // Will be set by caller
-      knowledge_version: '', // Will be set by caller
+      knowledge_version: JSON.stringify(this.knowledgeLibrary.getVersion()),
     };
+
+    // Only add suggested_correction if it exists
+    if (suggestedCorrection) {
+      result.suggested_correction = suggestedCorrection;
+    }
+
+    return result;
   }
 
   /**

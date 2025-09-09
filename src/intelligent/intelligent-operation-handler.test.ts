@@ -31,7 +31,7 @@ describe('IntelligentOperationHandler', () => {
 
   describe('handleIntelligentOperation', () => {
     describe('learn mode', () => {
-      it('should return learning response for known patterns', async () => {
+      it('should return learning response for known patterns', () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/applications/123/records/list/',
@@ -68,7 +68,7 @@ describe('IntelligentOperationHandler', () => {
         vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue(mockKnowledge);
         vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue(mockAssessment);
 
-        const result = await handler.handleIntelligentOperation(input);
+        const result = handler.handleIntelligentOperation(input);
 
         expect(result.mode).toBe('learn');
         expect(result.status).toBe('analyzed');
@@ -79,7 +79,7 @@ describe('IntelligentOperationHandler', () => {
         expect(result.suggested_correction?.method).toBe('POST');
       });
 
-      it('should provide guidance for unknown patterns', async () => {
+      it('should provide guidance for unknown patterns', () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/unknown/endpoint',
@@ -97,7 +97,7 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         });
 
-        const result = await handler.handleIntelligentOperation(input);
+        const result = handler.handleIntelligentOperation(input);
 
         expect(result.mode).toBe('learn');
         expect(result.status).toBe('analyzed');
@@ -105,7 +105,7 @@ describe('IntelligentOperationHandler', () => {
         expect(result.guidance).toContain('No known patterns');
       });
 
-      it('should include performance metrics', async () => {
+      it('should include performance metrics', () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/test',
@@ -123,13 +123,13 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         });
 
-        const result = await handler.handleIntelligentOperation(input);
+        const result = handler.handleIntelligentOperation(input);
 
         expect(result.performance_ms).toBeDefined();
         expect(result.performance_ms).toBeLessThan(100);
       });
 
-      it('should handle UUID corruption prevention', async () => {
+      it('should handle UUID corruption prevention', () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/applications/123/fields/status/change_field',
@@ -168,7 +168,7 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         });
 
-        const result = await handler.handleIntelligentOperation(input);
+        const result = handler.handleIntelligentOperation(input);
 
         expect(result.safety_assessment?.level).toBe('RED');
         expect(result.guidance).toContain('UUID');
@@ -176,7 +176,7 @@ describe('IntelligentOperationHandler', () => {
         expect(result.suggested_correction?.payload).not.toHaveProperty('options');
       });
 
-      it('should handle bulk operation limits', async () => {
+      it('should handle bulk operation limits', () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/applications/123/records/bulk',
@@ -213,7 +213,7 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         });
 
-        const result = await handler.handleIntelligentOperation(input);
+        const result = handler.handleIntelligentOperation(input);
 
         expect(result.safety_assessment?.level).toBe('YELLOW');
         expect(result.guidance).toContain('25');
@@ -222,7 +222,7 @@ describe('IntelligentOperationHandler', () => {
     });
 
     describe('dry_run mode', () => {
-      it('should reject dry_run mode in MVP', async () => {
+      it('should reject dry_run mode in MVP', () => {
         const input: IntelligentToolInput = {
           mode: 'dry_run',
           endpoint: '/test',
@@ -230,7 +230,7 @@ describe('IntelligentOperationHandler', () => {
           operation_description: 'Test dry run',
         };
 
-        const result = await handler.handleIntelligentOperation(input);
+        const result = handler.handleIntelligentOperation(input);
 
         expect(result.status).toBe('error');
         expect(result.error).toContain('not available in MVP');
@@ -238,7 +238,7 @@ describe('IntelligentOperationHandler', () => {
     });
 
     describe('execute mode', () => {
-      it('should reject execute mode in MVP', async () => {
+      it('should reject execute mode in MVP', () => {
         const input: IntelligentToolInput = {
           mode: 'execute',
           endpoint: '/test',
@@ -246,7 +246,7 @@ describe('IntelligentOperationHandler', () => {
           operation_description: 'Test execute',
         };
 
-        const result = await handler.handleIntelligentOperation(input);
+        const result = handler.handleIntelligentOperation(input);
 
         expect(result.status).toBe('error');
         expect(result.error).toContain('not available in MVP');
@@ -255,7 +255,7 @@ describe('IntelligentOperationHandler', () => {
   });
 
   describe('generateLearningResponse', () => {
-    it('should format response with all required fields', async () => {
+    it('should format response with all required fields', () => {
       const input: IntelligentToolInput = {
         mode: 'learn',
         endpoint: '/test',
@@ -273,7 +273,7 @@ describe('IntelligentOperationHandler', () => {
         protocols: [],
       });
 
-      const result = await handler.handleIntelligentOperation(input);
+      const result = handler.handleIntelligentOperation(input);
 
       expect(result).toHaveProperty('mode');
       expect(result).toHaveProperty('status');

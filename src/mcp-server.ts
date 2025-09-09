@@ -17,6 +17,8 @@ import { fileURLToPath } from 'url';
 // Context7: consulted for zod
 import { z } from 'zod';
 
+import { IntelligentOperationHandler, KnowledgeLibrary, SafetyEngine } from './intelligent/index.js';
+import type { IntelligentToolInput } from './intelligent/types.js';
 import { FieldTranslator } from './lib/field-translator.js';
 import { MappingService } from './lib/mapping-service.js';
 import { TableResolver } from './lib/table-resolver.js';
@@ -69,6 +71,7 @@ export class SmartSuiteShimServer {
   private fieldTranslator: FieldTranslator;
   private fieldMappingsInitialized = false;
   private authConfig?: SmartSuiteClientConfig;
+  private intelligentHandler?: IntelligentOperationHandler;
 
   // Validation enforcement: Track recent dry-runs to ensure validation before execution
   private validationCache = new Map<string, {
@@ -84,9 +87,21 @@ export class SmartSuiteShimServer {
     this.mappingService = new MappingService();
     this.tableResolver = new TableResolver();
     this.fieldTranslator = new FieldTranslator();
+    // IntelligentHandler will be initialized in initializeIntelligentHandler
 
     // Critical-Engineer: consulted for server initialization and auto-authentication strategy
     // Constructor remains fast and non-blocking - no I/O operations here
+  }
+
+  /**
+   * Initialize the intelligent handler lazily
+   */
+  private initializeIntelligentHandler(): void {
+    if (!this.intelligentHandler) {
+      const knowledgeLibrary = new KnowledgeLibrary();
+      const safetyEngine = new SafetyEngine(knowledgeLibrary);
+      this.intelligentHandler = new IntelligentOperationHandler(knowledgeLibrary, safetyEngine);
+    }
   }
 
   /**
@@ -273,6 +288,48 @@ export class SmartSuiteShimServer {
           required: ['scope'],
         },
       },
+      {
+        name: 'smartsuite_intelligent',
+        description: 'AI-guided access to any SmartSuite API with knowledge-driven safety (MVP: learn mode only)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            mode: {
+              type: 'string',
+              enum: ['learn'],
+              description: 'Operation mode: currently only learn mode is available',
+              default: 'learn',
+            },
+            endpoint: {
+              type: 'string',
+              description: 'SmartSuite API endpoint (e.g., /applications/{id}/records/list/)',
+            },
+            method: {
+              type: 'string',
+              enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+              description: 'HTTP method for the operation',
+            },
+            payload: {
+              type: 'object',
+              description: 'Request payload (validated against knowledge base)',
+            },
+            tableId: {
+              type: 'string',
+              description: 'SmartSuite table/application ID for context',
+            },
+            operation_description: {
+              type: 'string',
+              description: 'Human-readable description of what you want to accomplish',
+            },
+            confirmed: {
+              type: 'boolean',
+              description: 'Confirmation for dangerous operations (required for RED level)',
+              default: false,
+            },
+          },
+          required: ['endpoint', 'method', 'operation_description'],
+        },
+      },
     ];
   }
 
@@ -440,6 +497,8 @@ export class SmartSuiteShimServer {
         return this.handleUndo(args);
       case 'smartsuite_discover':
         return this.handleDiscover(args);
+      case 'smartsuite_intelligent':
+        return this.handleIntelligent(args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -814,6 +873,42 @@ export class SmartSuiteShimServer {
     } else {
       throw new Error(`Invalid scope: ${scope}. Must be 'tables' or 'fields'`);
     }
+  }
+
+  /**
+   * Handle intelligent tool operations with knowledge-driven safety
+   * MVP Phase 1: Learn mode only
+   */
+  private async handleIntelligent(args: Record<string, unknown>): Promise<unknown> {
+    // Initialize handler if needed
+    this.initializeIntelligentHandler();
+    // Validate and transform input
+    const input: IntelligentToolInput = {
+      mode: (args.mode as 'learn' | 'dry_run' | 'execute') ?? 'learn',
+      endpoint: args.endpoint as string,
+      method: args.method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+      operation_description: args.operation_description as string,
+    };
+
+    // Add optional fields only if they exist
+    if (args.payload !== undefined) {
+      input.payload = args.payload as Record<string, unknown>;
+    }
+    if (args.tableId !== undefined) {
+      input.tableId = args.tableId as string;
+    }
+    if (args.confirmed !== undefined) {
+      input.confirmed = args.confirmed as boolean;
+    }
+
+    // MVP: Only learn mode is available
+    if (input.mode !== 'learn') {
+      throw new Error(`Mode '${input.mode}' not yet implemented. Currently only 'learn' mode is available.`);
+    }
+
+    // Use the intelligent handler to process the operation
+    const result = this.intelligentHandler!.handleIntelligentOperation(input);
+    return result;
   }
 
   /**
