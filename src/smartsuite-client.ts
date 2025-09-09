@@ -440,7 +440,7 @@ export async function createAuthenticatedClient(
         return { success: true };
       }
 
-      return response.json() as Promise<any>;
+      return response.json();
     },
   };
 

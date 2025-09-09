@@ -407,7 +407,7 @@ export class KnowledgeLibrary {
     if (matches.length > 0) {
       // Update first match with new example
       const match = matches[0];
-      if (match && match.entry) {
+      if (match?.entry) {
         if (!match.entry.examples) {
           match.entry.examples = [];
         }

@@ -105,9 +105,9 @@ export class SmartSuiteShimServer {
       const safetyEngine = new SafetyEngine(knowledgeLibrary);
       // Pass the SmartSuiteClient to enable execute and dry_run modes
       this.intelligentHandler = new IntelligentOperationHandler(
-        knowledgeLibrary, 
+        knowledgeLibrary,
         safetyEngine,
-        this.client  // Now passes client for API proxy functionality
+        this.client,  // Now passes client for API proxy functionality
       );
     }
   }
@@ -651,10 +651,10 @@ export class SmartSuiteShimServer {
       limit: wasTruncated ? MAX_ITEMS_FOR_MCP : limit,
       offset,
       ...(hasMore && { nextOffset }),
-      ...(wasTruncated && { 
+      ...(wasTruncated && {
         truncated: true,
         originalCount: items.length,
-        message: `Response truncated to ${MAX_ITEMS_FOR_MCP} items to optimize context. Use limit parameter to control size.`
+        message: `Response truncated to ${MAX_ITEMS_FOR_MCP} items to optimize context. Use limit parameter to control size.`,
       }),
     };
   }

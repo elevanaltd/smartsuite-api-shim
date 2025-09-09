@@ -52,7 +52,7 @@ export class SmartSuiteAPIProxy {
             safetyLevel: 'RED',
             requiresConfirmation: true,
             warnings: safetyAssessment.warnings,
-            recommendations: safetyAssessment.recommendations || [],
+            recommendations: safetyAssessment.recommendations ?? [],
           },
           error: 'Operation requires confirmation due to high risk level',
           performanceMs: performance.now() - startTime,
@@ -71,7 +71,7 @@ export class SmartSuiteAPIProxy {
         endpoint: fullEndpoint,
         ...(correctedInput.payload !== undefined && { data: correctedInput.payload }),
       };
-      const response = await this.client.request(requestOptions);
+      const response: Record<string, unknown> = await this.client.request(requestOptions) as Record<string, unknown>;
 
       // 6. Capture learning from successful operation
       this.captureSuccessPattern(correctedInput, response);
@@ -136,10 +136,10 @@ export class SmartSuiteAPIProxy {
         method: correctedInput.method,
         safetyLevel: safetyAssessment.level,
         warnings: safetyAssessment.warnings,
-        recommendations: safetyAssessment.recommendations || [],
+        recommendations: safetyAssessment.recommendations ?? [],
         appliedCorrections: this.getAppliedCorrections(input, correctedInput),
         connectivityValid,
-        wouldExecute: safetyAssessment.level !== 'RED' || input.confirmed || false,
+        wouldExecute: safetyAssessment.level !== 'RED' || (input.confirmed ?? false),
       },
       performanceMs: performance.now() - startTime,
     };
@@ -253,7 +253,7 @@ export class SmartSuiteAPIProxy {
    */
   private captureSuccessPattern(
     input: IntelligentToolInput,
-    _response: any,
+    _response: Record<string, unknown>,
   ): void {
     // TODO: Implement learning engine integration
     // Success pattern would be sent to learning engine here

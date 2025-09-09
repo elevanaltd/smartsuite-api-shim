@@ -113,7 +113,7 @@ export interface OperationResult {
   mode: OperationMode;
 
   // For successful operations
-  result?: any;
+  result?: unknown;
   analysis?: OperationAnalysis;
 
   // For error cases

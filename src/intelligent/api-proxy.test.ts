@@ -1,14 +1,18 @@
 // Context7: consulted for vitest
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+
+import type { SmartSuiteClient } from '../smartsuite-client.js';
 
 import { SmartSuiteAPIProxy } from './api-proxy.js';
+import { KnowledgeLibrary } from './knowledge-library.js';
+import { SafetyEngine } from './safety-engine.js';
 import type { IntelligentToolInput } from './types.js';
 
 describe('SmartSuiteAPIProxy', () => {
   let proxy: SmartSuiteAPIProxy;
-  let mockClient: any;
-  let mockKnowledgeLibrary: any;
-  let mockSafetyEngine: any;
+  let mockClient: Partial<SmartSuiteClient>;
+  let mockKnowledgeLibrary: Partial<KnowledgeLibrary>;
+  let mockSafetyEngine: Partial<SafetyEngine>;
 
   beforeEach(() => {
     // Mock SmartSuiteClient
@@ -31,9 +35,9 @@ describe('SmartSuiteAPIProxy', () => {
     };
 
     proxy = new SmartSuiteAPIProxy(
-      mockClient,
-      mockKnowledgeLibrary,
-      mockSafetyEngine,
+      mockClient as SmartSuiteClient,
+      mockKnowledgeLibrary as KnowledgeLibrary,
+      mockSafetyEngine as SafetyEngine,
     );
   });
 
@@ -48,7 +52,7 @@ describe('SmartSuiteAPIProxy', () => {
         operation_description: 'List records',
       };
 
-      mockClient.request.mockResolvedValue({ items: [] });
+      (mockClient.request as Mock).mockResolvedValue({ items: [] });
 
       const result = await proxy.executeOperation(input);
 
@@ -72,7 +76,7 @@ describe('SmartSuiteAPIProxy', () => {
         confirmed: false,
       };
 
-      mockSafetyEngine.assess.mockReturnValue({
+      (mockSafetyEngine.assess as Mock).mockReturnValue({
         level: 'RED',
         warnings: ['This will permanently delete the table'],
         recommendations: ['Ensure you have a backup'],
@@ -96,7 +100,7 @@ describe('SmartSuiteAPIProxy', () => {
       };
 
       // Mock knowledge with correction
-      mockKnowledgeLibrary.findRelevantKnowledge.mockReturnValue([
+      (mockKnowledgeLibrary.findRelevantKnowledge as Mock).mockReturnValue([
         {
           entry: {
             pattern: 'GET.*/records',
@@ -110,7 +114,7 @@ describe('SmartSuiteAPIProxy', () => {
         },
       ]);
 
-      mockClient.request.mockResolvedValue({ items: [] });
+      (mockClient.request as Mock).mockResolvedValue({ items: [] });
 
       const result = await proxy.executeOperation(input);
 
@@ -131,7 +135,7 @@ describe('SmartSuiteAPIProxy', () => {
         operation_description: 'Invalid operation',
       };
 
-      mockClient.request.mockRejectedValue(new Error('404 Not Found'));
+      (mockClient.request as Mock).mockRejectedValue(new Error('404 Not Found'));
 
       const result = await proxy.executeOperation(input);
 
@@ -154,7 +158,7 @@ describe('SmartSuiteAPIProxy', () => {
       };
 
       // Mock knowledge with parameter correction
-      mockKnowledgeLibrary.findRelevantKnowledge.mockReturnValue([
+      (mockKnowledgeLibrary.findRelevantKnowledge as Mock).mockReturnValue([
         {
           entry: {
             pattern: '/change_field.*singleselectfield',
@@ -167,7 +171,7 @@ describe('SmartSuiteAPIProxy', () => {
         },
       ]);
 
-      mockClient.request.mockResolvedValue({ success: true });
+      (mockClient.request as Mock).mockResolvedValue({ success: true });
 
       const result = await proxy.executeOperation(input);
 
@@ -194,7 +198,7 @@ describe('SmartSuiteAPIProxy', () => {
       };
 
       // Mock connectivity check
-      mockClient.request.mockResolvedValue({});
+      (mockClient.request as Mock).mockResolvedValue({});
 
       const result = await proxy.performDryRun(input);
 
@@ -221,13 +225,13 @@ describe('SmartSuiteAPIProxy', () => {
         confirmed: false,
       };
 
-      mockSafetyEngine.assess.mockReturnValue({
+      (mockSafetyEngine.assess as Mock).mockReturnValue({
         level: 'RED',
         warnings: ['Destructive operation'],
         recommendations: ['Ensure backup exists'],
       });
 
-      mockClient.request.mockResolvedValue({});
+      (mockClient.request as Mock).mockResolvedValue({});
 
       const result = await proxy.performDryRun(input);
 
@@ -246,7 +250,7 @@ describe('SmartSuiteAPIProxy', () => {
         operation_description: 'List solutions',
       };
 
-      mockClient.request.mockResolvedValue({ solutions: [] });
+      (mockClient.request as Mock).mockResolvedValue({ solutions: [] });
 
       const result = await proxy.executeOperation(input);
 
@@ -267,7 +271,7 @@ describe('SmartSuiteAPIProxy', () => {
         operation_description: 'List records',
       };
 
-      mockClient.request.mockResolvedValue({ items: [] });
+      (mockClient.request as Mock).mockResolvedValue({ items: [] });
 
       await proxy.executeOperation(input);
 
@@ -279,3 +283,4 @@ describe('SmartSuiteAPIProxy', () => {
     });
   });
 });
+

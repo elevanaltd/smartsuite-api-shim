@@ -58,9 +58,18 @@ export class MappingService {
       // First pass: validate all files before loading
       const validatedMappings: Array<{file: string, content: Record<string, unknown>}> = [];
       const tableNames: Map<string, string> = new Map(); // normalized name -> file
-      for (const file of yamlFiles) {
-        const filePath = path.join(mappingsDir, file);
-        const yamlContent = await fs.readFile(filePath, 'utf8');
+
+      // Read all files in parallel first
+      const fileContents = await Promise.all(
+        yamlFiles.map(async (file) => {
+          const filePath = path.join(mappingsDir, file);
+          const yamlContent = await fs.readFile(filePath, 'utf8');
+          return { file, yamlContent };
+        }),
+      );
+
+      // Then validate sequentially
+      for (const { file, yamlContent } of fileContents) {
         const mapping = yaml.parse(yamlContent) as Record<string, unknown>;
 
         // Validate table ID format

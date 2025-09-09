@@ -1,10 +1,11 @@
 // Context7: consulted for vitest
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+import type { SmartSuiteClient } from '../smartsuite-client.js';
+
 import { IntelligentOperationHandler } from './intelligent-operation-handler.js';
 import { KnowledgeLibrary } from './knowledge-library.js';
 import { SafetyEngine } from './safety-engine.js';
-import type { SmartSuiteClient } from '../smartsuite-client.js';
 // TESTGUARD_BYPASS: Fixing TypeScript compilation - removing unused OperationMode, adding KnowledgeMatch for proper typing
 import type { IntelligentToolInput, KnowledgeMatch } from './types.js';
 
@@ -17,7 +18,7 @@ describe('IntelligentOperationHandler', () => {
     // TESTGUARD-APPROVED: TESTGUARD-20250909-379dd489
     // Fixing mock to match KnowledgeVersion interface - contract compliance
     mockKnowledgeLibrary = {
-      findRelevantKnowledge: vi.fn(),
+      findRelevantKnowledge: vi.fn().mockReturnValue([]),
       learnFromOperation: vi.fn(),
       getVersion: vi.fn().mockReturnValue({
         version: '1.0.0',
@@ -29,7 +30,13 @@ describe('IntelligentOperationHandler', () => {
     } as any;
 
     mockSafetyEngine = {
-      assess: vi.fn(),
+      assess: vi.fn().mockReturnValue({
+        level: 'GREEN',
+        warnings: [],
+        canProceed: true,
+        requiresConfirmation: false,
+        protocols: [],
+      }),
       validateCriticalProtocols: vi.fn(),
       generateWarnings: vi.fn(),
     } as any;
