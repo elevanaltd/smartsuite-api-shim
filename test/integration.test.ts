@@ -63,12 +63,14 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
 
 
+      // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250909-7cf66e12
+      // Fixed field name: projects table uses 'projectName' not 'name'
       // Attempt mutation without dry_run
       await expect(
         server.executeTool('smartsuite_record', {
           operation: 'create',
           appId: 'projects',
-          data: { name: 'test' },
+          data: { projectName: 'test' },
         }),
       ).rejects.toThrow('Dry-run pattern required');
     });
@@ -88,10 +90,12 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
 
 
+      // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250909-7cf66e12
+      // Fixed field name: projects table uses 'projectName' not 'name'
       const result = (await server.executeTool('smartsuite_record', {
         operation: 'create',
         appId: 'projects',
-        data: { name: 'test' },
+        data: { projectName: 'test' },
         dry_run: true,
       })) as { dry_run: boolean; message: string };
 
@@ -203,7 +207,8 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         limit: 1,
         offset: 0,
       });
-      expect((server as any).client.listRecords).toHaveBeenCalledWith('68f89f5338fde3aaac63c7a5', {});
+      // Updated to use correct videos table ID from field-mappings
+      expect((server as any).client.listRecords).toHaveBeenCalledWith('68b2437a8f1755b055e0a124', {});
     });
 
     it('should execute count operations correctly', async () => {
@@ -227,7 +232,8 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
           message: 'This table supports human-readable field names. Use field names from the mappings below instead of API codes.',
         },
       });
-      expect((server as any).client.getSchema).toHaveBeenCalledWith('68f89f5338fde3aaac63c7a5');
+      // Updated to use correct videos table ID from field-mappings  
+      expect((server as any).client.getSchema).toHaveBeenCalledWith('68b2437a8f1755b055e0a124');
     });
 
     it('should handle undo operation placeholder', async () => {

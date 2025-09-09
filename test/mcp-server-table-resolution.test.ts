@@ -6,8 +6,10 @@ import { SmartSuiteShimServer } from '../src/mcp-server.js';
 describe('MCP Server Table Resolution', () => {
   let server: SmartSuiteShimServer;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     server = new SmartSuiteShimServer();
+    // Initialize field mappings to enable table resolution
+    await server['initializeFieldMappings']();
   });
 
   describe('Table name resolution in query operations', () => {
@@ -64,7 +66,8 @@ describe('MCP Server Table Resolution', () => {
 
   describe('Discovery tool', () => {
     it('should list available tables', async () => {
-      server['fieldMappingsInitialized'] = true;
+      // Mock authentication to avoid 'Authentication required' error
+      server['client'] = {} as any;
 
       const result = await server.callTool('smartsuite_discover', {
         scope: 'tables',
@@ -79,7 +82,8 @@ describe('MCP Server Table Resolution', () => {
     });
 
     it('should list fields for a specific table', async () => {
-      server['fieldMappingsInitialized'] = true;
+      // Mock authentication to avoid 'Authentication required' error
+      server['client'] = {} as any;
 
       const result = await server.callTool('smartsuite_discover', {
         scope: 'fields',
@@ -94,7 +98,8 @@ describe('MCP Server Table Resolution', () => {
     });
 
     it('should work with table ID for fields discovery', async () => {
-      server['fieldMappingsInitialized'] = true;
+      // Mock authentication to avoid 'Authentication required' error
+      server['client'] = {} as any;
 
       const result = await server.callTool('smartsuite_discover', {
         scope: 'fields',

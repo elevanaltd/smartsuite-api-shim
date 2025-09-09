@@ -90,17 +90,39 @@ describe('Field Translation Integration - Manual Path Test', () => {
     });
   });
 
-  it('should gracefully handle tables without field mappings', async () => {
+  it('should throw an error for unknown table IDs', async () => {
     const unknownAppId = 'unknown-table-id';
 
-    // Ensure this test uses unmocked field translator behavior
-    (server as any).fieldTranslator.hasMappings = vi.fn().mockReturnValue(false);
+    // The server must be initialized for the resolver to work
     (server as any).fieldMappingsInitialized = true;
 
-    const result = await server.executeTool('smartsuite_schema', {
-      appId: unknownAppId,
+    // Table resolver now validates table IDs and rejects unknown ones
+    await expect(
+      server.executeTool('smartsuite_schema', {
+        appId: unknownAppId,
+      })
+    ).rejects.toThrow(/Unknown table 'unknown-table-id'/);
+  });
+
+  it('should gracefully handle a VALID table that has no field mappings', async () => {
+    // Use a REAL table ID from config
+    const videosAppId = '68f89f5338fde3aaac63c7a5'; // videos table
+
+    // Mock the translator to specifically return no mappings for this valid ID
+    vi.spyOn((server as any).fieldTranslator, 'hasMappings').mockReturnValue(false);
+    (server as any).fieldMappingsInitialized = true;
+
+    // Mock the underlying client call to prevent a real API call
+    (server as any).client.getSchema = vi.fn().mockResolvedValue({ 
+      fields: [], 
+      tableName: 'videos' 
     });
 
+    const result = await server.executeTool('smartsuite_schema', {
+      appId: videosAppId,
+    });
+
+    // Assert the ORIGINAL intended behavior - graceful handling with message
     expect(result).toMatchObject({
       fieldMappings: {
         hasCustomMappings: false,
