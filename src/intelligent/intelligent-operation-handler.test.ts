@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IntelligentOperationHandler } from './intelligent-operation-handler.js';
 import { KnowledgeLibrary } from './knowledge-library.js';
 import { SafetyEngine } from './safety-engine.js';
+import type { SmartSuiteClient } from '../smartsuite-client.js';
 // TESTGUARD_BYPASS: Fixing TypeScript compilation - removing unused OperationMode, adding KnowledgeMatch for proper typing
 import type { IntelligentToolInput, KnowledgeMatch } from './types.js';
 
@@ -243,7 +244,7 @@ describe('IntelligentOperationHandler', () => {
         // Create mock client for dry_run/execute modes
         const mockClient = {
           request: vi.fn().mockResolvedValue({}),
-        } as any;
+        } as unknown as SmartSuiteClient;
 
         // Create handler with client to initialize apiProxy
         const handlerWithClient = new IntelligentOperationHandler(
@@ -272,7 +273,7 @@ describe('IntelligentOperationHandler', () => {
         // Create mock client for execute mode
         const mockClient = {
           request: vi.fn().mockResolvedValue({ success: true }),
-        } as any;
+        } as unknown as SmartSuiteClient;
 
         // Create handler with client to initialize apiProxy
         const handlerWithClient = new IntelligentOperationHandler(

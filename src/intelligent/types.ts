@@ -111,14 +111,14 @@ export interface OperationResult {
   // Core execution properties
   success: boolean;
   mode: OperationMode;
-  
+
   // For successful operations
   result?: any;
   analysis?: OperationAnalysis;
-  
+
   // For error cases
   error?: string;
-  
+
   // Original fields for compatibility
   status?: 'analyzed' | 'error';
   endpoint?: string;
@@ -130,7 +130,7 @@ export interface OperationResult {
   suggested_correction?: IntelligentToolInput & { note?: string };
   warnings?: string[];
   knowledge_matches?: number;
-  
+
   // Performance tracking
   performance_ms?: number;
   performanceMs?: number;

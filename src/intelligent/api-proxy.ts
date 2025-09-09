@@ -1,4 +1,4 @@
-import { SmartSuiteClient } from '../smartsuite-client.js';
+import { SmartSuiteClient, SmartSuiteRequestOptions } from '../smartsuite-client.js';
 
 import { KnowledgeLibrary } from './knowledge-library.js';
 import { SafetyEngine } from './safety-engine.js';
@@ -66,13 +66,11 @@ export class SmartSuiteAPIProxy {
       const fullEndpoint = this.buildFullEndpoint(correctedInput);
 
       // 5. Execute the API call directly
-      const requestOptions: any = {
-        method: correctedInput.method,
+      const requestOptions: SmartSuiteRequestOptions = {
+        method: correctedInput.method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
         endpoint: fullEndpoint,
+        ...(correctedInput.payload !== undefined && { data: correctedInput.payload }),
       };
-      if (correctedInput.payload !== undefined) {
-        requestOptions.data = correctedInput.payload;
-      }
       const response = await this.client.request(requestOptions);
 
       // 6. Capture learning from successful operation
