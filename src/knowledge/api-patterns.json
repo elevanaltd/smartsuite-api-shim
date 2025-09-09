@@ -1,0 +1,285 @@
+{
+  "LIST_RECORDS": {
+    "endpoint": "/api/v1/applications/{appId}/records/list/",
+    "method": "POST",
+    "description": "Retrieve records with filtering and pagination",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "ACCOUNT-ID": "{workspace_id}",
+      "Content-Type": "application/json"
+    },
+    "safe_defaults": {
+      "limit": 2,
+      "offset": 0,
+      "hydrated": false
+    },
+    "body_structure": {
+      "limit": "number (max 1000, recommend 2 for MCP)",
+      "offset": "number (pagination start)",
+      "filter": "object (field conditions)",
+      "sort": "array (field ordering)",
+      "hydrated": "boolean (include relationships)"
+    },
+    "token_warning": "Each record can be 10-25K tokens - use limit:2 for MCP",
+    "common_errors": [
+      "Using GET instead of POST",
+      "Missing trailing slash",
+      "Limit too high causing token explosion"
+    ]
+  },
+
+  "GET_RECORD": {
+    "endpoint": "/api/v1/applications/{appId}/records/{recordId}/",
+    "method": "GET",
+    "description": "Retrieve single record by ID",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "ACCOUNT-ID": "{workspace_id}"
+    },
+    "critical": "Must include trailing slash",
+    "response": "Single record object with all fields"
+  },
+
+  "CREATE_RECORD": {
+    "endpoint": "/api/v1/applications/{appId}/records/",
+    "method": "POST",
+    "description": "Create new record",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "ACCOUNT-ID": "{workspace_id}",
+      "Content-Type": "application/json"
+    },
+    "body_requirements": {
+      "required_fields": "Check schema - varies by table",
+      "linked_records": "Must be arrays, not strings",
+      "select_fields": "Use option codes, not labels"
+    },
+    "validation": "Run smartsuite_schema first to check requirements"
+  },
+
+  "UPDATE_RECORD": {
+    "endpoint": "/api/v1/applications/{appId}/records/{recordId}/",
+    "method": "PATCH",
+    "description": "Update existing record",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "ACCOUNT-ID": "{workspace_id}",
+      "Content-Type": "application/json"
+    },
+    "body_notes": {
+      "partial_updates": "Only send fields to change",
+      "linked_records": "Arrays required",
+      "status_fields": "Use option codes"
+    },
+    "critical": "Trailing slash required"
+  },
+
+  "DELETE_RECORD": {
+    "endpoint": "/api/v1/applications/{appId}/records/{recordId}/",
+    "method": "DELETE",
+    "description": "Delete single record",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "ACCOUNT-ID": "{workspace_id}"
+    },
+    "critical": "MUST have trailing slash or silent failure",
+    "warning": "No undo - permanent deletion"
+  },
+
+  "BULK_CREATE": {
+    "endpoint": "/api/v1/applications/{appId}/records/bulk/",
+    "method": "POST",
+    "description": "Create multiple records",
+    "body_structure": {
+      "items": "array of record objects (max 25)"
+    },
+    "limits": {
+      "max_records": 25,
+      "recommendation": "Batch in groups of 20 for safety"
+    }
+  },
+
+  "BULK_UPDATE": {
+    "endpoint": "/api/v1/applications/{appId}/records/bulk/",
+    "method": "PATCH",
+    "description": "Update multiple records",
+    "body_structure": {
+      "items": "array of {id, ...updates} (max 25)"
+    },
+    "limits": {
+      "max_records": 25
+    },
+    "requirement": "Each item must include 'id' field"
+  },
+
+  "BULK_DELETE": {
+    "endpoint": "/api/v1/applications/{appId}/records/bulk_delete/",
+    "method": "PATCH",
+    "description": "Delete multiple records",
+    "body_structure": {
+      "items": "array of record IDs (max 25)"
+    },
+    "limits": {
+      "max_records": 25
+    },
+    "warning": "Permanent deletion - no undo"
+  },
+
+  "GET_SCHEMA": {
+    "endpoint": "/api/v1/applications/{appId}/",
+    "method": "GET",
+    "description": "Get table structure and field definitions",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "ACCOUNT-ID": "{workspace_id}"
+    },
+    "response_includes": {
+      "structure": "Array of field definitions",
+      "name": "Table name",
+      "id": "Table ID",
+      "solution": "Parent solution ID"
+    },
+    "note": "No '/schema' or '/structure' sub-endpoint - just the app ID"
+  },
+
+  "LIST_APPLICATIONS": {
+    "endpoint": "/api/v1/applications/",
+    "method": "GET",
+    "description": "List all tables/applications in workspace",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "ACCOUNT-ID": "{workspace_id}"
+    },
+    "query_params": {
+      "solution": "Filter by solution ID"
+    },
+    "useful_for": "Table discovery and ID verification"
+  },
+
+  "CHANGE_FIELD": {
+    "endpoint": "/api/v1/applications/{appId}/change_field/",
+    "method": "PUT",
+    "description": "Modify field structure",
+    "status": "BROKEN",
+    "known_issue": "Returns 200 but doesn't actually update (confirmed 2025-06-06)",
+    "workaround": "Use SmartSuite UI for field modifications",
+    "critical_warning": "For status fields, use 'choices' not 'options' to preserve UUIDs"
+  },
+
+  "ADD_FIELD": {
+    "endpoint": "/api/v1/applications/{appId}/add_field/",
+    "method": "POST",
+    "description": "Add new field to table",
+    "status": "UNTESTED",
+    "body_structure": {
+      "slug": "Field identifier (auto-generated if not provided)",
+      "label": "Display name",
+      "field_type": "Type identifier",
+      "params": "Field-specific parameters"
+    }
+  },
+
+  "COUNT_RECORDS": {
+    "endpoint": "/api/v1/applications/{appId}/records/list/",
+    "method": "POST",
+    "description": "Count records matching filter",
+    "body_structure": {
+      "count_only": true,
+      "filter": "object (optional conditions)"
+    },
+    "response": {
+      "count": "Total matching records"
+    },
+    "efficiency": "Returns count without record data"
+  },
+
+  "SEARCH_RECORDS": {
+    "endpoint": "/api/v1/applications/{appId}/records/search/",
+    "method": "POST",
+    "description": "Text search across records",
+    "body_structure": {
+      "query": "Search text",
+      "fields": "Array of field slugs to search (optional)"
+    },
+    "note": "Different from filter - uses text matching"
+  },
+
+  "WEBHOOKS": {
+    "create": "/api/v1/applications/{appId}/webhooks/",
+    "list": "/api/v1/applications/{appId}/webhooks/",
+    "delete": "/api/v1/applications/{appId}/webhooks/{webhookId}/",
+    "status": "AVAILABLE",
+    "note": "Not implemented in current MCP tools"
+  },
+
+  "AUTOMATIONS": {
+    "endpoint": "/api/v1/applications/{appId}/automations/",
+    "status": "AVAILABLE",
+    "note": "Complex setup - not in current implementation"
+  },
+
+  "FILES": {
+    "upload": "/api/v1/applications/{appId}/records/{recordId}/files/",
+    "method": "POST",
+    "content_type": "multipart/form-data",
+    "status": "AVAILABLE",
+    "note": "Requires different content handling"
+  },
+
+  "COMMENTS": {
+    "add": "/api/v1/applications/{appId}/records/{recordId}/comments/",
+    "list": "/api/v1/applications/{appId}/records/{recordId}/comments/",
+    "method": "POST/GET",
+    "status": "AVAILABLE"
+  },
+
+  "ACTIVITY_LOG": {
+    "endpoint": "/api/v1/applications/{appId}/records/{recordId}/activity/",
+    "method": "GET",
+    "description": "Get record change history",
+    "status": "AVAILABLE"
+  },
+
+  "SOLUTIONS": {
+    "list": "/api/v1/solutions/",
+    "get": "/api/v1/solutions/{solutionId}/",
+    "create": "/api/v1/solutions/",
+    "method": "GET/POST",
+    "description": "Manage solution containers",
+    "status": "AVAILABLE"
+  },
+
+  "MEMBERS": {
+    "list": "/api/v1/members/",
+    "invite": "/api/v1/members/invite/",
+    "method": "GET/POST",
+    "description": "Workspace member management",
+    "status": "AVAILABLE"
+  },
+
+  "RATE_LIMITS": {
+    "requests_per_second": 4,
+    "recommended_delay": 250,
+    "burst_limit": 10,
+    "429_backoff": 30000,
+    "retry_strategy": {
+      "max_retries": 3,
+      "backoff_multiplier": 2,
+      "max_delay": 60000
+    }
+  },
+
+  "RESPONSE_STRUCTURE": {
+    "list_response": {
+      "total": "Total records matching filter",
+      "offset": "Current pagination offset",
+      "limit": "Records per page",
+      "items": "Array of record objects"
+    },
+    "error_response": {
+      "error": "Error message",
+      "details": "Additional context (optional)",
+      "field_errors": "Field-specific errors (optional)"
+    }
+  }
+}
