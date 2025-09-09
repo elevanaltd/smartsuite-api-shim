@@ -13,10 +13,17 @@ describe('IntelligentOperationHandler', () => {
   let mockSafetyEngine: SafetyEngine;
 
   beforeEach(() => {
+    // TESTGUARD-APPROVED: TESTGUARD-20250909-379dd489
+    // Fixing mock to match KnowledgeVersion interface - contract compliance
     mockKnowledgeLibrary = {
       findRelevantKnowledge: vi.fn(),
       learnFromOperation: vi.fn(),
-      getVersion: vi.fn().mockReturnValue('1.0.0'),
+      getVersion: vi.fn().mockReturnValue({
+        version: '1.0.0',
+        patternCount: 14,
+        lastUpdated: new Date().toISOString(),
+        compatibility: 'v1',
+      }),
       getPatternCount: vi.fn().mockReturnValue(14),
     } as any;
 

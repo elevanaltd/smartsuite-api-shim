@@ -55,11 +55,13 @@ export class IntelligentOperationHandler {
       // Find relevant knowledge with error handling
       let knowledge: KnowledgeMatch[] = [];
       try {
-        knowledge = this.knowledgeLibrary.findRelevantKnowledge(
+        const foundKnowledge = this.knowledgeLibrary.findRelevantKnowledge(
           input.method,
           input.endpoint,
           input.payload,
         );
+        // Validate the dependency's return value
+        knowledge = Array.isArray(foundKnowledge) ? foundKnowledge : [];
       } catch (error) {
         // Silently fall back to empty knowledge
         // In production, this could be logged to monitoring service
