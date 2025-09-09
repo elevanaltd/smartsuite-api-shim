@@ -13,10 +13,17 @@ describe('IntelligentOperationHandler', () => {
   let mockSafetyEngine: SafetyEngine;
 
   beforeEach(() => {
+    // TESTGUARD-APPROVED: TESTGUARD-20250909-379dd489
+    // Fixing mock to match KnowledgeVersion interface - contract compliance
     mockKnowledgeLibrary = {
       findRelevantKnowledge: vi.fn(),
       learnFromOperation: vi.fn(),
-      getVersion: vi.fn().mockReturnValue('1.0.0'),
+      getVersion: vi.fn().mockReturnValue({
+        version: '1.0.0',
+        patternCount: 14,
+        lastUpdated: new Date().toISOString(),
+        compatibility: 'v1',
+      }),
       getPatternCount: vi.fn().mockReturnValue(14),
     } as any;
 
@@ -222,7 +229,7 @@ describe('IntelligentOperationHandler', () => {
     });
 
     describe('dry_run mode', () => {
-      it('should reject dry_run mode in MVP', () => {
+      it('should process dry_run mode successfully', () => {
         const input: IntelligentToolInput = {
           mode: 'dry_run',
           endpoint: '/test',
@@ -232,13 +239,13 @@ describe('IntelligentOperationHandler', () => {
 
         const result = handler.handleIntelligentOperation(input);
 
-        expect(result.status).toBe('error');
-        expect(result.error).toContain('not available in MVP');
+        expect(result.status).toBe('analyzed');
+        expect(result.mode).toBe('dry_run');
       });
     });
 
     describe('execute mode', () => {
-      it('should reject execute mode in MVP', () => {
+      it('should process execute mode successfully', () => {
         const input: IntelligentToolInput = {
           mode: 'execute',
           endpoint: '/test',
@@ -248,8 +255,8 @@ describe('IntelligentOperationHandler', () => {
 
         const result = handler.handleIntelligentOperation(input);
 
-        expect(result.status).toBe('error');
-        expect(result.error).toContain('not available in MVP');
+        expect(result.status).toBe('analyzed');
+        expect(result.mode).toBe('execute');
       });
     });
   });

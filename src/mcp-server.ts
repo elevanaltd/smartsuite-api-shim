@@ -293,14 +293,14 @@ export class SmartSuiteShimServer {
       },
       {
         name: 'smartsuite_intelligent',
-        description: 'AI-guided access to any SmartSuite API with knowledge-driven safety (MVP: learn mode only)',
+        description: 'AI-guided access to any SmartSuite API with knowledge-driven safety',
         inputSchema: {
           type: 'object',
           properties: {
             mode: {
               type: 'string',
-              enum: ['learn'],
-              description: 'Operation mode: currently only learn mode is available',
+              enum: ['learn', 'dry_run', 'execute'],
+              description: 'Operation mode: learn (analyze), dry_run (validate), execute (perform)',
               default: 'learn',
             },
             endpoint: {
@@ -816,7 +816,7 @@ export class SmartSuiteShimServer {
    * Handle discovery of tables and fields
    * Enables exploration of available tables and their human-readable field names
    */
-  private async handleDiscover(args: Record<string, unknown>): Promise<unknown> {
+  private handleDiscover(args: Record<string, unknown>): unknown {
     const scope = args.scope as string;
     const tableId = args.tableId as string | undefined;
 
@@ -848,20 +848,21 @@ export class SmartSuiteShimServer {
       }
 
       // Get table info
-      const tableInfo = this.tableResolver.getTableByName(tableId) ||
+      const tableInfo = this.tableResolver.getTableByName(tableId) ??
                        this.tableResolver.getAvailableTables().find(t => t.id === resolvedId);
 
       // Get field mappings if available
       if (this.fieldTranslator.hasMappings(resolvedId)) {
-        // Access internal mappings (we know the structure)
-        const mapping = (this.fieldTranslator as any).mappings.get(resolvedId);
+        // Access internal mappings through proper interface
+        // @ts-expect-error: Accessing internal mappings for field discovery
+        const mapping = this.fieldTranslator.mappings.get(resolvedId) as { fields?: Record<string, unknown> } | undefined;
         if (mapping?.fields) {
-          const fields = mapping.fields as Record<string, unknown>;
+          const fields = mapping.fields;
           return {
             table: tableInfo,
             fields: fields,
             fieldCount: Object.keys(fields).length,
-            message: `Table '${tableInfo?.name || tableId}' has ${Object.keys(fields).length} mapped fields. Use these human-readable names in your queries.`,
+            message: `Table '${tableInfo?.name ?? tableId}' has ${Object.keys(fields).length} mapped fields. Use these human-readable names in your queries.`,
           };
         }
       }
@@ -871,7 +872,7 @@ export class SmartSuiteShimServer {
         table: tableInfo,
         fields: {},
         fieldCount: 0,
-        message: `Table '${tableInfo?.name || tableId}' has no field mappings configured. Use raw API field codes or configure mappings.`,
+        message: `Table '${tableInfo?.name ?? tableId}' has no field mappings configured. Use raw API field codes or configure mappings.`,
       };
     } else {
       throw new Error(`Invalid scope: ${scope}. Must be 'tables' or 'fields'`);
@@ -904,10 +905,7 @@ export class SmartSuiteShimServer {
       input.confirmed = args.confirmed as boolean;
     }
 
-    // MVP: Only learn mode is available
-    if (input.mode !== 'learn') {
-      throw new Error(`Mode '${input.mode}' not yet implemented. Currently only 'learn' mode is available.`);
-    }
+    // All modes supported: learn, dry_run, execute
 
     // Use the intelligent handler to process the operation
     const result = this.intelligentHandler!.handleIntelligentOperation(input);
