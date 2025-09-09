@@ -96,9 +96,13 @@ export class SmartSuiteShimServer {
   /**
    * Initialize the intelligent handler lazily
    */
-  private initializeIntelligentHandler(): void {
+  private async initializeIntelligentHandler(): Promise<void> {
     if (!this.intelligentHandler) {
       const knowledgeLibrary = new KnowledgeLibrary();
+      // Load knowledge from research files
+      const knowledgePath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'knowledge');
+      await knowledgeLibrary.loadFromResearch(knowledgePath);
+      
       const safetyEngine = new SafetyEngine(knowledgeLibrary);
       this.intelligentHandler = new IntelligentOperationHandler(knowledgeLibrary, safetyEngine);
     }
@@ -881,7 +885,7 @@ export class SmartSuiteShimServer {
    */
   private async handleIntelligent(args: Record<string, unknown>): Promise<unknown> {
     // Initialize handler if needed
-    this.initializeIntelligentHandler();
+    await this.initializeIntelligentHandler();
     // Validate and transform input
     const input: IntelligentToolInput = {
       mode: (args.mode as 'learn' | 'dry_run' | 'execute') ?? 'learn',
