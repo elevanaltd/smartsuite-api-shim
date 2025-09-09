@@ -20,7 +20,7 @@ export class SafetyEngine {
   private criticalProtocols = {
     UUID_PROTECTION: {
       pattern: /singleselectfield.*options/,
-      validate: (operation: IntelligentToolInput) => {
+      validate: (operation: IntelligentToolInput): ValidationResult | null => {
         if (operation.payload?.field_type === 'singleselectfield' && operation.payload?.options) {
           return {
             passed: false,
@@ -34,7 +34,7 @@ export class SafetyEngine {
     },
     BULK_OPERATION_LIMITS: {
       pattern: /bulk/,
-      validate: (operation: IntelligentToolInput) => {
+      validate: (operation: IntelligentToolInput): ValidationResult | null => {
         if (operation.payload?.records &&
             Array.isArray(operation.payload.records) &&
             operation.payload.records.length > 25) {
@@ -50,7 +50,7 @@ export class SafetyEngine {
     },
     ENDPOINT_VALIDATION: {
       pattern: /records$/,
-      validate: (operation: IntelligentToolInput) => {
+      validate: (operation: IntelligentToolInput): ValidationResult | null => {
         if (operation.method === 'GET' && operation.endpoint.endsWith('/records')) {
           return {
             passed: false,

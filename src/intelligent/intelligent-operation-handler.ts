@@ -38,7 +38,7 @@ export class IntelligentOperationHandler {
   /**
    * Main entry point for intelligent operations
    */
-  async handleIntelligentOperation(input: IntelligentToolInput): Promise<OperationResult> {
+  handleIntelligentOperation(input: IntelligentToolInput): OperationResult {
     const startTime = performance.now();
 
     try {
@@ -224,7 +224,7 @@ export class IntelligentOperationHandler {
 
     // Add failure mode information
     for (const entry of knowledge) {
-      for (const failure of entry.failureModes || []) {
+      for (const failure of entry.failureModes ?? []) {
         guidanceLines.push(`\n⚠️  ${failure.description}`);
         guidanceLines.push(`   Cause: ${failure.cause}`);
         guidanceLines.push(`   Prevention: ${failure.prevention}`);
@@ -309,7 +309,7 @@ export class IntelligentOperationHandler {
    */
   private hasUUIDCorruptionRisk(input: IntelligentToolInput, knowledge: KnowledgeMatch[]): boolean {
     return knowledge.some(k =>
-      (k.failureModes || []).some((f: FailureMode) =>
+      (k.failureModes ?? []).some((f: FailureMode) =>
         f.description.toLowerCase().includes('uuid') &&
         input.payload?.[SAFETY_CONSTANTS.UUID_CORRUPTION.WRONG_PARAM] !== undefined,
       ),
@@ -321,7 +321,7 @@ export class IntelligentOperationHandler {
    */
   private hasWrongMethodIssue(_input: IntelligentToolInput, knowledge: KnowledgeMatch[]): boolean {
     return knowledge.some(k =>
-      (k.failureModes || []).some((f: FailureMode) =>
+      (k.failureModes ?? []).some((f: FailureMode) =>
         f.description.toLowerCase().includes('wrong') &&
         f.description.toLowerCase().includes('method'),
       ),
@@ -334,7 +334,7 @@ export class IntelligentOperationHandler {
   private hasBulkLimitIssue(input: IntelligentToolInput, knowledge: KnowledgeMatch[]): boolean {
     const recordCount = this.countRecords(input.payload);
     return knowledge.some(k =>
-      (k.failureModes || []).some((f: FailureMode) =>
+      (k.failureModes ?? []).some((f: FailureMode) =>
         f.description.toLowerCase().includes('bulk') &&
         recordCount > SAFETY_CONSTANTS.BULK_OPERATIONS.MAX_RECORDS,
       ),

@@ -94,11 +94,17 @@ export class KnowledgeLibrary {
       const files = await fs.readdir(researchPath);
       const jsonFiles = files.filter(f => f.endsWith('.json'));
 
-      for (const file of jsonFiles) {
+      // Read all files in parallel to avoid await in loop
+      const fileReadPromises = jsonFiles.map(async (file) => {
         const filePath = path.join(researchPath, file);
         const content = await fs.readFile(filePath, 'utf-8');
-        const data = JSON.parse(content);
+        return JSON.parse(content) as unknown;
+      });
 
+      const allData = await Promise.all(fileReadPromises);
+
+      // Process all data after reading
+      for (const data of allData) {
         // Process different knowledge types with type safety
         const knowledgeData = data as {
           failureModes?: unknown[];
@@ -151,9 +157,9 @@ export class KnowledgeLibrary {
       };
 
       const failureMode: FailureMode = {
-        description: mode.description || '',
-        cause: mode.cause || '',
-        prevention: mode.prevention || mode.solution || '',
+        description: mode.description ?? '',
+        cause: mode.cause ?? '',
+        prevention: mode.prevention ?? mode.solution ?? '',
       };
 
       // Only add optional properties if they have values
@@ -168,11 +174,11 @@ export class KnowledgeLibrary {
       }
 
       const entry: KnowledgeEntry = {
-        pattern: new RegExp(mode.pattern || mode.endpoint || '.*'),
+        pattern: new RegExp(mode.pattern ?? mode.endpoint ?? '.*'),
         safetyLevel: mode.severity === 'critical' ? 'RED' : mode.severity === 'warning' ? 'YELLOW' : 'GREEN',
         failureModes: [failureMode],
       };
-      this.addEntry(mode.method || 'ANY', entry);
+      this.addEntry(mode.method ?? 'ANY', entry);
     }
   }
 
@@ -192,8 +198,8 @@ export class KnowledgeLibrary {
       };
 
       const entry: KnowledgeEntry = {
-        pattern: new RegExp(pattern.endpoint || pattern.pattern || '.*'),
-        safetyLevel: pattern.safetyLevel || 'GREEN',
+        pattern: new RegExp(pattern.endpoint ?? pattern.pattern ?? '.*'),
+        safetyLevel: pattern.safetyLevel ?? 'GREEN',
       };
 
       // Only add validationRules if validations exist and are properly formed
@@ -212,7 +218,7 @@ export class KnowledgeLibrary {
           return rule;
         });
       }
-      this.addEntry(pattern.method || 'ANY', entry);
+      this.addEntry(pattern.method ?? 'ANY', entry);
     }
   }
 
@@ -230,8 +236,8 @@ export class KnowledgeLibrary {
       };
 
       const safetyProtocol: SafetyProtocol = {
-        pattern: new RegExp(protocol.pattern || '.*'),
-        level: protocol.level || 'YELLOW',
+        pattern: new RegExp(protocol.pattern ?? '.*'),
+        level: protocol.level ?? 'YELLOW',
       };
 
       // Only add optional properties if they have values
@@ -241,7 +247,7 @@ export class KnowledgeLibrary {
       if (protocol.template) {
         safetyProtocol.template = protocol.template;
       }
-      this.protocols.set(protocol.name || protocol.pattern || 'unknown', safetyProtocol);
+      this.protocols.set(protocol.name ?? protocol.pattern ?? 'unknown', safetyProtocol);
     }
   }
 
@@ -308,7 +314,7 @@ export class KnowledgeLibrary {
     const matches: KnowledgeMatch[] = [];
 
     // Check method-specific entries
-    const methodEntries = this.entries.get(method.toUpperCase()) || [];
+    const methodEntries = this.entries.get(method.toUpperCase()) ?? [];
     for (const entry of methodEntries) {
       if (entry.pattern.test(endpoint)) {
         // Check payload-specific conditions
@@ -346,7 +352,7 @@ export class KnowledgeLibrary {
     }
 
     // Check ANY method entries
-    const anyEntries = this.entries.get('ANY') || [];
+    const anyEntries = this.entries.get('ANY') ?? [];
     for (const entry of anyEntries) {
       if (entry.pattern.test(endpoint)) {
         matches.push({
@@ -418,8 +424,8 @@ export class KnowledgeLibrary {
       if (!outcome.success) {
         newEntry.failureModes = [{
           description: 'Learned failure pattern',
-          cause: outcome.error || 'Unknown error',
-          prevention: outcome.suggestion || 'Review operation parameters',
+          cause: outcome.error ?? 'Unknown error',
+          prevention: outcome.suggestion ?? 'Review operation parameters',
         }];
       }
 

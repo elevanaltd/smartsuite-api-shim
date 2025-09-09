@@ -14,7 +14,7 @@ export interface FailureMode {
 export interface SafetyProtocol {
   pattern: RegExp;
   level: SafetyLevel;
-  validation?: (payload: any) => void;
+  validation?: (payload: Record<string, unknown>) => void;
   template?: {
     correctPayload?: Record<string, unknown>;
     wrongPayload?: Record<string, unknown>;
@@ -26,7 +26,7 @@ export interface OperationExample {
   method: HttpMethod;
   endpoint: string;
   payload?: Record<string, unknown>;
-  response?: any;
+  response?: Record<string, unknown> | { error: string } | { success: boolean } | { recordCount: number };
   timestamp: string;
 }
 
@@ -94,7 +94,7 @@ export interface OperationResult {
   knowledge_applied: boolean;
   safety_assessment?: SafetyAssessment;
   guidance?: string;
-  suggested_correction?: any;
+  suggested_correction?: IntelligentToolInput & { note?: string };
   warnings?: string[];
   knowledge_matches?: number;
   performance_ms: number;
