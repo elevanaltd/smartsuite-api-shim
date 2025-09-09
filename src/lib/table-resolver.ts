@@ -4,7 +4,8 @@
 // Context7: consulted for fs-extra
 // Context7: consulted for yaml
 import * as path from 'path';
-import fs from 'fs-extra';
+
+import * as fs from 'fs-extra';
 import * as yaml from 'yaml';
 
 export interface TableInfo {
@@ -24,29 +25,33 @@ export class TableResolver {
   async loadFromYaml(yamlPath: string): Promise<void> {
     try {
       const yamlContent = await fs.readFile(yamlPath, 'utf8');
-      const mapping = yaml.parse(yamlContent) as any;
+      const mapping = yaml.parse(yamlContent) as Record<string, unknown>;
 
-      if (mapping.tableId && mapping.tableName) {
+      const tableId = mapping.tableId as string | undefined;
+      const tableName = mapping.tableName as string | undefined;
+      const solutionId = mapping.solutionId as string | undefined;
+
+      if (tableId && tableName) {
         const tableInfo: TableInfo = {
-          name: mapping.tableName,
-          id: mapping.tableId,
-          solutionId: mapping.solutionId
+          name: tableName,
+          id: tableId,
+          ...(solutionId && { solutionId }),
         };
 
-        const normalizedName = mapping.tableName.toLowerCase();
-        
+        const normalizedName = tableName.toLowerCase();
+
         // Check for name collision
         if (this.tableMap.has(normalizedName)) {
           const existing = this.tableMap.get(normalizedName)!;
           throw new Error(
-            `Configuration Error: Duplicate table name '${mapping.tableName}' detected. ` +
+            `Configuration Error: Duplicate table name '${tableName}' detected. ` +
             `Already loaded as '${existing.name}' with ID ${existing.id}. ` +
-            `Cannot load from ${yamlPath}`
+            `Cannot load from ${yamlPath}`,
           );
         }
 
         this.tableMap.set(normalizedName, tableInfo);
-        this.idToTable.set(mapping.tableId, tableInfo);
+        this.idToTable.set(tableId, tableInfo);
       }
     } catch (error) {
       const errorMessage = `Failed to load YAML from ${yamlPath}: ${error instanceof Error ? error.message : String(error)}`;

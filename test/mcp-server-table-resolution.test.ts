@@ -1,5 +1,6 @@
 // Context7: consulted for vitest
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
 
 describe('MCP Server Table Resolution', () => {
@@ -13,7 +14,7 @@ describe('MCP Server Table Resolution', () => {
     it('should resolve table names to IDs in smartsuite_query', async () => {
       // Mock the client to avoid actual API calls
       const mockClient = {
-        listRecords: vi.fn().mockResolvedValue({ items: [], total_count: 0 })
+        listRecords: vi.fn().mockResolvedValue({ items: [], total_count: 0 }),
       };
       server['client'] = mockClient as any;
       server['fieldMappingsInitialized'] = true;
@@ -22,19 +23,19 @@ describe('MCP Server Table Resolution', () => {
       await server.callTool('smartsuite_query', {
         operation: 'list',
         appId: 'projects', // Table name instead of hex ID
-        limit: 5
+        limit: 5,
       });
 
       // Should have called the client with resolved ID
       expect(mockClient.listRecords).toHaveBeenCalledWith(
         '68a8ff5237fde0bf797c05b3', // Expected resolved ID
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
     it('should work with existing hex IDs unchanged', async () => {
       const mockClient = {
-        listRecords: vi.fn().mockResolvedValue({ items: [], total_count: 0 })
+        listRecords: vi.fn().mockResolvedValue({ items: [], total_count: 0 }),
       };
       server['client'] = mockClient as any;
       server['fieldMappingsInitialized'] = true;
@@ -43,7 +44,7 @@ describe('MCP Server Table Resolution', () => {
       await server.callTool('smartsuite_query', {
         operation: 'list',
         appId: hexId,
-        limit: 5
+        limit: 5,
       });
 
       expect(mockClient.listRecords).toHaveBeenCalledWith(hexId, expect.any(Object));
@@ -56,7 +57,7 @@ describe('MCP Server Table Resolution', () => {
       await expect(server.callTool('smartsuite_query', {
         operation: 'list',
         appId: 'unknown_table',
-        limit: 5
+        limit: 5,
       })).rejects.toThrow(/Unknown table 'unknown_table'/);
     });
   });
@@ -64,9 +65,9 @@ describe('MCP Server Table Resolution', () => {
   describe('Discovery tool', () => {
     it('should list available tables', async () => {
       server['fieldMappingsInitialized'] = true;
-      
+
       const result = await server.callTool('smartsuite_discover', {
-        scope: 'tables'
+        scope: 'tables',
       });
 
       expect(result).toHaveProperty('tables');
@@ -79,10 +80,10 @@ describe('MCP Server Table Resolution', () => {
 
     it('should list fields for a specific table', async () => {
       server['fieldMappingsInitialized'] = true;
-      
+
       const result = await server.callTool('smartsuite_discover', {
         scope: 'fields',
-        tableId: 'projects' // Can use table name
+        tableId: 'projects', // Can use table name
       });
 
       expect(result).toHaveProperty('table');
@@ -94,10 +95,10 @@ describe('MCP Server Table Resolution', () => {
 
     it('should work with table ID for fields discovery', async () => {
       server['fieldMappingsInitialized'] = true;
-      
+
       const result = await server.callTool('smartsuite_discover', {
         scope: 'fields',
-        tableId: '68a8ff5237fde0bf797c05b3' // Using hex ID
+        tableId: '68a8ff5237fde0bf797c05b3', // Using hex ID
       });
 
       expect((result as any).table.name).toBe('projects');
@@ -108,7 +109,7 @@ describe('MCP Server Table Resolution', () => {
     it('should include smartsuite_discover tool', () => {
       const tools = server.getTools();
       const discoverTool = tools.find(t => t.name === 'smartsuite_discover');
-      
+
       expect(discoverTool).toBeDefined();
       expect(discoverTool?.description).toContain('Discover available tables');
       expect(discoverTool?.inputSchema.properties).toHaveProperty('scope');

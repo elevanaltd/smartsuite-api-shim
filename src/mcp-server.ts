@@ -17,9 +17,9 @@ import { fileURLToPath } from 'url';
 // Context7: consulted for zod
 import { z } from 'zod';
 
+import { FieldTranslator } from './lib/field-translator.js';
 import { MappingService } from './lib/mapping-service.js';
 import { TableResolver } from './lib/table-resolver.js';
-import { FieldTranslator } from './lib/field-translator.js';
 import {
   SmartSuiteClient,
   SmartSuiteClientConfig,
@@ -329,14 +329,14 @@ export class SmartSuiteShimServer {
 
       // eslint-disable-next-line no-console
       console.log('Loading field mappings from:', configPath);
-      
+
       // Use MappingService for centralized collision detection
       await this.mappingService.loadAllMappings(configPath);
-      
+
       // Get the configured translators
       this.tableResolver = this.mappingService.getTableResolver();
       this.fieldTranslator = this.mappingService.getFieldTranslator();
-      
+
       const stats = this.mappingService.getMappingStats();
       // eslint-disable-next-line no-console
       console.log(
@@ -438,10 +438,10 @@ export class SmartSuiteShimServer {
       const availableTables = this.tableResolver.getAllTableNames();
       throw new Error(
         `Unknown table '${appId}'. ` +
-        (suggestions.length > 0 
-          ? `Did you mean: ${suggestions.join(', ')}?` 
+        (suggestions.length > 0
+          ? `Did you mean: ${suggestions.join(', ')}?`
           : `Available tables: ${availableTables.join(', ')}`
-        )
+        ),
       );
     }
     appId = resolvedId;
@@ -573,10 +573,10 @@ export class SmartSuiteShimServer {
       const availableTables = this.tableResolver.getAllTableNames();
       throw new Error(
         `Unknown table '${appId}'. ` +
-        (suggestions.length > 0 
-          ? `Did you mean: ${suggestions.join(', ')}?` 
+        (suggestions.length > 0
+          ? `Did you mean: ${suggestions.join(', ')}?`
           : `Available tables: ${availableTables.join(', ')}`
-        )
+        ),
       );
     }
     appId = resolvedId;
@@ -680,7 +680,7 @@ export class SmartSuiteShimServer {
   private async handleSchema(args: Record<string, unknown>): Promise<unknown> {
     // ENHANCED scope: Schema operations with field mappings
     let appId = args.appId as string;
-    
+
     // TABLE RESOLUTION: Convert table name to ID if needed
     const resolvedId = this.tableResolver.resolveTableId(appId);
     if (!resolvedId) {
@@ -688,14 +688,14 @@ export class SmartSuiteShimServer {
       const availableTables = this.tableResolver.getAllTableNames();
       throw new Error(
         `Unknown table '${appId}'. ` +
-        (suggestions.length > 0 
-          ? `Did you mean: ${suggestions.join(', ')}?` 
+        (suggestions.length > 0
+          ? `Did you mean: ${suggestions.join(', ')}?`
           : `Available tables: ${availableTables.join(', ')}`
-        )
+        ),
       );
     }
     appId = resolvedId;
-    
+
     const schema = await this.client!.getSchema(appId);
 
     // FIELD MAPPING: Add human-readable field mappings to schema response
@@ -740,7 +740,7 @@ export class SmartSuiteShimServer {
       return {
         tables,
         count: tables.length,
-        message: `Found ${tables.length} available table${tables.length === 1 ? '' : 's'}. Use table names directly in queries.`
+        message: `Found ${tables.length} available table${tables.length === 1 ? '' : 's'}. Use table names directly in queries.`,
       };
     } else if (scope === 'fields') {
       if (!tableId) {
@@ -754,27 +754,28 @@ export class SmartSuiteShimServer {
         const availableTables = this.tableResolver.getAllTableNames();
         throw new Error(
           `Unknown table '${tableId}'. ` +
-          (suggestions.length > 0 
-            ? `Did you mean: ${suggestions.join(', ')}?` 
+          (suggestions.length > 0
+            ? `Did you mean: ${suggestions.join(', ')}?`
             : `Available tables: ${availableTables.join(', ')}`
-          )
+          ),
         );
       }
 
       // Get table info
-      const tableInfo = this.tableResolver.getTableByName(tableId) || 
+      const tableInfo = this.tableResolver.getTableByName(tableId) ||
                        this.tableResolver.getAvailableTables().find(t => t.id === resolvedId);
 
       // Get field mappings if available
       if (this.fieldTranslator.hasMappings(resolvedId)) {
         // Access internal mappings (we know the structure)
         const mapping = (this.fieldTranslator as any).mappings.get(resolvedId);
-        if (mapping && mapping.fields) {
+        if (mapping?.fields) {
+          const fields = mapping.fields as Record<string, unknown>;
           return {
             table: tableInfo,
-            fields: mapping.fields,
-            fieldCount: Object.keys(mapping.fields).length,
-            message: `Table '${tableInfo?.name || tableId}' has ${Object.keys(mapping.fields).length} mapped fields. Use these human-readable names in your queries.`
+            fields: fields,
+            fieldCount: Object.keys(fields).length,
+            message: `Table '${tableInfo?.name || tableId}' has ${Object.keys(fields).length} mapped fields. Use these human-readable names in your queries.`,
           };
         }
       }
@@ -784,7 +785,7 @@ export class SmartSuiteShimServer {
         table: tableInfo,
         fields: {},
         fieldCount: 0,
-        message: `Table '${tableInfo?.name || tableId}' has no field mappings configured. Use raw API field codes or configure mappings.`
+        message: `Table '${tableInfo?.name || tableId}' has no field mappings configured. Use raw API field codes or configure mappings.`,
       };
     } else {
       throw new Error(`Invalid scope: ${scope}. Must be 'tables' or 'fields'`);

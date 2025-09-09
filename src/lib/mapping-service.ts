@@ -2,13 +2,15 @@
 // TECHNICAL-ARCHITECT-APPROVED: TECHNICAL-ARCHITECT-20250909-9a54fa8a
 // Critical-Engineer: consulted for collision detection architecture
 // Context7: consulted for path
-// Context7: consulted for fs-extra
-// Context7: consulted for yaml
 import * as path from 'path';
-import fs from 'fs-extra';
+
+// Context7: consulted for fs-extra
+import * as fs from 'fs-extra';
+// Context7: consulted for yaml
 import * as yaml from 'yaml';
-import { TableResolver } from './table-resolver.js';
+
 import { FieldTranslator } from './field-translator.js';
+import { TableResolver } from './table-resolver.js';
 
 interface MappingStats {
   tablesLoaded: number;
@@ -50,42 +52,45 @@ export class MappingService {
       }
 
       // First pass: validate all files before loading
-      const validatedMappings: Array<{file: string, content: any}> = [];
+      const validatedMappings: Array<{file: string, content: Record<string, unknown>}> = [];
       const tableNames: Map<string, string> = new Map(); // normalized name -> file
-      
       for (const file of yamlFiles) {
         const filePath = path.join(mappingsDir, file);
         const yamlContent = await fs.readFile(filePath, 'utf8');
-        const mapping = yaml.parse(yamlContent) as any;
+        const mapping = yaml.parse(yamlContent) as Record<string, unknown>;
 
         // Validate table ID format
-        if (mapping.tableId && !/^[a-f0-9]{24}$/i.test(mapping.tableId)) {
-          throw new Error(`Invalid table ID '${mapping.tableId}' in ${file} - must be 24-char hex`);
+        const tableId = mapping.tableId as string | undefined;
+        const tableName = mapping.tableName as string | undefined;
+        const fields = mapping.fields as Record<string, unknown> | undefined;
+
+        if (tableId && !/^[a-f0-9]{24}$/i.test(tableId)) {
+          throw new Error(`Invalid table ID '${tableId}' in ${file} - must be 24-char hex`);
         }
 
         // Check for table name collision
-        if (mapping.tableName) {
-          const normalized = mapping.tableName.toLowerCase();
+        if (tableName) {
+          const normalized = tableName.toLowerCase();
           if (tableNames.has(normalized)) {
             throw new Error(
-              `Configuration Error: Duplicate table name '${mapping.tableName}' detected. ` +
+              `Configuration Error: Duplicate table name '${tableName}' detected. ` +
               `Already defined in ${tableNames.get(normalized)}. ` +
-              `Cannot load from ${file}`
+              `Cannot load from ${file}`,
             );
           }
           tableNames.set(normalized, file);
         }
 
         // Check for field name collisions within this table
-        if (mapping.fields) {
+        if (fields) {
           const fieldNames: Map<string, string> = new Map(); // normalized -> original
-          for (const fieldName of Object.keys(mapping.fields)) {
+          for (const fieldName of Object.keys(fields)) {
             const normalized = fieldName.toLowerCase();
             if (fieldNames.has(normalized)) {
               throw new Error(
                 `Configuration Error: Duplicate field name detected in ${file}. ` +
                 `Field '${fieldName}' collides with '${fieldNames.get(normalized)}' ` +
-                `(both normalize to '${normalized}')`
+                `(both normalize to '${normalized}')`,
               );
             }
             fieldNames.set(normalized, fieldName);
@@ -98,17 +103,20 @@ export class MappingService {
       // Second pass: load validated mappings
       for (const { file, content } of validatedMappings) {
         const filePath = path.join(mappingsDir, file);
-        
         // Load into TableResolver
-        if (content.tableId && content.tableName) {
+        const contentTableId = content.tableId as string | undefined;
+        const contentTableName = content.tableName as string | undefined;
+        const contentFields = content.fields as Record<string, unknown> | undefined;
+
+        if (contentTableId && contentTableName) {
           await this.tableResolver.loadFromYaml(filePath);
-          this.loadedTables.add(content.tableName);
+          this.loadedTables.add(contentTableName);
         }
 
         // Load into FieldTranslator
-        if (content.tableId && content.fields) {
+        if (contentTableId && contentFields) {
           await this.fieldTranslator.loadFromYaml(filePath);
-          this.fieldCount += Object.keys(content.fields).length;
+          this.fieldCount += Object.keys(contentFields).length;
         }
       }
 
@@ -145,7 +153,7 @@ export class MappingService {
     return {
       tablesLoaded: this.loadedTables.size,
       totalFields: this.fieldCount,
-      tables: Array.from(this.loadedTables)
+      tables: Array.from(this.loadedTables),
     };
   }
 }

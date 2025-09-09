@@ -32,12 +32,13 @@ describe('SmartSuiteShimServer', () => {
     const server = new SmartSuiteShimServer();
     const tools = await server.getTools();
 
-    expect(tools).toHaveLength(4);
+    expect(tools).toHaveLength(5);
     expect(tools.map((t: any) => t.name)).toEqual([
       'smartsuite_query',
       'smartsuite_record',
       'smartsuite_schema',
       'smartsuite_undo',
+      'smartsuite_discover',
     ]);
   });
 

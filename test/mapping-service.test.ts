@@ -4,10 +4,13 @@
 // Context7: consulted for path
 // Context7: consulted for fs-extra
 // Context7: consulted for os
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import path from 'path';
-import fs from 'fs-extra';
 import os from 'os';
+import path from 'path';
+
+import fs from 'fs-extra';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+
 import { MappingService } from '../src/lib/mapping-service.js';
 
 describe('MappingService', () => {
@@ -88,11 +91,11 @@ fields:
       // Test field translation
       const translated = fieldTranslator.humanToApi('abc123def456789012345678', {
         projectName: 'Test Project',
-        status: 'active'
+        status: 'active',
       });
       expect(translated).toEqual({
         proj_name_api: 'Test Project',
-        status_field: 'active'
+        status_field: 'active',
       });
     });
   });

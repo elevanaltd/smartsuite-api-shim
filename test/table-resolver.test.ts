@@ -1,8 +1,10 @@
 // Context7: consulted for vitest
 // Context7: consulted for path
-import { describe, it, expect, beforeEach } from 'vitest';
-import { TableResolver } from '../src/lib/table-resolver.js';
 import * as path from 'path';
+
+import { describe, it, expect, beforeEach } from 'vitest';
+
+import { TableResolver } from '../src/lib/table-resolver.js';
 
 describe('TableResolver', () => {
   let resolver: TableResolver;
@@ -15,7 +17,7 @@ describe('TableResolver', () => {
     it('should load table mappings from YAML files', async () => {
       const testMappingsDir = path.resolve(__dirname, '../config/field-mappings');
       await resolver.loadFromMappings(testMappingsDir);
-      
+
       // Should have loaded at least one mapping
       const tables = resolver.getAvailableTables();
       expect(tables.length).toBeGreaterThan(0);
@@ -24,10 +26,10 @@ describe('TableResolver', () => {
     it('should extract tableName and tableId from YAML files', async () => {
       const testMappingsDir = path.resolve(__dirname, '../config/field-mappings');
       await resolver.loadFromMappings(testMappingsDir);
-      
+
       const tables = resolver.getAvailableTables();
       const projectsTable = tables.find(t => t.name === 'projects');
-      
+
       expect(projectsTable).toBeDefined();
       expect(projectsTable?.id).toBe('68a8ff5237fde0bf797c05b3');
       expect(projectsTable?.solutionId).toBe('68b6d66b33630eb365ae54cb');
@@ -35,7 +37,7 @@ describe('TableResolver', () => {
 
     it('should throw error if directory does not exist', async () => {
       const invalidDir = '/nonexistent/directory';
-      
+
       await expect(resolver.loadFromMappings(invalidDir))
         .rejects
         .toThrow(/Failed to load mappings from directory/);
@@ -43,15 +45,15 @@ describe('TableResolver', () => {
 
     it('should throw error if no YAML files found', async () => {
       const emptyDir = path.resolve(__dirname, '../test/fixtures/empty');
-      
+
       // Create empty directory for test
       const fs = await import('fs-extra');
       await fs.ensureDir(emptyDir);
-      
+
       await expect(resolver.loadFromMappings(emptyDir))
         .rejects
         .toThrow(/No YAML mapping files found/);
-      
+
       // Clean up
       await fs.remove(emptyDir);
     });
@@ -78,7 +80,7 @@ describe('TableResolver', () => {
       const tableId1 = resolver.resolveTableId('projects');
       const tableId2 = resolver.resolveTableId('Projects');
       const tableId3 = resolver.resolveTableId('PROJECTS');
-      
+
       expect(tableId1).toBe(tableId2);
       expect(tableId2).toBe(tableId3);
     });
@@ -98,9 +100,9 @@ describe('TableResolver', () => {
     it('should return all loaded table mappings', async () => {
       const testMappingsDir = path.resolve(__dirname, '../config/field-mappings');
       await resolver.loadFromMappings(testMappingsDir);
-      
+
       const tables = resolver.getAvailableTables();
-      
+
       expect(tables.length).toBeGreaterThan(0);
       expect(tables[0]).toHaveProperty('name');
       expect(tables[0]).toHaveProperty('id');
@@ -116,7 +118,7 @@ describe('TableResolver', () => {
 
     it('should return table info for valid table name', () => {
       const table = resolver.getTableByName('projects');
-      
+
       expect(table).toBeDefined();
       expect(table?.name).toBe('projects');
       expect(table?.id).toBe('68a8ff5237fde0bf797c05b3');
@@ -131,7 +133,7 @@ describe('TableResolver', () => {
     it('should be case-insensitive', () => {
       const table1 = resolver.getTableByName('projects');
       const table2 = resolver.getTableByName('PROJECTS');
-      
+
       expect(table1).toEqual(table2);
     });
   });
@@ -144,19 +146,19 @@ describe('TableResolver', () => {
 
     it('should suggest similar table names for typos', () => {
       const suggestions = resolver.getSuggestionsForUnknown('project'); // Missing 's'
-      
+
       expect(suggestions).toContain('projects');
     });
 
     it('should return empty array for completely unrelated names', () => {
       const suggestions = resolver.getSuggestionsForUnknown('xyz123');
-      
+
       expect(suggestions).toEqual([]);
     });
 
     it('should handle partial matches', () => {
       const suggestions = resolver.getSuggestionsForUnknown('proj');
-      
+
       expect(suggestions).toContain('projects');
     });
   });
