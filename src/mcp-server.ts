@@ -292,14 +292,18 @@ export class SmartSuiteShimServer {
         path.resolve(process.cwd(), 'config/field-mappings'),
         // CI/Test: Use example files when actual mappings aren't available
         path.resolve(process.cwd(), 'config/field-mappings/examples'),
+        // CI with downloaded artifacts: build/config exists in cwd
+        path.resolve(process.cwd(), 'build/config/field-mappings'),
+        path.resolve(process.cwd(), 'build/config/field-mappings/examples'),
+        // CI environment with build artifacts - from build/src/mcp-server.js
+        path.resolve(__dirname, '../config/field-mappings'),
+        path.resolve(__dirname, '../config/field-mappings/examples'),
         // Absolute path for dev environment
         '/Volumes/HestAI-Projects/smartsuite-api-shim/dev/config/field-mappings',
         // Production: from build/src/mcp-server.js -> ../../config/field-mappings
         path.resolve(__dirname, '../../config/field-mappings'),
         // Production fallback: Use examples
         path.resolve(__dirname, '../../config/field-mappings/examples'),
-        // Alternative: from src/mcp-server.js -> ../config/field-mappings
-        path.resolve(__dirname, '../config/field-mappings'),
         // Alternative fallback: Use examples
         path.resolve(__dirname, '../config/field-mappings/examples'),
       ];
@@ -356,8 +360,22 @@ export class SmartSuiteShimServer {
       // This allows the server to work with raw API codes as fallback
       // eslint-disable-next-line no-console
       console.warn('Field mappings not available - server will use raw API field codes and hex IDs');
-      // Mark as initialized even though we failed, to avoid repeated attempts
-      this.fieldMappingsInitialized = true;
+      
+      // CRITICAL FIX: Don't replace working instances with empty ones on failure
+      // Keep the original empty instances but don't mark as initialized if we couldn't load anything
+      // This ensures TableResolver won't give misleading empty table lists
+      const stats = this.mappingService.getMappingStats();
+      if (stats.tablesLoaded === 0) {
+        // eslint-disable-next-line no-console
+        console.warn('No tables loaded - table resolution will not be available');
+        // Don't mark as initialized so we can retry later if needed
+        // But for now, keep the empty instances to avoid null errors
+      } else {
+        // Some tables were loaded before failure - use what we have
+        this.tableResolver = this.mappingService.getTableResolver();
+        this.fieldTranslator = this.mappingService.getFieldTranslator();
+        this.fieldMappingsInitialized = true;
+      }
     }
   }
 
