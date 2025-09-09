@@ -39,11 +39,14 @@ describe('index.ts entry point', () => {
     expect(consoleLogSpy).toHaveBeenCalledWith(
       expect.stringContaining('SmartSuite API Shim MCP Server starting'),
     );
-    expect(consoleLogSpy).toHaveBeenCalledWith('Server ready with 4 tools:', [
+    // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250909-a60a552f
+    // Updating test to include 5th tool (smartsuite_discover) to match implementation
+    expect(consoleLogSpy).toHaveBeenCalledWith('Server ready with 5 tools:', [
       'smartsuite_query',
       'smartsuite_record',
       'smartsuite_schema',
       'smartsuite_undo',
+      'smartsuite_discover',
     ]);
   });
 
