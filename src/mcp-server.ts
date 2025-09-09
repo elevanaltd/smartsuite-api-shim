@@ -360,7 +360,7 @@ export class SmartSuiteShimServer {
       // This allows the server to work with raw API codes as fallback
       // eslint-disable-next-line no-console
       console.warn('Field mappings not available - server will use raw API field codes and hex IDs');
-      
+
       // CRITICAL FIX: Don't replace working instances with empty ones on failure
       // Keep the original empty instances but don't mark as initialized if we couldn't load anything
       // This ensures TableResolver won't give misleading empty table lists

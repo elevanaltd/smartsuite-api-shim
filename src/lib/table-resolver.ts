@@ -71,9 +71,9 @@ export class TableResolver {
 
       const files = await fs.readdir(mappingsDir);
       // Exclude .example.yaml files to prevent duplicates in examples directory
-      const yamlFiles = files.filter((f) => 
-        (f.endsWith('.yaml') || f.endsWith('.yml')) && 
-        !f.includes('.example.')
+      const yamlFiles = files.filter((f) =>
+        (f.endsWith('.yaml') || f.endsWith('.yml')) &&
+        !f.includes('.example.'),
       );
 
       if (yamlFiles.length === 0) {

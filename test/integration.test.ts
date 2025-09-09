@@ -232,7 +232,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
           message: 'This table supports human-readable field names. Use field names from the mappings below instead of API codes.',
         },
       });
-      // Updated to use correct videos table ID from field-mappings  
+      // Updated to use correct videos table ID from field-mappings
       expect((server as any).client.getSchema).toHaveBeenCalledWith('68b2437a8f1755b055e0a124');
     });
 

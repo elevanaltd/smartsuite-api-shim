@@ -15,11 +15,11 @@ describe('TableResolver', () => {
     // Determine the appropriate directory based on environment
     const baseDir = path.resolve(__dirname, '../config/field-mappings');
     const examplesDir = path.resolve(__dirname, '../config/field-mappings/examples');
-    
+
     // Check if base directory has YAML files (excluding examples subdirectory)
     const fs = await import('fs-extra');
     let hasMainDirFiles = false;
-    
+
     try {
       if (await fs.pathExists(baseDir)) {
         const files = await fs.readdir(baseDir);
@@ -28,7 +28,7 @@ describe('TableResolver', () => {
     } catch {
       // Ignore errors
     }
-    
+
     // Use main directory if it has YAML files, otherwise use examples
     testMappingsDir = hasMainDirFiles ? baseDir : examplesDir;
   });
