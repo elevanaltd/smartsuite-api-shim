@@ -42,7 +42,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
     it('should require authentication before tool execution', async () => {
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'list', appId: 'test' }),
+        server.executeTool('smartsuite_query', { operation: 'list', appId: 'projects' }),
       ).rejects.toThrow('Authentication required');
     });
   });
@@ -67,7 +67,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       await expect(
         server.executeTool('smartsuite_record', {
           operation: 'create',
-          appId: 'test',
+          appId: 'projects',
           data: { name: 'test' },
         }),
       ).rejects.toThrow('Dry-run pattern required');
@@ -90,7 +90,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
       const result = (await server.executeTool('smartsuite_record', {
         operation: 'create',
-        appId: 'test',
+        appId: 'projects',
         data: { name: 'test' },
         dry_run: true,
       })) as { dry_run: boolean; message: string };
@@ -139,7 +139,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       await expect(
         server.executeTool('smartsuite_query', {
           operation: 'unknown_op',
-          appId: 'test',
+          appId: 'projects',
         }),
       ).rejects.toThrow('Unknown query operation: unknown_op');
     });
@@ -193,7 +193,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     it('should execute query operations correctly', async () => {
       const result = await server.executeTool('smartsuite_query', {
         operation: 'list',
-        appId: 'test-app',
+        appId: 'videos',
       });
 
       // After API change, MCP server returns paginated response format
@@ -203,13 +203,13 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         limit: 1,
         offset: 0,
       });
-      expect((server as any).client.listRecords).toHaveBeenCalledWith('test-app', {});
+      expect((server as any).client.listRecords).toHaveBeenCalledWith('68f89f5338fde3aaac63c7a5', {});
     });
 
     it('should execute count operations correctly', async () => {
       const result = await server.executeTool('smartsuite_query', {
         operation: 'count',
-        appId: 'test-app',
+        appId: 'videos',
       });
 
       expect(result).toEqual({ count: 1 });
@@ -217,17 +217,17 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
     it('should execute schema operations correctly', async () => {
       const result = await server.executeTool('smartsuite_schema', {
-        appId: 'test-app',
+        appId: 'videos',
       });
 
       expect(result).toEqual({
         fields: [],
         fieldMappings: {
-          hasCustomMappings: false,
-          message: 'This table uses raw API field codes. Custom field mappings not available.',
+          hasCustomMappings: true,
+          message: 'This table supports human-readable field names. Use field names from the mappings below instead of API codes.',
         },
       });
-      expect((server as any).client.getSchema).toHaveBeenCalledWith('test-app');
+      expect((server as any).client.getSchema).toHaveBeenCalledWith('68f89f5338fde3aaac63c7a5');
     });
 
     it('should handle undo operation placeholder', async () => {
@@ -241,7 +241,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     it('should have appropriate error messages for single-user context', async () => {
       // Not authenticated
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'list', appId: 'test' }),
+        server.executeTool('smartsuite_query', { operation: 'list', appId: 'projects' }),
       ).rejects.toThrow(/Authentication required.*authenticate\(\) first/);
 
       // Invalid operation
@@ -259,7 +259,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
 
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'invalid', appId: 'test' }),
+        server.executeTool('smartsuite_query', { operation: 'invalid', appId: 'projects' }),
       ).rejects.toThrow(/Unknown query operation: invalid/);
     });
 
@@ -282,7 +282,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       await expect(
         server.executeTool('smartsuite_record', {
           operation: 'bulk_update',
-          appId: 'test',
+          appId: 'projects',
           data: [],
           dry_run: true,
         }),
