@@ -152,6 +152,7 @@
     "name": "Query Records with Complex Filters",
     "description": "Retrieve specific records using field filters",
     "danger_level": "GREEN",
+    "CRITICAL_UPDATE": "Filter structure corrected - use 'fields' array and proper comparisons",
     "template": {
       "method": "POST",
       "endpoint": "/api/v1/applications/{tableId}/records/list/",
@@ -159,15 +160,15 @@
         "limit": 2,
         "filter": {
           "operator": "and",
-          "conditions": [
+          "fields": [
             {
               "field": "status",
-              "operator": "equals",
+              "comparison": "is",
               "value": "active"
             },
             {
               "field": "priority",
-              "operator": "in",
+              "comparison": "is_any_of",
               "value": ["high", "urgent"]
             }
           ]
@@ -180,13 +181,41 @@
         ]
       }
     },
-    "filter_operators": [
-      "equals", "not_equals",
-      "contains", "not_contains",
-      "greater_than", "less_than",
-      "is_empty", "is_not_empty",
-      "in", "not_in"
-    ]
+    "filter_comparison_operators": {
+      "text_fields": ["is", "is_not", "contains", "not_contains", "is_empty", "is_not_empty"],
+      "linked_records": ["has_any_of", "has_all_of", "has_none_of", "is_empty", "is_not_empty"],
+      "select_fields": ["is", "is_not", "is_any_of", "is_none_of"],
+      "number_fields": ["is", "is_not", "greater_than", "less_than", "between", "not_between"],
+      "CRITICAL": "Linked records MUST use has_any_of/has_all_of, NOT is/contains"
+    }
+  },
+
+  "CRITICAL_linked_record_filters": {
+    "name": "CRITICAL: Filter by Linked Records",
+    "description": "Correct way to filter records by linked record fields",
+    "danger_level": "RED if done wrong",
+    "WRONG_WAY": {
+      "filter": {
+        "operator": "and",
+        "fields": [{
+          "field": "projects_link",
+          "comparison": "is",
+          "value": ["project_id"]
+        }]
+      },
+      "ERROR": "Returns 0 results - 'is' doesn't work for linked records"
+    },
+    "CORRECT_WAY": {
+      "filter": {
+        "operator": "and",
+        "fields": [{
+          "field": "projects_link",
+          "comparison": "has_any_of",
+          "value": ["project_id"]
+        }]
+      },
+      "SUCCESS": "Returns all records linked to this project"
+    }
   },
 
   "create_linked_records": {
@@ -281,9 +310,12 @@
       "body": {
         "count_only": true,
         "filter": {
-          "field": "status",
-          "operator": "equals",
-          "value": "active"
+          "operator": "and",
+          "fields": [{
+            "field": "status",
+            "comparison": "is",
+            "value": "active"
+          }]
         }
       },
       "response": {

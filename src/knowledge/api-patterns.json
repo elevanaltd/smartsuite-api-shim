@@ -1,4 +1,27 @@
 {
+  "CRITICAL_FILTER_KNOWLEDGE": {
+    "LINKED_RECORD_FIELDS": {
+      "description": "CRITICAL: Linked record fields require special comparison operators",
+      "MUST_USE": ["has_any_of", "has_all_of", "has_none_of"],
+      "NEVER_USE": ["is", "contains", "equals"],
+      "example_correct": {
+        "field": "projects_link",
+        "comparison": "has_any_of",
+        "value": ["project_id"]
+      },
+      "common_fields": ["projects_link", "assigned_to", "batch_alloc", "parent_task", "linked_records"]
+    },
+    "FILTER_STRUCTURE": {
+      "CRITICAL": "Use 'fields' array inside filter, NOT 'conditions'",
+      "correct": {
+        "filter": {
+          "operator": "and",
+          "fields": [{"field": "x", "comparison": "y", "value": "z"}]
+        }
+      }
+    }
+  },
+  
   "LIST_RECORDS": {
     "endpoint": "/api/v1/applications/{appId}/records/list/",
     "method": "POST",
