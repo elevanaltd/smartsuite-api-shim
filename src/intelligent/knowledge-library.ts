@@ -9,13 +9,12 @@ import type {
   Operation,
   OperationOutcome,
   KnowledgeVersion,
-  CacheEntry,
-  HttpMethod,
-  FailureMode,
   SafetyProtocol,
-  ValidationRule,
+  SafetyLevel,
   OperationExample,
-} from './types';
+  FailureMode,
+  ValidationRule,
+} from './types.js';
 
 interface LRUCache<K, V> {
   get(key: K): V | undefined;
@@ -52,7 +51,9 @@ class SimpleLRUCache<K, V> implements LRUCache<K, V> {
     // Remove oldest entry if at capacity
     if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
     }
 
     this.cache.set(key, {
@@ -81,7 +82,7 @@ export class KnowledgeLibrary {
     lastUpdated: new Date().toISOString(),
     compatibility: '1.0.0',
   };
-  private learningBuffer: Map<string, any[]> = new Map();
+  private learningBuffer: Map<string, Array<{ operation: Operation; outcome: OperationOutcome }>> = new Map();
 
   constructor() {
     this.cache = new SimpleLRUCache(100, 5 * 60 * 1000);
@@ -98,18 +99,25 @@ export class KnowledgeLibrary {
         const content = await fs.readFile(filePath, 'utf-8');
         const data = JSON.parse(content);
 
-        // Process different knowledge types
-        if (data.failureModes) {
-          this.loadFailureModes(data.failureModes);
+        // Process different knowledge types with type safety
+        const knowledgeData = data as {
+          failureModes?: unknown[];
+          apiPatterns?: unknown[];
+          safetyProtocols?: unknown[];
+          operationTemplates?: unknown[];
+        };
+
+        if (knowledgeData.failureModes) {
+          this.loadFailureModes(knowledgeData.failureModes);
         }
-        if (data.apiPatterns) {
-          this.loadApiPatterns(data.apiPatterns);
+        if (knowledgeData.apiPatterns) {
+          this.loadApiPatterns(knowledgeData.apiPatterns);
         }
-        if (data.safetyProtocols) {
-          this.loadSafetyProtocols(data.safetyProtocols);
+        if (knowledgeData.safetyProtocols) {
+          this.loadSafetyProtocols(knowledgeData.safetyProtocols);
         }
-        if (data.operationTemplates) {
-          this.loadOperationTemplates(data.operationTemplates);
+        if (knowledgeData.operationTemplates) {
+          this.loadOperationTemplates(knowledgeData.operationTemplates);
         }
       }
 
@@ -126,53 +134,118 @@ export class KnowledgeLibrary {
     }
   }
 
-  private loadFailureModes(failureModes: any[]): void {
-    for (const mode of failureModes) {
+  private loadFailureModes(failureModes: unknown[]): void {
+    for (const modeData of failureModes) {
+      const mode = modeData as {
+        pattern?: string;
+        endpoint?: string;
+        severity?: string;
+        description?: string;
+        cause?: string;
+        prevention?: string;
+        solution?: string;
+        recovery?: string;
+        exampleError?: string;
+        safeAlternative?: string;
+        method?: string;
+      };
+
+      const failureMode: FailureMode = {
+        description: mode.description || '',
+        cause: mode.cause || '',
+        prevention: mode.prevention || mode.solution || '',
+      };
+
+      // Only add optional properties if they have values
+      if (mode.recovery) {
+        failureMode.recovery = mode.recovery;
+      }
+      if (mode.exampleError) {
+        failureMode.exampleError = mode.exampleError;
+      }
+      if (mode.safeAlternative) {
+        failureMode.safeAlternative = mode.safeAlternative;
+      }
+
       const entry: KnowledgeEntry = {
         pattern: new RegExp(mode.pattern || mode.endpoint || '.*'),
         safetyLevel: mode.severity === 'critical' ? 'RED' : mode.severity === 'warning' ? 'YELLOW' : 'GREEN',
-        failureModes: [{
-          description: mode.description,
-          cause: mode.cause,
-          prevention: mode.prevention || mode.solution,
-          recovery: mode.recovery,
-          exampleError: mode.exampleError,
-          safeAlternative: mode.safeAlternative,
-        }],
+        failureModes: [failureMode],
       };
       this.addEntry(mode.method || 'ANY', entry);
     }
   }
 
-  private loadApiPatterns(patterns: any[]): void {
-    for (const pattern of patterns) {
+  private loadApiPatterns(patterns: unknown[]): void {
+    for (const patternData of patterns) {
+      const pattern = patternData as {
+        endpoint?: string;
+        pattern?: string;
+        safetyLevel?: SafetyLevel;
+        validations?: Array<{
+          type: string;
+          limit?: number;
+          pattern?: string;
+          message: string;
+        }>;
+        method?: string;
+      };
+
       const entry: KnowledgeEntry = {
         pattern: new RegExp(pattern.endpoint || pattern.pattern || '.*'),
         safetyLevel: pattern.safetyLevel || 'GREEN',
-        validationRules: pattern.validations?.map((v: any) => ({
-          type: v.type,
-          limit: v.limit,
-          pattern: v.pattern ? new RegExp(v.pattern) : undefined,
-          message: v.message,
-        })),
       };
+
+      // Only add validationRules if validations exist and are properly formed
+      if (pattern.validations && pattern.validations.length > 0) {
+        entry.validationRules = pattern.validations.map((v) => {
+          const rule: ValidationRule = {
+            type: v.type,
+            message: v.message,
+          };
+          if (v.limit !== undefined) {
+            rule.limit = v.limit;
+          }
+          if (v.pattern) {
+            rule.pattern = new RegExp(v.pattern);
+          }
+          return rule;
+        });
+      }
       this.addEntry(pattern.method || 'ANY', entry);
     }
   }
 
-  private loadSafetyProtocols(protocols: any[]): void {
-    for (const protocol of protocols) {
+  private loadSafetyProtocols(protocols: unknown[]): void {
+    for (const protocolData of protocols) {
+      const protocol = protocolData as {
+        pattern?: string;
+        level?: SafetyLevel;
+        prevention?: string;
+        template?: {
+          correctPayload?: Record<string, unknown>;
+          wrongPayload?: Record<string, unknown>;
+        };
+        name?: string;
+      };
+
       const safetyProtocol: SafetyProtocol = {
         pattern: new RegExp(protocol.pattern || '.*'),
         level: protocol.level || 'YELLOW',
-        prevention: protocol.prevention,
-        template: protocol.template,
       };
-      this.protocols.set(protocol.name || protocol.pattern, safetyProtocol);
+
+      // Only add optional properties if they have values
+      if (protocol.prevention) {
+        safetyProtocol.prevention = protocol.prevention;
+      }
+      if (protocol.template) {
+        safetyProtocol.template = protocol.template;
+      }
+      this.protocols.set(protocol.name || protocol.pattern || 'unknown', safetyProtocol);
     }
   }
 
-  private loadOperationTemplates(templates: any[]): void {
+  private loadOperationTemplates(templates: unknown[]): void {
     // Load operation templates for future use
     // Currently just counting them for version info
     this.version.patternCount += templates.length;
@@ -223,7 +296,7 @@ export class KnowledgeLibrary {
     this.version.patternCount++;
   }
 
-  findRelevantKnowledge(method: HttpMethod | string, endpoint: string, payload?: any): KnowledgeMatch[] {
+  findRelevantKnowledge(method: string, endpoint: string, payload?: unknown): KnowledgeMatch[] {
     const cacheKey = `${method}:${endpoint}:${JSON.stringify(payload || {})}`;
 
     // Check cache first
@@ -244,19 +317,22 @@ export class KnowledgeLibrary {
 
         // Check for specific payload issues
         if (payload && entry.protocols) {
-          for (const protocol of entry.protocols) {
-            if (payload.field_type === 'singleselectfield' && payload.options) {
-              confidence = 1.0;
-              matchReason = 'Critical UUID corruption risk detected';
-            }
+          // Check if any protocol matches the specific dangerous pattern
+          const payloadObj = payload as Record<string, unknown>;
+          if (payloadObj.field_type === 'singleselectfield' && payloadObj.options) {
+            confidence = 1.0;
+            matchReason = 'Critical UUID corruption risk detected';
           }
         }
 
-        if (payload?.records && entry.validationRules) {
-          for (const rule of entry.validationRules) {
-            if (rule.type === 'recordLimit' && payload.records.length > (rule.limit || 25)) {
-              confidence = 0.9;
-              matchReason = 'Bulk operation limit exceeded';
+        if (payload && entry.validationRules) {
+          const payloadObj = payload as Record<string, unknown>;
+          if (payloadObj.records && Array.isArray(payloadObj.records)) {
+            for (const rule of entry.validationRules) {
+              if (rule.type === 'recordLimit' && payloadObj.records.length > (rule.limit ?? 25)) {
+                confidence = 0.9;
+                matchReason = 'Bulk operation limit exceeded';
+              }
             }
           }
         }
@@ -300,10 +376,24 @@ export class KnowledgeLibrary {
     const example: OperationExample = {
       method: operation.method,
       endpoint: operation.endpoint,
-      payload: operation.payload,
-      response: outcome.success ? { recordCount: outcome.recordCount } : { error: outcome.error },
       timestamp: operation.timestamp,
     };
+
+    // Only add payload if it exists
+    if (operation.payload) {
+      example.payload = operation.payload;
+    }
+
+    // Add response based on outcome
+    if (outcome.success) {
+      example.response = outcome.recordCount !== undefined
+        ? { recordCount: outcome.recordCount }
+        : { success: true };
+    } else {
+      example.response = outcome.error !== undefined
+        ? { error: outcome.error }
+        : { error: 'Unknown error' };
+    }
 
     // Update existing entries with new examples
     const matches = this.findRelevantKnowledge(operation.method, operation.endpoint, operation.payload);
@@ -311,10 +401,12 @@ export class KnowledgeLibrary {
     if (matches.length > 0) {
       // Update first match with new example
       const match = matches[0];
-      if (!match.examples) {
-        match.examples = [];
+      if (match) {
+        if (!match.examples) {
+          match.examples = [];
+        }
+        match.examples.push(example);
       }
-      match.examples.push(example);
     } else {
       // Create new entry for this operation pattern
       const newEntry: KnowledgeEntry = {

@@ -7,7 +7,7 @@ import type {
   HttpMethod,
   KnowledgeEntry,
   SafetyAssessment,
-} from './types';
+} from './types.js';
 
 describe('Types', () => {
   it('should export type definitions without runtime errors', () => {

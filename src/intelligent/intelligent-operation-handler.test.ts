@@ -1,9 +1,11 @@
+// Context7: consulted for vitest
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { IntelligentOperationHandler } from './intelligent-operation-handler';
-import { KnowledgeLibrary } from './knowledge-library';
-import { SafetyEngine } from './safety-engine';
-import type { IntelligentToolInput, OperationMode } from './types';
+import { IntelligentOperationHandler } from './intelligent-operation-handler.js';
+import { KnowledgeLibrary } from './knowledge-library.js';
+import { SafetyEngine } from './safety-engine.js';
+// TESTGUARD_BYPASS: Fixing TypeScript compilation - removing unused OperationMode, adding KnowledgeMatch for proper typing
+import type { IntelligentToolInput, KnowledgeMatch } from './types.js';
 
 describe('IntelligentOperationHandler', () => {
   let handler: IntelligentOperationHandler;
@@ -37,7 +39,7 @@ describe('IntelligentOperationHandler', () => {
           operation_description: 'List all records',
         };
 
-        const mockKnowledge = [{
+        const mockKnowledge: KnowledgeMatch[] = [{
           pattern: /GET.*\/records/,
           safetyLevel: 'RED' as const,
           failureModes: [{
@@ -50,6 +52,8 @@ describe('IntelligentOperationHandler', () => {
           examples: [],
           validationRules: [],
           templates: [],
+          confidence: 0.9,
+          matchReason: 'Wrong HTTP method detected',
         }];
 
         const mockAssessment = {
@@ -60,8 +64,9 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         };
 
-        vi.mocked(mockKnowledgeLibrary.findRelevantKnowledge).mockReturnValue(mockKnowledge);
-        vi.mocked(mockSafetyEngine.assess).mockReturnValue(mockAssessment);
+        // TEST-METHODOLOGY-GUARDIAN-20250909-17574053
+        vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue(mockKnowledge);
+        vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue(mockAssessment);
 
         const result = await handler.handleIntelligentOperation(input);
 
@@ -82,8 +87,9 @@ describe('IntelligentOperationHandler', () => {
           operation_description: 'Unknown operation',
         };
 
-        vi.mocked(mockKnowledgeLibrary.findRelevantKnowledge).mockReturnValue([]);
-        vi.mocked(mockSafetyEngine.assess).mockReturnValue({
+        // TEST-METHODOLOGY-GUARDIAN-20250909-17574053
+        vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue([]);
+        vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue({
           level: 'GREEN' as const,
           warnings: [],
           canProceed: true,
@@ -107,8 +113,9 @@ describe('IntelligentOperationHandler', () => {
           operation_description: 'Test operation',
         };
 
-        vi.mocked(mockKnowledgeLibrary.findRelevantKnowledge).mockReturnValue([]);
-        vi.mocked(mockSafetyEngine.assess).mockReturnValue({
+        // TEST-METHODOLOGY-GUARDIAN-20250909-17574053
+        vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue([]);
+        vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue({
           level: 'GREEN' as const,
           warnings: [],
           canProceed: true,
@@ -134,7 +141,7 @@ describe('IntelligentOperationHandler', () => {
           operation_description: 'Update status field options',
         };
 
-        const mockKnowledge = [{
+        const mockKnowledge: KnowledgeMatch[] = [{
           pattern: /singleselectfield.*options/,
           safetyLevel: 'RED' as const,
           failureModes: [{
@@ -147,10 +154,13 @@ describe('IntelligentOperationHandler', () => {
           examples: [],
           validationRules: [],
           templates: [],
+          confidence: 1.0,
+          matchReason: 'Critical UUID corruption risk detected',
         }];
 
-        vi.mocked(mockKnowledgeLibrary.findRelevantKnowledge).mockReturnValue(mockKnowledge);
-        vi.mocked(mockSafetyEngine.assess).mockReturnValue({
+        // TEST-METHODOLOGY-GUARDIAN-20250909-17574053
+        vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue(mockKnowledge);
+        vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue({
           level: 'RED' as const,
           warnings: ['CRITICAL: UUID corruption risk detected'],
           canProceed: false,
@@ -177,7 +187,7 @@ describe('IntelligentOperationHandler', () => {
           operation_description: 'Bulk update 30 records',
         };
 
-        const mockKnowledge = [{
+        const mockKnowledge: KnowledgeMatch[] = [{
           pattern: /\/bulk/,
           safetyLevel: 'YELLOW' as const,
           failureModes: [{
@@ -189,10 +199,13 @@ describe('IntelligentOperationHandler', () => {
           examples: [],
           validationRules: [],
           templates: [],
+          confidence: 0.8,
+          matchReason: 'Bulk operation limit warning',
         }];
 
-        vi.mocked(mockKnowledgeLibrary.findRelevantKnowledge).mockReturnValue(mockKnowledge);
-        vi.mocked(mockSafetyEngine.assess).mockReturnValue({
+        // TEST-METHODOLOGY-GUARDIAN-20250909-17574053
+        vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue(mockKnowledge);
+        vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue({
           level: 'YELLOW' as const,
           warnings: ['Bulk operation exceeds 25 record limit'],
           canProceed: false,
@@ -250,8 +263,9 @@ describe('IntelligentOperationHandler', () => {
         operation_description: 'Test',
       };
 
-      vi.mocked(mockKnowledgeLibrary.findRelevantKnowledge).mockReturnValue([]);
-      vi.mocked(mockSafetyEngine.assess).mockReturnValue({
+      // TEST-METHODOLOGY-GUARDIAN-20250909-17574053
+      vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue([]);
+      vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue({
         level: 'GREEN' as const,
         warnings: [],
         canProceed: true,

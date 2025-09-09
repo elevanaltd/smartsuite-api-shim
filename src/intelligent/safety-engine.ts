@@ -1,4 +1,4 @@
-import { KnowledgeLibrary } from './knowledge-library';
+import { KnowledgeLibrary } from './knowledge-library.js';
 import type {
   IntelligentToolInput,
   KnowledgeMatch,
@@ -6,7 +6,7 @@ import type {
   SafetyProtocol,
   SafetyLevel,
   Warning,
-} from './types';
+} from './types.js';
 
 export interface ValidationResult {
   passed: boolean;
@@ -16,8 +16,6 @@ export interface ValidationResult {
 }
 
 export class SafetyEngine {
-  private knowledgeLibrary: KnowledgeLibrary;
-
   // Critical protocols from EAV failure analysis
   private criticalProtocols = {
     UUID_PROTECTION: {
@@ -37,7 +35,9 @@ export class SafetyEngine {
     BULK_OPERATION_LIMITS: {
       pattern: /bulk/,
       validate: (operation: IntelligentToolInput) => {
-        if (operation.payload?.records && operation.payload.records.length > 25) {
+        if (operation.payload?.records &&
+            Array.isArray(operation.payload.records) &&
+            operation.payload.records.length > 25) {
           return {
             passed: false,
             protocol: 'BULK_OPERATION_LIMITS',
@@ -64,8 +64,8 @@ export class SafetyEngine {
     },
   };
 
-  constructor(knowledgeLibrary: KnowledgeLibrary) {
-    this.knowledgeLibrary = knowledgeLibrary;
+  constructor(_knowledgeLibrary: KnowledgeLibrary) {
+    // Knowledge library is passed in but not stored - methods receive knowledge matches directly
   }
 
   assess(operation: IntelligentToolInput, knowledge: KnowledgeMatch[]): SafetyAssessment {
@@ -157,7 +157,7 @@ export class SafetyEngine {
   validateCriticalProtocols(operation: IntelligentToolInput): ValidationResult[] {
     const results: ValidationResult[] = [];
 
-    for (const [name, protocol] of Object.entries(this.criticalProtocols)) {
+    for (const [, protocol] of Object.entries(this.criticalProtocols)) {
       const result = protocol.validate(operation);
       if (result) {
         results.push(result);

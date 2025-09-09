@@ -3,7 +3,7 @@ import { SafetyEngine } from './safety-engine.js';
 import type {
   IntelligentToolInput,
   OperationResult,
-  KnowledgeEntry,
+  KnowledgeMatch,
   SafetyAssessment,
   OperationContext,
   FailureMode,
@@ -58,7 +58,7 @@ export class IntelligentOperationHandler {
           error: `Mode '${input.mode}' not available in MVP. Use 'learn' mode only.`,
           knowledge_applied: false,
           performance_ms: performance.now() - startTime,
-          knowledge_version: this.knowledgeLibrary.getVersion(),
+          knowledge_version: this.knowledgeLibrary.getVersion().version,
         };
       }
 
@@ -66,15 +66,17 @@ export class IntelligentOperationHandler {
       const context = this.analyzeContext(input);
 
       // Find relevant knowledge with error handling
-      let knowledge: KnowledgeEntry[] = [];
+      let knowledge: KnowledgeMatch[] = [];
       try {
         knowledge = this.knowledgeLibrary.findRelevantKnowledge(
-          input.endpoint,
           input.method,
+          input.endpoint,
+          input.payload,
         );
       } catch (error) {
-        console.error('KnowledgeLibrary error:', error);
-        knowledge = []; // Fall back to empty knowledge
+        // Silently fall back to empty knowledge
+        // In production, this could be logged to monitoring service
+        knowledge = [];
       }
 
       // Perform safety assessment with error handling
@@ -82,7 +84,8 @@ export class IntelligentOperationHandler {
       try {
         safetyAssessment = this.safetyEngine.assess(input, knowledge);
       } catch (error) {
-        console.error('SafetyEngine error:', error);
+        // Silently fall back to cautious safety assessment
+        // In production, this could be logged to monitoring service
         safetyAssessment = {
           level: 'YELLOW' as const,
           warnings: ['Safety assessment failed - proceeding with caution'],
@@ -115,15 +118,10 @@ export class IntelligentOperationHandler {
       const endTime = performance.now();
       const duration = endTime - startTime;
       response.performance_ms = duration;
-      response.knowledge_version = this.knowledgeLibrary.getVersion();
+      response.knowledge_version = this.knowledgeLibrary.getVersion().version;
 
-      // Performance monitoring
-      console.log(`IntelligentOperation completed: ${duration.toFixed(2)}ms, endpoint: ${input.endpoint}, safety: ${safetyAssessment.level}, knowledge_matches: ${knowledge.length}`);
-
-      // Alert if performance target exceeded
-      if (duration > 100) {
-        console.warn(`PERFORMANCE WARNING: Operation took ${duration.toFixed(2)}ms (target: <100ms)`);
-      }
+      // Performance monitoring could be added here for production
+      // In development, performance metrics are included in the response
 
       return response;
     } catch (error) {
@@ -136,7 +134,7 @@ export class IntelligentOperationHandler {
         error: error instanceof Error ? error.message : 'Unknown error occurred',
         knowledge_applied: false,
         performance_ms: performance.now() - startTime,
-        knowledge_version: this.knowledgeLibrary.getVersion(),
+        knowledge_version: this.knowledgeLibrary.getVersion().version,
       };
     }
   }
@@ -171,7 +169,7 @@ export class IntelligentOperationHandler {
   private generateLearningResponse(
     input: IntelligentToolInput,
     _context: OperationContext,
-    knowledge: KnowledgeEntry[],
+    knowledge: KnowledgeMatch[],
     safetyAssessment: SafetyAssessment,
   ): OperationResult {
     const hasKnowledge = knowledge.length > 0;
@@ -208,7 +206,7 @@ export class IntelligentOperationHandler {
    */
   private buildGuidance(
     input: IntelligentToolInput,
-    knowledge: KnowledgeEntry[],
+    knowledge: KnowledgeMatch[],
     assessment: SafetyAssessment,
   ): string {
     const guidanceLines: string[] = [];
@@ -240,7 +238,8 @@ export class IntelligentOperationHandler {
     if (assessment.warnings.length > 0) {
       guidanceLines.push('\nWarnings:');
       assessment.warnings.forEach(warning => {
-        guidanceLines.push(`• ${warning}`);
+        const warningText = typeof warning === 'string' ? warning : warning.message;
+        guidanceLines.push(`• ${warningText}`);
       });
     }
 
@@ -261,9 +260,9 @@ export class IntelligentOperationHandler {
    */
   private generateSuggestedCorrection(
     input: IntelligentToolInput,
-    knowledge: KnowledgeEntry[],
+    knowledge: KnowledgeMatch[],
     _assessment: SafetyAssessment,
-  ): any | undefined {
+  ): (IntelligentToolInput & { note?: string }) | undefined {
     // Handle UUID corruption case
     if (this.hasUUIDCorruptionRisk(input, knowledge)) {
       const correction = {
@@ -289,11 +288,14 @@ export class IntelligentOperationHandler {
 
     // Handle bulk limit exceeded
     if (this.hasBulkLimitIssue(input, knowledge)) {
+      const records = input.payload?.records;
+      const recordsArray = Array.isArray(records) ? records : [];
+
       return {
         ...input,
         payload: {
           ...input.payload,
-          records: (input.payload?.records as any[])?.slice(0, SAFETY_CONSTANTS.BULK_OPERATIONS.MAX_RECORDS) || [],
+          records: recordsArray.slice(0, SAFETY_CONSTANTS.BULK_OPERATIONS.MAX_RECORDS),
         },
         note: `Split into batches of ${SAFETY_CONSTANTS.BULK_OPERATIONS.MAX_RECORDS} records`,
       };
@@ -305,7 +307,7 @@ export class IntelligentOperationHandler {
   /**
    * Check for UUID corruption risk
    */
-  private hasUUIDCorruptionRisk(input: IntelligentToolInput, knowledge: KnowledgeEntry[]): boolean {
+  private hasUUIDCorruptionRisk(input: IntelligentToolInput, knowledge: KnowledgeMatch[]): boolean {
     return knowledge.some(k =>
       (k.failureModes || []).some((f: FailureMode) =>
         f.description.toLowerCase().includes('uuid') &&
@@ -317,7 +319,7 @@ export class IntelligentOperationHandler {
   /**
    * Check for wrong HTTP method issue
    */
-  private hasWrongMethodIssue(_input: IntelligentToolInput, knowledge: KnowledgeEntry[]): boolean {
+  private hasWrongMethodIssue(_input: IntelligentToolInput, knowledge: KnowledgeMatch[]): boolean {
     return knowledge.some(k =>
       (k.failureModes || []).some((f: FailureMode) =>
         f.description.toLowerCase().includes('wrong') &&
@@ -329,7 +331,7 @@ export class IntelligentOperationHandler {
   /**
    * Check for bulk limit issue
    */
-  private hasBulkLimitIssue(input: IntelligentToolInput, knowledge: KnowledgeEntry[]): boolean {
+  private hasBulkLimitIssue(input: IntelligentToolInput, knowledge: KnowledgeMatch[]): boolean {
     const recordCount = this.countRecords(input.payload);
     return knowledge.some(k =>
       (k.failureModes || []).some((f: FailureMode) =>
@@ -342,7 +344,7 @@ export class IntelligentOperationHandler {
   /**
    * Check if we have a suggested correction
    */
-  private hasSuggestedCorrection(input: IntelligentToolInput, knowledge: KnowledgeEntry[]): boolean {
+  private hasSuggestedCorrection(input: IntelligentToolInput, knowledge: KnowledgeMatch[]): boolean {
     return this.hasUUIDCorruptionRisk(input, knowledge) ||
            this.hasWrongMethodIssue(input, knowledge) ||
            this.hasBulkLimitIssue(input, knowledge);

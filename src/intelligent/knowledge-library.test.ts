@@ -1,8 +1,8 @@
 // Context7: consulted for vitest
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import { KnowledgeLibrary } from './knowledge-library';
-import type { KnowledgeEntry, KnowledgeMatch, SafetyLevel } from './types';
+import { KnowledgeLibrary } from './knowledge-library.js';
+import type { HttpMethod } from './types.js';
 
 describe('KnowledgeLibrary', () => {
   let library: KnowledgeLibrary;
@@ -25,9 +25,13 @@ describe('KnowledgeLibrary', () => {
 
       const matches = library.findRelevantKnowledge('GET', '/records');
       expect(matches.length).toBeGreaterThan(0);
-      expect(matches[0].failureModes).toBeDefined();
-      expect(matches[0].failureModes?.[0]).toHaveProperty('description');
-      expect(matches[0].failureModes?.[0]).toHaveProperty('prevention');
+      const match = matches[0];
+      expect(match).toBeDefined();
+      if (match) {
+        expect(match.failureModes).toBeDefined();
+        expect(match.failureModes?.[0]).toHaveProperty('description');
+        expect(match.failureModes?.[0]).toHaveProperty('prevention');
+      }
     });
   });
 
@@ -41,9 +45,12 @@ describe('KnowledgeLibrary', () => {
 
       expect(matches.length).toBeGreaterThan(0);
       const match = matches[0];
-      expect(match.safetyLevel).toBe('RED');
-      expect(match.failureModes).toBeDefined();
-      expect(match.failureModes?.[0].prevention).toContain('POST');
+      expect(match).toBeDefined();
+      if (match) {
+        expect(match.safetyLevel).toBe('RED');
+        expect(match.failureModes).toBeDefined();
+        expect(match.failureModes?.[0]?.prevention).toContain('POST');
+      }
     });
 
     it('should find knowledge for UUID corruption in status fields', () => {
@@ -54,9 +61,12 @@ describe('KnowledgeLibrary', () => {
 
       expect(matches.length).toBeGreaterThan(0);
       const match = matches[0];
-      expect(match.safetyLevel).toBe('RED');
-      expect(match.protocols).toBeDefined();
-      expect(match.protocols?.[0].prevention).toContain('choices');
+      expect(match).toBeDefined();
+      if (match) {
+        expect(match.safetyLevel).toBe('RED');
+        expect(match.protocols).toBeDefined();
+        expect(match.protocols?.[0]?.prevention).toContain('choices');
+      }
     });
 
     it('should find knowledge for bulk operation limits', () => {
@@ -66,9 +76,12 @@ describe('KnowledgeLibrary', () => {
 
       expect(matches.length).toBeGreaterThan(0);
       const match = matches[0];
-      expect(match.safetyLevel).toBe('YELLOW');
-      expect(match.validationRules).toBeDefined();
-      expect(match.validationRules?.[0].limit).toBe(25);
+      expect(match).toBeDefined();
+      if (match) {
+        expect(match.safetyLevel).toBe('YELLOW');
+        expect(match.validationRules).toBeDefined();
+        expect(match.validationRules?.[0]?.limit).toBe(25);
+      }
     });
 
     it('should return empty array for unknown patterns', () => {
@@ -84,7 +97,7 @@ describe('KnowledgeLibrary', () => {
 
     it('should capture successful operation patterns', () => {
       const operation = {
-        method: 'POST',
+        method: 'POST' as HttpMethod,
         endpoint: '/applications/123/records/list/',
         payload: { filter: {} },
         timestamp: new Date().toISOString(),
@@ -100,12 +113,16 @@ describe('KnowledgeLibrary', () => {
 
       const matches = library.findRelevantKnowledge('POST', '/applications/123/records/list/');
       expect(matches.length).toBeGreaterThan(0);
-      expect(matches[0].examples).toBeDefined();
+      const match = matches[0];
+      expect(match).toBeDefined();
+      if (match) {
+        expect(match.examples).toBeDefined();
+      }
     });
 
     it('should learn from failure patterns', () => {
       const operation = {
-        method: 'GET',
+        method: 'GET' as HttpMethod,
         endpoint: '/applications/123/records',
         payload: {},
         timestamp: new Date().toISOString(),
@@ -120,8 +137,12 @@ describe('KnowledgeLibrary', () => {
       library.learnFromOperation(operation, outcome);
 
       const matches = library.findRelevantKnowledge('GET', '/applications/123/records');
-      expect(matches[0].failureModes).toBeDefined();
-      expect(matches[0].failureModes?.length).toBeGreaterThan(0);
+      const match = matches[0];
+      expect(match).toBeDefined();
+      if (match) {
+        expect(match.failureModes).toBeDefined();
+        expect(match.failureModes?.length).toBeGreaterThan(0);
+      }
     });
   });
 
@@ -154,7 +175,7 @@ describe('KnowledgeLibrary', () => {
     });
 
     it('should expire cache entries after 5 minutes', async () => {
-      const matches1 = library.findRelevantKnowledge('GET', '/test-ttl');
+      library.findRelevantKnowledge('GET', '/test-ttl');
 
       // Mock time advancement (would need time mocking library in real impl)
       // For now, just verify TTL property exists
@@ -174,7 +195,7 @@ describe('KnowledgeLibrary', () => {
       const initialVersion = library.getVersion();
 
       const operation = {
-        method: 'POST',
+        method: 'POST' as HttpMethod,
         endpoint: '/new-pattern',
         payload: {},
         timestamp: new Date().toISOString(),

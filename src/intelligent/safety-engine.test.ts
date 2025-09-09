@@ -1,14 +1,14 @@
 // Context7: consulted for vitest
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import { KnowledgeLibrary } from './knowledge-library';
-import { SafetyEngine } from './safety-engine';
+import { KnowledgeLibrary } from './knowledge-library.js';
+import { SafetyEngine } from './safety-engine.js';
 import type {
   IntelligentToolInput,
-  KnowledgeMatch,
+  Warning,
   SafetyAssessment,
-  SafetyProtocol,
-} from './types';
+  SafetyLevel,
+} from './types.js';
 
 describe('SafetyEngine', () => {
   let engine: SafetyEngine;
@@ -30,7 +30,7 @@ describe('SafetyEngine', () => {
           field_type: 'singleselectfield',
           options: ['Option1', 'Option2'], // This should trigger RED safety
         },
-        operationDescription: 'Update status field options',
+        operation_description: 'Update status field options',
       };
 
       const knowledge = knowledgeLibrary.findRelevantKnowledge(
@@ -42,8 +42,12 @@ describe('SafetyEngine', () => {
       const assessment = engine.assess(operation, knowledge);
 
       expect(assessment.level).toBe('RED');
+      expect(assessment.blockers).toBeDefined();
       expect(assessment.blockers).toHaveLength(1);
-      expect(assessment.blockers[0]).toContain('UUID');
+      if (assessment.blockers) {
+        expect(assessment.blockers[0]).toContain('UUID');
+      }
+      expect(assessment.recommendations).toBeDefined();
       expect(assessment.recommendations).toContain('Use "choices" parameter instead of "options"');
     });
 
@@ -55,7 +59,7 @@ describe('SafetyEngine', () => {
         payload: {
           records: new Array(30).fill({ name: 'Test' }),
         },
-        operationDescription: 'Bulk update 30 records',
+        operation_description: 'Bulk update 30 records',
       };
 
       const knowledge = knowledgeLibrary.findRelevantKnowledge(
@@ -68,7 +72,9 @@ describe('SafetyEngine', () => {
 
       expect(assessment.level).toBe('YELLOW');
       expect(assessment.warnings).toHaveLength(1);
-      expect(assessment.warnings[0].message).toContain('25 records');
+      const warning = assessment.warnings[0] as Warning;
+      expect(warning.message).toContain('25 records');
+      expect(assessment.recommendations).toBeDefined();
       expect(assessment.recommendations).toContain('Split into batches of 25 records or less');
     });
 
@@ -78,7 +84,7 @@ describe('SafetyEngine', () => {
         method: 'POST',
         endpoint: '/applications/123/records/list/',
         payload: { filter: {} },
-        operationDescription: 'List records with filter',
+        operation_description: 'List records with filter',
       };
 
       const knowledge = knowledgeLibrary.findRelevantKnowledge(
@@ -90,6 +96,7 @@ describe('SafetyEngine', () => {
       const assessment = engine.assess(operation, knowledge);
 
       expect(assessment.level).toBe('GREEN');
+      expect(assessment.blockers).toBeDefined();
       expect(assessment.blockers).toHaveLength(0);
       expect(assessment.warnings).toHaveLength(0);
       expect(assessment.score).toBeGreaterThan(80);
@@ -104,7 +111,7 @@ describe('SafetyEngine', () => {
           field_type: 'singleselectfield',
           options: ['Option1'],
         },
-        operationDescription: 'Update field',
+        operation_description: 'Update field',
         confirmed: false,
       };
 
@@ -117,6 +124,7 @@ describe('SafetyEngine', () => {
       const assessment = engine.assess(operation, knowledge);
 
       expect(assessment.level).toBe('RED');
+      expect(assessment.blockers).toBeDefined();
       expect(assessment.blockers).toContain('RED level operation requires confirmation');
     });
 
@@ -129,7 +137,7 @@ describe('SafetyEngine', () => {
           field_type: 'singleselectfield',
           options: ['Option1'],
         },
-        operationDescription: 'Update field',
+        operation_description: 'Update field',
         confirmed: true,
       };
 
@@ -142,8 +150,10 @@ describe('SafetyEngine', () => {
       const assessment = engine.assess(operation, knowledge);
 
       expect(assessment.level).toBe('RED');
+      expect(assessment.blockers).toBeDefined();
       expect(assessment.blockers).not.toContain('RED level operation requires confirmation');
-      expect(assessment.warnings[0].level).toBe('CRITICAL');
+      const warning = assessment.warnings[0] as Warning;
+      expect(warning.level).toBe('CRITICAL');
     });
   });
 
@@ -157,15 +167,19 @@ describe('SafetyEngine', () => {
           field_type: 'singleselectfield',
           options: ['test'],
         },
-        operationDescription: 'Test',
+        operation_description: 'Test',
       };
 
       const validations = engine.validateCriticalProtocols(operation);
 
       expect(validations).toHaveLength(1);
-      expect(validations[0].passed).toBe(false);
-      expect(validations[0].protocol).toBe('UUID_PROTECTION');
-      expect(validations[0].message).toContain('UUID corruption risk');
+      const validation = validations[0];
+      expect(validation).toBeDefined();
+      if (validation) {
+        expect(validation.passed).toBe(false);
+        expect(validation.protocol).toBe('UUID_PROTECTION');
+        expect(validation.message).toContain('UUID corruption risk');
+      }
     });
 
     it('should validate bulk operation limits', () => {
@@ -176,15 +190,19 @@ describe('SafetyEngine', () => {
         payload: {
           records: new Array(50).fill({}),
         },
-        operationDescription: 'Test',
+        operation_description: 'Test',
       };
 
       const validations = engine.validateCriticalProtocols(operation);
 
       expect(validations).toHaveLength(1);
-      expect(validations[0].passed).toBe(false);
-      expect(validations[0].protocol).toBe('BULK_OPERATION_LIMITS');
-      expect(validations[0].message).toContain('exceeds limit of 25');
+      const validation = validations[0];
+      expect(validation).toBeDefined();
+      if (validation) {
+        expect(validation.passed).toBe(false);
+        expect(validation.protocol).toBe('BULK_OPERATION_LIMITS');
+        expect(validation.message).toContain('exceeds limit of 25');
+      }
     });
 
     it('should validate endpoint correctness', () => {
@@ -192,22 +210,26 @@ describe('SafetyEngine', () => {
         mode: 'learn',
         method: 'GET',
         endpoint: '/applications/123/records',
-        operationDescription: 'Test',
+        operation_description: 'Test',
       };
 
       const validations = engine.validateCriticalProtocols(operation);
 
       expect(validations).toHaveLength(1);
-      expect(validations[0].passed).toBe(false);
-      expect(validations[0].protocol).toBe('ENDPOINT_VALIDATION');
-      expect(validations[0].message).toContain('Wrong HTTP method');
+      const validation = validations[0];
+      expect(validation).toBeDefined();
+      if (validation) {
+        expect(validation.passed).toBe(false);
+        expect(validation.protocol).toBe('ENDPOINT_VALIDATION');
+        expect(validation.message).toContain('Wrong HTTP method');
+      }
     });
   });
 
   describe('generateWarnings', () => {
     it('should generate critical warnings for RED assessments', () => {
       const assessment: SafetyAssessment = {
-        level: 'RED',
+        level: 'RED' as SafetyLevel,
         score: 10,
         protocols: [],
         warnings: [],
@@ -218,13 +240,17 @@ describe('SafetyEngine', () => {
       const warnings = engine.generateWarnings(assessment);
 
       expect(warnings).toHaveLength(1);
-      expect(warnings[0].level).toBe('CRITICAL');
-      expect(warnings[0].message).toContain('HIGH RISK');
+      const warning = warnings[0];
+      expect(warning).toBeDefined();
+      if (warning) {
+        expect(warning.level).toBe('CRITICAL');
+        expect(warning.message).toContain('HIGH RISK');
+      }
     });
 
     it('should generate warnings for YELLOW assessments', () => {
       const assessment: SafetyAssessment = {
-        level: 'YELLOW',
+        level: 'YELLOW' as SafetyLevel,
         score: 50,
         protocols: [],
         warnings: [],
@@ -235,13 +261,17 @@ describe('SafetyEngine', () => {
       const warnings = engine.generateWarnings(assessment);
 
       expect(warnings).toHaveLength(1);
-      expect(warnings[0].level).toBe('WARNING');
-      expect(warnings[0].message).toContain('Moderate risk');
+      const warning = warnings[0];
+      expect(warning).toBeDefined();
+      if (warning) {
+        expect(warning.level).toBe('WARNING');
+        expect(warning.message).toContain('Moderate risk');
+      }
     });
 
     it('should generate info for GREEN assessments', () => {
       const assessment: SafetyAssessment = {
-        level: 'GREEN',
+        level: 'GREEN' as SafetyLevel,
         score: 90,
         protocols: [],
         warnings: [],
@@ -252,8 +282,12 @@ describe('SafetyEngine', () => {
       const warnings = engine.generateWarnings(assessment);
 
       expect(warnings).toHaveLength(1);
-      expect(warnings[0].level).toBe('INFO');
-      expect(warnings[0].message).toContain('Safe operation');
+      const warning = warnings[0];
+      expect(warning).toBeDefined();
+      if (warning) {
+        expect(warning.level).toBe('INFO');
+        expect(warning.message).toContain('Safe operation');
+      }
     });
   });
 });

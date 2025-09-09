@@ -3,9 +3,9 @@
  * MVP Phase 1: Learn mode only
  */
 
-export { KnowledgeLibrary } from './knowledge-library';
-export { SafetyEngine } from './safety-engine';
-export { IntelligentOperationHandler } from './intelligent-operation-handler';
+export { KnowledgeLibrary } from './knowledge-library.js';
+export { SafetyEngine } from './safety-engine.js';
+export { IntelligentOperationHandler } from './intelligent-operation-handler.js';
 
 export type {
   IntelligentToolInput,
@@ -21,4 +21,5 @@ export type {
   OperationTemplate,
   OperationContext,
   KnowledgeMatch,
-} from './types';
+  CacheEntry,
+} from './types.js';
