@@ -70,7 +70,11 @@ export class TableResolver {
       }
 
       const files = await fs.readdir(mappingsDir);
-      const yamlFiles = files.filter((f) => f.endsWith('.yaml') || f.endsWith('.yml'));
+      // Exclude .example.yaml files to prevent duplicates in examples directory
+      const yamlFiles = files.filter((f) => 
+        (f.endsWith('.yaml') || f.endsWith('.yml')) && 
+        !f.includes('.example.')
+      );
 
       if (yamlFiles.length === 0) {
         throw new Error(`No YAML mapping files found in directory: ${mappingsDir}`);

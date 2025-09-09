@@ -8,14 +8,33 @@ import { TableResolver } from '../src/lib/table-resolver.js';
 
 describe('TableResolver', () => {
   let resolver: TableResolver;
+  let testMappingsDir: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     resolver = new TableResolver();
+    // Determine the appropriate directory based on environment
+    const baseDir = path.resolve(__dirname, '../config/field-mappings');
+    const examplesDir = path.resolve(__dirname, '../config/field-mappings/examples');
+    
+    // Check if base directory has YAML files (excluding examples subdirectory)
+    const fs = await import('fs-extra');
+    let hasMainDirFiles = false;
+    
+    try {
+      if (await fs.pathExists(baseDir)) {
+        const files = await fs.readdir(baseDir);
+        hasMainDirFiles = files.some(f => (f.endsWith('.yaml') || f.endsWith('.yml')) && !f.includes('example'));
+      }
+    } catch {
+      // Ignore errors
+    }
+    
+    // Use main directory if it has YAML files, otherwise use examples
+    testMappingsDir = hasMainDirFiles ? baseDir : examplesDir;
   });
 
   describe('loadFromMappings', () => {
     it('should load table mappings from YAML files', async () => {
-      const testMappingsDir = path.resolve(__dirname, '../config/field-mappings');
       await resolver.loadFromMappings(testMappingsDir);
 
       // Should have loaded at least one mapping
@@ -24,7 +43,6 @@ describe('TableResolver', () => {
     });
 
     it('should extract tableName and tableId from YAML files', async () => {
-      const testMappingsDir = path.resolve(__dirname, '../config/field-mappings');
       await resolver.loadFromMappings(testMappingsDir);
 
       const tables = resolver.getAvailableTables();
@@ -61,7 +79,6 @@ describe('TableResolver', () => {
 
   describe('resolveTableId', () => {
     beforeEach(async () => {
-      const testMappingsDir = path.resolve(__dirname, '../config/field-mappings');
       await resolver.loadFromMappings(testMappingsDir);
     });
 
@@ -98,7 +115,6 @@ describe('TableResolver', () => {
     });
 
     it('should return all loaded table mappings', async () => {
-      const testMappingsDir = path.resolve(__dirname, '../config/field-mappings');
       await resolver.loadFromMappings(testMappingsDir);
 
       const tables = resolver.getAvailableTables();
@@ -112,7 +128,6 @@ describe('TableResolver', () => {
 
   describe('getTableByName', () => {
     beforeEach(async () => {
-      const testMappingsDir = path.resolve(__dirname, '../config/field-mappings');
       await resolver.loadFromMappings(testMappingsDir);
     });
 
@@ -140,7 +155,6 @@ describe('TableResolver', () => {
 
   describe('getSuggestionsForUnknown', () => {
     beforeEach(async () => {
-      const testMappingsDir = path.resolve(__dirname, '../config/field-mappings');
       await resolver.loadFromMappings(testMappingsDir);
     });
 
