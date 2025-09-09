@@ -19,7 +19,7 @@ describe('MCP Server Table Resolution', () => {
       server['fieldMappingsInitialized'] = true;
 
       // Call with table name instead of ID
-      const result = await server.callTool('smartsuite_query', {
+      await server.callTool('smartsuite_query', {
         operation: 'list',
         appId: 'projects', // Table name instead of hex ID
         limit: 5
@@ -70,11 +70,11 @@ describe('MCP Server Table Resolution', () => {
       });
 
       expect(result).toHaveProperty('tables');
-      expect(Array.isArray(result.tables)).toBe(true);
-      expect(result.tables.length).toBeGreaterThan(0);
-      expect(result.tables[0]).toHaveProperty('name');
-      expect(result.tables[0]).toHaveProperty('id');
-      expect(result.tables[0]).toHaveProperty('solutionId');
+      expect(Array.isArray((result as any).tables)).toBe(true);
+      expect((result as any).tables.length).toBeGreaterThan(0);
+      expect((result as any).tables[0]).toHaveProperty('name');
+      expect((result as any).tables[0]).toHaveProperty('id');
+      expect((result as any).tables[0]).toHaveProperty('solutionId');
     });
 
     it('should list fields for a specific table', async () => {
@@ -87,9 +87,9 @@ describe('MCP Server Table Resolution', () => {
 
       expect(result).toHaveProperty('table');
       expect(result).toHaveProperty('fields');
-      expect(result.table.name).toBe('projects');
-      expect(result.fields).toHaveProperty('projectName');
-      expect(result.fields.projectName).toBe('project_name_actual');
+      expect((result as any).table.name).toBe('projects');
+      expect((result as any).fields).toHaveProperty('projectName');
+      expect((result as any).fields.projectName).toBe('project_name_actual');
     });
 
     it('should work with table ID for fields discovery', async () => {
@@ -100,7 +100,7 @@ describe('MCP Server Table Resolution', () => {
         tableId: '68a8ff5237fde0bf797c05b3' // Using hex ID
       });
 
-      expect(result.table.name).toBe('projects');
+      expect((result as any).table.name).toBe('projects');
     });
   });
 

@@ -17,6 +17,8 @@ import { fileURLToPath } from 'url';
 // Context7: consulted for zod
 import { z } from 'zod';
 
+import { MappingService } from './lib/mapping-service.js';
+import { TableResolver } from './lib/table-resolver.js';
 import { FieldTranslator } from './lib/field-translator.js';
 import {
   SmartSuiteClient,
@@ -62,6 +64,8 @@ function toListOptions(
 
 export class SmartSuiteShimServer {
   private client?: SmartSuiteClient;
+  private mappingService: MappingService;
+  private tableResolver: TableResolver;
   private fieldTranslator: FieldTranslator;
   private fieldMappingsInitialized = false;
   private authConfig?: SmartSuiteClientConfig;
@@ -77,6 +81,8 @@ export class SmartSuiteShimServer {
 
   constructor() {
     // Minimal implementation to make instantiation test pass
+    this.mappingService = new MappingService();
+    this.tableResolver = new TableResolver();
     this.fieldTranslator = new FieldTranslator();
 
     // Critical-Engineer: consulted for server initialization and auto-authentication strategy
@@ -248,12 +254,31 @@ export class SmartSuiteShimServer {
           required: ['transaction_id'],
         },
       },
+      {
+        name: 'smartsuite_discover',
+        description: 'Discover available tables and their fields',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            scope: {
+              type: 'string',
+              enum: ['tables', 'fields'],
+              description: 'What to discover: tables or fields for a specific table',
+            },
+            tableId: {
+              type: 'string',
+              description: 'Table name or ID (required for fields scope)',
+            },
+          },
+          required: ['scope'],
+        },
+      },
     ];
   }
 
   /**
    * Initialize field mappings from config directory
-   * CRITICAL: This enables human-readable field names per North Star
+   * CRITICAL: This enables human-readable field and table names per North Star
    */
   private async initializeFieldMappings(): Promise<void> {
     try {
@@ -304,12 +329,18 @@ export class SmartSuiteShimServer {
 
       // eslint-disable-next-line no-console
       console.log('Loading field mappings from:', configPath);
-      await this.fieldTranslator.loadAllMappings(configPath);
+      
+      // Use MappingService for centralized collision detection
+      await this.mappingService.loadAllMappings(configPath);
+      
+      // Get the configured translators
+      this.tableResolver = this.mappingService.getTableResolver();
+      this.fieldTranslator = this.mappingService.getFieldTranslator();
+      
+      const stats = this.mappingService.getMappingStats();
       // eslint-disable-next-line no-console
       console.log(
-        'FieldTranslator initialized successfully with',
-        this.fieldTranslator['mappings'].size,
-        'mappings',
+        `MappingService initialized successfully: ${stats.tablesLoaded} tables, ${stats.totalFields} fields`,
       );
       this.fieldMappingsInitialized = true;
     } catch (error) {
@@ -318,7 +349,7 @@ export class SmartSuiteShimServer {
       // GRACEFUL DEGRADATION: Don't fail startup if field mappings are missing
       // This allows the server to work with raw API codes as fallback
       // eslint-disable-next-line no-console
-      console.warn('Field mappings not available - server will use raw API field codes');
+      console.warn('Field mappings not available - server will use raw API field codes and hex IDs');
       // Mark as initialized even though we failed, to avoid repeated attempts
       this.fieldMappingsInitialized = true;
     }
@@ -352,6 +383,13 @@ export class SmartSuiteShimServer {
     this.client = await createAuthenticatedClient(effectiveConfig);
   }
 
+  /**
+   * Call a tool by name - public interface for testing
+   */
+  async callTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
+    return this.executeTool(toolName, args);
+  }
+
   async executeTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
     // AUTO-AUTHENTICATION: Ensure authentication is complete
     await this.ensureAuthenticated();
@@ -376,6 +414,8 @@ export class SmartSuiteShimServer {
         return this.handleSchema(args);
       case 'smartsuite_undo':
         return this.handleUndo(args);
+      case 'smartsuite_discover':
+        return this.handleDiscover(args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -384,12 +424,27 @@ export class SmartSuiteShimServer {
   private async handleQuery(args: Record<string, unknown>): Promise<unknown> {
     // FIELD TRANSLATION: Convert human-readable field names to API codes
     const operation = args.operation as string;
-    const appId = args.appId as string;
+    let appId = args.appId as string;
     const recordId = args.recordId as string;
     const filters = args.filters as Record<string, unknown> | undefined;
     const sort = args.sort as Record<string, unknown> | undefined;
     const limit = args.limit as number | undefined;
     const offset = args.offset as number | undefined;
+
+    // TABLE RESOLUTION: Convert table name to ID if needed
+    const resolvedId = this.tableResolver.resolveTableId(appId);
+    if (!resolvedId) {
+      const suggestions = this.tableResolver.getSuggestionsForUnknown(appId);
+      const availableTables = this.tableResolver.getAllTableNames();
+      throw new Error(
+        `Unknown table '${appId}'. ` +
+        (suggestions.length > 0 
+          ? `Did you mean: ${suggestions.join(', ')}?` 
+          : `Available tables: ${availableTables.join(', ')}`
+        )
+      );
+    }
+    appId = resolvedId;
 
     // Translate filters and sort options if field mappings exist
     const translatedFilters =
@@ -506,10 +561,25 @@ export class SmartSuiteShimServer {
   private async handleRecord(args: Record<string, unknown>): Promise<unknown> {
     // FIELD TRANSLATION: Convert human-readable field names to API codes
     const operation = args.operation as string;
-    const appId = args.appId as string;
+    let appId = args.appId as string;
     const recordId = args.recordId as string;
     const inputData = args.data as Record<string, unknown>;
     const dry_run = args.dry_run as boolean;
+
+    // TABLE RESOLUTION: Convert table name to ID if needed
+    const resolvedId = this.tableResolver.resolveTableId(appId);
+    if (!resolvedId) {
+      const suggestions = this.tableResolver.getSuggestionsForUnknown(appId);
+      const availableTables = this.tableResolver.getAllTableNames();
+      throw new Error(
+        `Unknown table '${appId}'. ` +
+        (suggestions.length > 0 
+          ? `Did you mean: ${suggestions.join(', ')}?` 
+          : `Available tables: ${availableTables.join(', ')}`
+        )
+      );
+    }
+    appId = resolvedId;
 
     // Check for unimplemented operations FIRST (before dry-run)
     // This ensures we don't claim we can preview operations that don't exist
@@ -609,7 +679,23 @@ export class SmartSuiteShimServer {
 
   private async handleSchema(args: Record<string, unknown>): Promise<unknown> {
     // ENHANCED scope: Schema operations with field mappings
-    const appId = args.appId as string;
+    let appId = args.appId as string;
+    
+    // TABLE RESOLUTION: Convert table name to ID if needed
+    const resolvedId = this.tableResolver.resolveTableId(appId);
+    if (!resolvedId) {
+      const suggestions = this.tableResolver.getSuggestionsForUnknown(appId);
+      const availableTables = this.tableResolver.getAllTableNames();
+      throw new Error(
+        `Unknown table '${appId}'. ` +
+        (suggestions.length > 0 
+          ? `Did you mean: ${suggestions.join(', ')}?` 
+          : `Available tables: ${availableTables.join(', ')}`
+        )
+      );
+    }
+    appId = resolvedId;
+    
     const schema = await this.client!.getSchema(appId);
 
     // FIELD MAPPING: Add human-readable field mappings to schema response
@@ -638,6 +724,71 @@ export class SmartSuiteShimServer {
   private handleUndo(_args: Record<string, unknown>): Promise<unknown> {
     // SIMPLE scope: Undo placeholder
     throw new Error('Undo functionality not yet implemented');
+  }
+
+  /**
+   * Handle discovery of tables and fields
+   * Enables exploration of available tables and their human-readable field names
+   */
+  private async handleDiscover(args: Record<string, unknown>): Promise<unknown> {
+    const scope = args.scope as string;
+    const tableId = args.tableId as string | undefined;
+
+    if (scope === 'tables') {
+      // Return all available tables
+      const tables = this.tableResolver.getAvailableTables();
+      return {
+        tables,
+        count: tables.length,
+        message: `Found ${tables.length} available table${tables.length === 1 ? '' : 's'}. Use table names directly in queries.`
+      };
+    } else if (scope === 'fields') {
+      if (!tableId) {
+        throw new Error('tableId is required when scope is "fields"');
+      }
+
+      // Resolve table name if needed
+      const resolvedId = this.tableResolver.resolveTableId(tableId);
+      if (!resolvedId) {
+        const suggestions = this.tableResolver.getSuggestionsForUnknown(tableId);
+        const availableTables = this.tableResolver.getAllTableNames();
+        throw new Error(
+          `Unknown table '${tableId}'. ` +
+          (suggestions.length > 0 
+            ? `Did you mean: ${suggestions.join(', ')}?` 
+            : `Available tables: ${availableTables.join(', ')}`
+          )
+        );
+      }
+
+      // Get table info
+      const tableInfo = this.tableResolver.getTableByName(tableId) || 
+                       this.tableResolver.getAvailableTables().find(t => t.id === resolvedId);
+
+      // Get field mappings if available
+      if (this.fieldTranslator.hasMappings(resolvedId)) {
+        // Access internal mappings (we know the structure)
+        const mapping = (this.fieldTranslator as any).mappings.get(resolvedId);
+        if (mapping && mapping.fields) {
+          return {
+            table: tableInfo,
+            fields: mapping.fields,
+            fieldCount: Object.keys(mapping.fields).length,
+            message: `Table '${tableInfo?.name || tableId}' has ${Object.keys(mapping.fields).length} mapped fields. Use these human-readable names in your queries.`
+          };
+        }
+      }
+
+      // No mappings available
+      return {
+        table: tableInfo,
+        fields: {},
+        fieldCount: 0,
+        message: `Table '${tableInfo?.name || tableId}' has no field mappings configured. Use raw API field codes or configure mappings.`
+      };
+    } else {
+      throw new Error(`Invalid scope: ${scope}. Must be 'tables' or 'fields'`);
+    }
   }
 
   /**
