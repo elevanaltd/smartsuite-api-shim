@@ -100,7 +100,7 @@ describe('Field Translation Integration - Manual Path Test', () => {
     await expect(
       server.executeTool('smartsuite_schema', {
         appId: unknownAppId,
-      })
+      }),
     ).rejects.toThrow(/Unknown table 'unknown-table-id'/);
   });
 
@@ -113,9 +113,9 @@ describe('Field Translation Integration - Manual Path Test', () => {
     (server as any).fieldMappingsInitialized = true;
 
     // Mock the underlying client call to prevent a real API call
-    (server as any).client.getSchema = vi.fn().mockResolvedValue({ 
-      fields: [], 
-      tableName: 'videos' 
+    (server as any).client.getSchema = vi.fn().mockResolvedValue({
+      fields: [],
+      tableName: 'videos',
     });
 
     const result = await server.executeTool('smartsuite_schema', {
