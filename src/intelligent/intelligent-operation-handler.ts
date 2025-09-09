@@ -47,20 +47,7 @@ export class IntelligentOperationHandler {
         throw new Error('Missing required input fields: endpoint, method, operation_description');
       }
 
-      // MVP: Only support learn mode
-      if (input.mode !== 'learn') {
-        return {
-          mode: input.mode,
-          status: 'error',
-          endpoint: input.endpoint,
-          method: input.method,
-          operation_description: input.operation_description,
-          error: `Mode '${input.mode}' not available in MVP. Use 'learn' mode only.`,
-          knowledge_applied: false,
-          performance_ms: performance.now() - startTime,
-          knowledge_version: this.knowledgeLibrary.getVersion().version,
-        };
-      }
+      // All modes supported: learn, dry_run, execute
 
       // Analyze operation context
       const context = this.analyzeContext(input);
@@ -185,7 +172,7 @@ export class IntelligentOperationHandler {
     );
 
     const result: OperationResult = {
-      mode: 'learn',
+      mode: input.mode,
       status: 'analyzed',
       endpoint: input.endpoint,
       method: input.method,

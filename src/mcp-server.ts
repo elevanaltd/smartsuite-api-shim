@@ -293,14 +293,14 @@ export class SmartSuiteShimServer {
       },
       {
         name: 'smartsuite_intelligent',
-        description: 'AI-guided access to any SmartSuite API with knowledge-driven safety (MVP: learn mode only)',
+        description: 'AI-guided access to any SmartSuite API with knowledge-driven safety',
         inputSchema: {
           type: 'object',
           properties: {
             mode: {
               type: 'string',
-              enum: ['learn'],
-              description: 'Operation mode: currently only learn mode is available',
+              enum: ['learn', 'dry_run', 'execute'],
+              description: 'Operation mode: learn (analyze), dry_run (validate), execute (perform)',
               default: 'learn',
             },
             endpoint: {
@@ -904,10 +904,7 @@ export class SmartSuiteShimServer {
       input.confirmed = args.confirmed as boolean;
     }
 
-    // MVP: Only learn mode is available
-    if (input.mode !== 'learn') {
-      throw new Error(`Mode '${input.mode}' not yet implemented. Currently only 'learn' mode is available.`);
-    }
+    // All modes supported: learn, dry_run, execute
 
     // Use the intelligent handler to process the operation
     const result = this.intelligentHandler!.handleIntelligentOperation(input);
