@@ -102,7 +102,6 @@ export class SmartSuiteShimServer {
       // Load knowledge from research files
       const knowledgePath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'knowledge');
       await knowledgeLibrary.loadFromResearch(knowledgePath);
-      
       const safetyEngine = new SafetyEngine(knowledgeLibrary);
       this.intelligentHandler = new IntelligentOperationHandler(knowledgeLibrary, safetyEngine);
     }
