@@ -39,7 +39,7 @@ describe('index.ts entry point', () => {
     expect(consoleLogSpy).toHaveBeenCalledWith(
       expect.stringContaining('SmartSuite API Shim MCP Server starting'),
     );
-    expect(consoleLogSpy).toHaveBeenCalledWith('Server ready with 4 tools:', [
+    expect(consoleLogSpy).toHaveBeenCalledWith('Server ready with 5 tools:', [
       'smartsuite_query',
       'smartsuite_record',
       'smartsuite_schema',
