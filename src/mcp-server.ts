@@ -290,12 +290,18 @@ export class SmartSuiteShimServer {
       const possiblePaths = [
         // Development: Load directly from source (no rebuild needed!)
         path.resolve(process.cwd(), 'config/field-mappings'),
+        // CI/Test: Use example files when actual mappings aren't available
+        path.resolve(process.cwd(), 'config/field-mappings/examples'),
         // Absolute path for dev environment
         '/Volumes/HestAI-Projects/smartsuite-api-shim/dev/config/field-mappings',
         // Production: from build/src/mcp-server.js -> ../../config/field-mappings
         path.resolve(__dirname, '../../config/field-mappings'),
+        // Production fallback: Use examples
+        path.resolve(__dirname, '../../config/field-mappings/examples'),
         // Alternative: from src/mcp-server.js -> ../config/field-mappings
         path.resolve(__dirname, '../config/field-mappings'),
+        // Alternative fallback: Use examples
+        path.resolve(__dirname, '../config/field-mappings/examples'),
       ];
 
       let configPath: string | null = null;
