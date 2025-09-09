@@ -4,7 +4,7 @@
 // Critical-Engineer: consulted for API shim architecture and field translation strategy
 import * as path from 'path';
 
-import fs from 'fs-extra';
+import * as fs from 'fs-extra';
 import * as yaml from 'yaml';
 
 export interface FieldMapping {
