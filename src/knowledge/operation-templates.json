@@ -483,5 +483,55 @@
         ]
       }
     }
+  },
+
+  "error_handling_pattern": {
+    "name": "Robust API Error Handling",
+    "description": "Standard pattern for handling SmartSuite API responses",
+    "danger_level": "GREEN",
+    "template": {
+      "status_check": "response.status_code == 200",
+      "response_parsing": {
+        "list_endpoints": "data if isinstance(data, list) else data.get('items', [])",
+        "single_record": "response.json() if 200 <= status < 300 else None",
+        "error_logging": "f'Error {response.status_code}: {response.text}'"
+      },
+      "common_status_codes": {
+        "200": "Success",
+        "400": "Bad Request - check payload format",
+        "401": "Unauthorized - check API token and Account-Id header", 
+        "404": "Not Found - check endpoint URL and trailing slash",
+        "429": "Rate Limit - implement 30s backoff",
+        "500": "Server Error - retry with exponential backoff"
+      },
+      "python_example": "if response.status_code == 200:\n    data = response.json()\n    records = data if isinstance(data, list) else data.get('items', [])\nelse:\n    print(f'Error {response.status_code}: {response.text}')"
+    }
+  },
+
+  "field_discovery_pattern": {
+    "name": "Systematic Field Structure Analysis",
+    "description": "Pattern for discovering field types and relationships",
+    "danger_level": "GREEN",
+    "template": {
+      "step1_schema": {
+        "method": "GET",
+        "endpoint": "/api/v1/applications/{tableId}/",
+        "purpose": "Get field definitions from structure array"
+      },
+      "step2_sample": {
+        "method": "POST", 
+        "endpoint": "/api/v1/applications/{tableId}/records/list/",
+        "body": {"limit": 1},
+        "purpose": "Get sample record to analyze actual data formats"
+      },
+      "analysis_pattern": {
+        "field_types": "field.get('field_type')",
+        "linked_records": "field_type == 'linkedrecordfield'",
+        "relationship_target": "params.get('application_id')",
+        "select_options": "params.get('choices', []) for select fields",
+        "required_fields": "params.get('required', False)"
+      },
+      "python_example": "for field in schema['structure']:\n    if field['field_type'] == 'linkedrecordfield':\n        print(f\"Link: {field['slug']} -> {field['params']['application_id']}\")"
+    }
   }
 }

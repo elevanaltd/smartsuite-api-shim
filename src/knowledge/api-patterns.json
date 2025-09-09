@@ -9,7 +9,21 @@
         "comparison": "has_any_of",
         "value": ["project_id"]
       },
-      "common_fields": ["projects_link", "assigned_to", "batch_alloc", "parent_task", "linked_records"]
+      "common_fields": ["projects_link", "assigned_to", "batch_alloc", "parent_task", "linked_records"],
+      "production_examples": {
+        "record_creation": {
+          "projects_link": ["68acac24271c120f1c9f1f01"]
+        },
+        "record_update": {
+          "assigned_to": ["user_id_1", "user_id_2"],
+          "parent_task": ["parent_task_id"]
+        },
+        "filter_by_project": {
+          "field": "projects_link",
+          "comparison": "has_any_of", 
+          "value": ["68acac24271c120f1c9f1f01"]
+        }
+      }
     },
     "FILTER_STRUCTURE": {
       "CRITICAL": "Use 'fields' array inside filter, NOT 'conditions'",
@@ -21,6 +35,20 @@
       }
     }
   },
+
+  "STATUS_FIELD_FORMATS": {
+    "description": "Status/select fields accept multiple formats",
+    "simple_format": {
+      "status": "option_code",
+      "priority": "high"
+    },
+    "value_object_format": {
+      "main_status": {"value": "PEND START"},
+      "priority": {"value": "Normal"}
+    },
+    "production_note": "Both formats work - API normalizes internally",
+    "recommendation": "Use simple format unless UI requires value objects"
+  },
   
   "LIST_RECORDS": {
     "endpoint": "/api/v1/applications/{appId}/records/list/",
@@ -28,7 +56,7 @@
     "description": "Retrieve records with filtering and pagination",
     "required_headers": {
       "Authorization": "Token {api_key}",
-      "ACCOUNT-ID": "{workspace_id}",
+      "Account-Id": "{workspace_id}",
       "Content-Type": "application/json"
     },
     "safe_defaults": {
@@ -69,7 +97,7 @@
     "description": "Create new record",
     "required_headers": {
       "Authorization": "Token {api_key}",
-      "ACCOUNT-ID": "{workspace_id}",
+      "Account-Id": "{workspace_id}",
       "Content-Type": "application/json"
     },
     "body_requirements": {
@@ -86,7 +114,7 @@
     "description": "Update existing record",
     "required_headers": {
       "Authorization": "Token {api_key}",
-      "ACCOUNT-ID": "{workspace_id}",
+      "Account-Id": "{workspace_id}",
       "Content-Type": "application/json"
     },
     "body_notes": {
