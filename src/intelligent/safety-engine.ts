@@ -110,26 +110,26 @@ export class SafetyEngine {
 
     // Check knowledge matches
     for (const match of knowledge) {
-      if (match.safetyLevel === 'RED') {
+      if (match.entry.safetyLevel === 'RED') {
         level = 'RED';
         score = Math.min(score, 20);
 
-        if (match.failureModes) {
-          for (const failure of match.failureModes) {
+        if (match.entry.failureModes) {
+          for (const failure of match.entry.failureModes) {
             blockers.push(failure.description);
             if (failure.prevention) {
               recommendations.push(failure.prevention);
             }
           }
         }
-      } else if (match.safetyLevel === 'YELLOW' && level !== 'RED') {
+      } else if (match.entry.safetyLevel === 'YELLOW' && level !== 'RED') {
         level = 'YELLOW';
         score = Math.min(score, 60);
       }
 
       // Add protocols from knowledge
-      if (match.protocols) {
-        protocols.push(...match.protocols);
+      if (match.entry.protocols) {
+        protocols.push(...match.entry.protocols);
       }
     }
 

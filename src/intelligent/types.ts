@@ -45,6 +45,12 @@ export interface OperationTemplate {
   description: string;
 }
 
+export interface OperationCorrection {
+  method?: { from: string; to: string };
+  endpoint?: { from: string; to: string };
+  parameters?: { from: string; to: string };
+}
+
 export interface KnowledgeEntry {
   pattern: RegExp;
   safetyLevel: SafetyLevel;
@@ -53,11 +59,14 @@ export interface KnowledgeEntry {
   failureModes?: FailureMode[];
   validationRules?: ValidationRule[];
   templates?: OperationTemplate[];
+  correction?: OperationCorrection;
 }
 
-export interface KnowledgeMatch extends KnowledgeEntry {
+export interface KnowledgeMatch {
+  entry: KnowledgeEntry;
   confidence: number;
   matchReason: string;
+  score?: number;
 }
 
 export interface Operation {
@@ -85,21 +94,47 @@ export interface IntelligentToolInput {
   confirmed?: boolean;
 }
 
-export interface OperationResult {
-  mode: OperationMode;
-  status: 'analyzed' | 'error';
+export interface OperationAnalysis {
   endpoint: string;
   method: HttpMethod;
-  operation_description: string;
-  knowledge_applied: boolean;
+  safetyLevel?: SafetyLevel;
+  requiresConfirmation?: boolean;
+  warnings?: string[] | Warning[];
+  recommendations?: string[];
+  appliedCorrections?: string[];
+  failureMode?: string;
+  connectivityValid?: boolean;
+  wouldExecute?: boolean;
+}
+
+export interface OperationResult {
+  // Core execution properties
+  success: boolean;
+  mode: OperationMode;
+
+  // For successful operations
+  result?: unknown;
+  analysis?: OperationAnalysis;
+
+  // For error cases
+  error?: string;
+
+  // Original fields for compatibility
+  status?: 'analyzed' | 'error';
+  endpoint?: string;
+  method?: HttpMethod;
+  operation_description?: string;
+  knowledge_applied?: boolean;
   safety_assessment?: SafetyAssessment;
   guidance?: string;
   suggested_correction?: IntelligentToolInput & { note?: string };
   warnings?: string[];
   knowledge_matches?: number;
-  performance_ms: number;
-  knowledge_version: string;
-  error?: string;
+
+  // Performance tracking
+  performance_ms?: number;
+  performanceMs?: number;
+  knowledge_version?: string;
 }
 
 export interface SafetyAssessment {

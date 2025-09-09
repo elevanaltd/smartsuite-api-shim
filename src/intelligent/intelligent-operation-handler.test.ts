@@ -1,6 +1,8 @@
 // Context7: consulted for vitest
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+import type { SmartSuiteClient } from '../smartsuite-client.js';
+
 import { IntelligentOperationHandler } from './intelligent-operation-handler.js';
 import { KnowledgeLibrary } from './knowledge-library.js';
 import { SafetyEngine } from './safety-engine.js';
@@ -16,7 +18,7 @@ describe('IntelligentOperationHandler', () => {
     // TESTGUARD-APPROVED: TESTGUARD-20250909-379dd489
     // Fixing mock to match KnowledgeVersion interface - contract compliance
     mockKnowledgeLibrary = {
-      findRelevantKnowledge: vi.fn(),
+      findRelevantKnowledge: vi.fn().mockReturnValue([]),
       learnFromOperation: vi.fn(),
       getVersion: vi.fn().mockReturnValue({
         version: '1.0.0',
@@ -28,7 +30,13 @@ describe('IntelligentOperationHandler', () => {
     } as any;
 
     mockSafetyEngine = {
-      assess: vi.fn(),
+      assess: vi.fn().mockReturnValue({
+        level: 'GREEN',
+        warnings: [],
+        canProceed: true,
+        requiresConfirmation: false,
+        protocols: [],
+      }),
       validateCriticalProtocols: vi.fn(),
       generateWarnings: vi.fn(),
     } as any;
@@ -38,7 +46,7 @@ describe('IntelligentOperationHandler', () => {
 
   describe('handleIntelligentOperation', () => {
     describe('learn mode', () => {
-      it('should return learning response for known patterns', () => {
+      it('should return learning response for known patterns', async () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/applications/123/records/list/',
@@ -47,18 +55,20 @@ describe('IntelligentOperationHandler', () => {
         };
 
         const mockKnowledge: KnowledgeMatch[] = [{
-          pattern: /GET.*\/records/,
-          safetyLevel: 'RED' as const,
-          failureModes: [{
-            description: 'Wrong HTTP method for record listing',
-            cause: 'Using GET instead of POST for /records/list/',
-            prevention: 'Always use POST /applications/{id}/records/list/',
-            exampleError: '404 Not Found',
-          }],
-          protocols: [],
-          examples: [],
-          validationRules: [],
-          templates: [],
+          entry: {
+            pattern: /GET.*\/records/,
+            safetyLevel: 'RED' as const,
+            failureModes: [{
+              description: 'Wrong HTTP method for record listing',
+              cause: 'Using GET instead of POST for /records/list/',
+              prevention: 'Always use POST /applications/{id}/records/list/',
+              exampleError: '404 Not Found',
+            }],
+            protocols: [],
+            examples: [],
+            validationRules: [],
+            templates: [],
+          },
           confidence: 0.9,
           matchReason: 'Wrong HTTP method detected',
         }];
@@ -75,7 +85,8 @@ describe('IntelligentOperationHandler', () => {
         vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue(mockKnowledge);
         vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue(mockAssessment);
 
-        const result = handler.handleIntelligentOperation(input);
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-4e46140e
+        const result = await handler.handleIntelligentOperation(input);
 
         expect(result.mode).toBe('learn');
         expect(result.status).toBe('analyzed');
@@ -86,7 +97,7 @@ describe('IntelligentOperationHandler', () => {
         expect(result.suggested_correction?.method).toBe('POST');
       });
 
-      it('should provide guidance for unknown patterns', () => {
+      it('should provide guidance for unknown patterns', async () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/unknown/endpoint',
@@ -104,7 +115,8 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         });
 
-        const result = handler.handleIntelligentOperation(input);
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-4e46140e
+        const result = await handler.handleIntelligentOperation(input);
 
         expect(result.mode).toBe('learn');
         expect(result.status).toBe('analyzed');
@@ -112,7 +124,7 @@ describe('IntelligentOperationHandler', () => {
         expect(result.guidance).toContain('No known patterns');
       });
 
-      it('should include performance metrics', () => {
+      it('should include performance metrics', async () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/test',
@@ -130,13 +142,14 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         });
 
-        const result = handler.handleIntelligentOperation(input);
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-4e46140e
+        const result = await handler.handleIntelligentOperation(input);
 
         expect(result.performance_ms).toBeDefined();
         expect(result.performance_ms).toBeLessThan(100);
       });
 
-      it('should handle UUID corruption prevention', () => {
+      it('should handle UUID corruption prevention', async () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/applications/123/fields/status/change_field',
@@ -149,22 +162,23 @@ describe('IntelligentOperationHandler', () => {
         };
 
         const mockKnowledge: KnowledgeMatch[] = [{
-          pattern: /singleselectfield.*options/,
-          safetyLevel: 'RED' as const,
-          failureModes: [{
-            description: 'UUID Corruption',
-            cause: 'Using "options" parameter destroys existing UUIDs',
-            prevention: 'Use "choices" parameter instead of "options"',
-            safeAlternative: 'payload.choices = [...]; delete payload.options;',
-          }],
-          protocols: [],
-          examples: [],
-          validationRules: [],
-          templates: [],
+          entry: {
+            pattern: /singleselectfield.*options/,
+            safetyLevel: 'RED' as const,
+            failureModes: [{
+              description: 'UUID Corruption',
+              cause: 'Using "options" parameter destroys existing UUIDs',
+              prevention: 'Use "choices" parameter instead of "options"',
+              safeAlternative: 'payload.choices = [...]; delete payload.options;',
+            }],
+            protocols: [],
+            examples: [],
+            validationRules: [],
+            templates: [],
+          },
           confidence: 1.0,
           matchReason: 'Critical UUID corruption risk detected',
         }];
-
         // TEST-METHODOLOGY-GUARDIAN-20250909-17574053
         vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue(mockKnowledge);
         vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue({
@@ -175,7 +189,8 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         });
 
-        const result = handler.handleIntelligentOperation(input);
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-4e46140e
+        const result = await handler.handleIntelligentOperation(input);
 
         expect(result.safety_assessment?.level).toBe('RED');
         expect(result.guidance).toContain('UUID');
@@ -183,7 +198,7 @@ describe('IntelligentOperationHandler', () => {
         expect(result.suggested_correction?.payload).not.toHaveProperty('options');
       });
 
-      it('should handle bulk operation limits', () => {
+      it('should handle bulk operation limits', async () => {
         const input: IntelligentToolInput = {
           mode: 'learn',
           endpoint: '/applications/123/records/bulk',
@@ -195,21 +210,22 @@ describe('IntelligentOperationHandler', () => {
         };
 
         const mockKnowledge: KnowledgeMatch[] = [{
-          pattern: /\/bulk/,
-          safetyLevel: 'YELLOW' as const,
-          failureModes: [{
-            description: 'Bulk operation limit exceeded',
-            cause: 'API limits bulk operations to 25 records',
-            prevention: 'Split into batches of 25 or fewer records',
-          }],
-          protocols: [],
-          examples: [],
-          validationRules: [],
-          templates: [],
+          entry: {
+            pattern: /\/bulk/,
+            safetyLevel: 'YELLOW' as const,
+            failureModes: [{
+              description: 'Bulk operation limit exceeded',
+              cause: 'API limits bulk operations to 25 records',
+              prevention: 'Split into batches of 25 or fewer records',
+            }],
+            protocols: [],
+            examples: [],
+            validationRules: [],
+            templates: [],
+          },
           confidence: 0.8,
           matchReason: 'Bulk operation limit warning',
         }];
-
         // TEST-METHODOLOGY-GUARDIAN-20250909-17574053
         vi.spyOn(mockKnowledgeLibrary, 'findRelevantKnowledge').mockReturnValue(mockKnowledge);
         vi.spyOn(mockSafetyEngine, 'assess').mockReturnValue({
@@ -220,7 +236,8 @@ describe('IntelligentOperationHandler', () => {
           protocols: [],
         });
 
-        const result = handler.handleIntelligentOperation(input);
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-4e46140e
+        const result = await handler.handleIntelligentOperation(input);
 
         expect(result.safety_assessment?.level).toBe('YELLOW');
         expect(result.guidance).toContain('25');
@@ -229,7 +246,20 @@ describe('IntelligentOperationHandler', () => {
     });
 
     describe('dry_run mode', () => {
-      it('should process dry_run mode successfully', () => {
+      it('should process dry_run mode successfully', async () => {
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-b0203b3c
+        // Create mock client for dry_run/execute modes
+        const mockClient = {
+          request: vi.fn().mockResolvedValue({}),
+        } as unknown as SmartSuiteClient;
+
+        // Create handler with client to initialize apiProxy
+        const handlerWithClient = new IntelligentOperationHandler(
+          mockKnowledgeLibrary,
+          mockSafetyEngine,
+          mockClient,
+        );
+
         const input: IntelligentToolInput = {
           mode: 'dry_run',
           endpoint: '/test',
@@ -237,15 +267,28 @@ describe('IntelligentOperationHandler', () => {
           operation_description: 'Test dry run',
         };
 
-        const result = handler.handleIntelligentOperation(input);
+        const result = await handlerWithClient.handleIntelligentOperation(input);
 
-        expect(result.status).toBe('analyzed');
+        expect(result.success).toBe(true);
         expect(result.mode).toBe('dry_run');
       });
     });
 
     describe('execute mode', () => {
-      it('should process execute mode successfully', () => {
+      it('should process execute mode successfully', async () => {
+        // TESTGUARD-APPROVED: TESTGUARD-20250909-93cefbba
+        // Create mock client for execute mode
+        const mockClient = {
+          request: vi.fn().mockResolvedValue({ success: true }),
+        } as unknown as SmartSuiteClient;
+
+        // Create handler with client to initialize apiProxy
+        const handlerWithClient = new IntelligentOperationHandler(
+          mockKnowledgeLibrary,
+          mockSafetyEngine,
+          mockClient,
+        );
+
         const input: IntelligentToolInput = {
           mode: 'execute',
           endpoint: '/test',
@@ -253,16 +296,16 @@ describe('IntelligentOperationHandler', () => {
           operation_description: 'Test execute',
         };
 
-        const result = handler.handleIntelligentOperation(input);
+        const result = await handlerWithClient.handleIntelligentOperation(input);
 
-        expect(result.status).toBe('analyzed');
+        expect(result.success).toBe(true);
         expect(result.mode).toBe('execute');
       });
     });
   });
 
   describe('generateLearningResponse', () => {
-    it('should format response with all required fields', () => {
+    it('should format response with all required fields', async () => {
       const input: IntelligentToolInput = {
         mode: 'learn',
         endpoint: '/test',
@@ -280,7 +323,8 @@ describe('IntelligentOperationHandler', () => {
         protocols: [],
       });
 
-      const result = handler.handleIntelligentOperation(input);
+      // TESTGUARD-APPROVED: TESTGUARD-20250909-d7ed17f1
+      const result = await handler.handleIntelligentOperation(input);
 
       expect(result).toHaveProperty('mode');
       expect(result).toHaveProperty('status');
