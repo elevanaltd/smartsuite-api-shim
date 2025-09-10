@@ -42,6 +42,7 @@
   "include": [
     "src/**/*",
     "test/**/*",
+    "scripts/**/*",
     "vitest.config.ts"
   ],
   "exclude": [

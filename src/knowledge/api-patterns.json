@@ -1,4 +1,5 @@
 {
+  "_LIVE_UPDATE_TEST": "This comment proves knowledge loads from src/ without rebuild - Updated at 09:15",
   "CRITICAL_FILTER_KNOWLEDGE": {
     "LINKED_RECORD_FIELDS": {
       "description": "CRITICAL: Linked record fields require special comparison operators",
@@ -220,14 +221,175 @@
   "ADD_FIELD": {
     "endpoint": "/api/v1/applications/{appId}/add_field/",
     "method": "POST",
-    "description": "Add new field to table",
+    "description": "Add single field to table - WORKING",
+    "status": "WORKING",
+    "critical_requirement": "field_position.prev_sibling_slug must be empty string, not null",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "ACCOUNT-ID": "{workspace_id}",
+      "Content-Type": "application/json"
+    },
+    "body_structure": {
+      "field": {
+        "slug": "10-char-alphanumeric (e.g., 'test1234ab')",
+        "label": "Display name",
+        "field_type": "Type identifier (e.g., 'textfield')",
+        "params": {
+          "help_text": "Optional help text",
+          "...field_specific_params": "Varies by field_type"
+        },
+        "is_new": true
+      },
+      "field_position": {
+        "prev_sibling_slug": ""
+      },
+      "auto_fill_structure_layout": true
+    },
+    "working_example": {
+      "endpoint": "/applications/68ab34b30b1e05e11a8ba87f/add_field/",
+      "payload": {
+        "field": {
+          "slug": "test5678cd",
+          "label": "Test Field Via MCP",
+          "field_type": "textfield",
+          "params": {
+            "help_text": "Created via intelligent tool"
+          },
+          "is_new": true
+        },
+        "field_position": {
+          "prev_sibling_slug": ""
+        },
+        "auto_fill_structure_layout": true
+      }
+    },
+    "common_errors": [
+      "Using null for prev_sibling_slug - returns 'This field may not be null'",
+      "Omitting field_position - returns 'This field is required'",
+      "Wrong slug format - must be alphanumeric"
+    ]
+  },
+
+  "BULK_ADD_FIELDS": {
+    "endpoint": "/api/v1/applications/{appId}/bulk-add-fields/",
+    "method": "POST",
+    "description": "Add multiple fields to table - WORKS FOR SINGLE FIELDS TOO",
+    "status": "WORKING",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "ACCOUNT-ID": "{workspace_id}",
+      "Content-Type": "application/json"
+    },
+    "body_structure": {
+      "fields": [
+        {
+          "slug": "10-char-alphanumeric (e.g., 'test123456')",
+          "label": "Display name",
+          "field_type": "Type identifier (e.g., 'textfield', 'numberfield', 'datefield')",
+          "params": {
+            "help_text": "Optional help text",
+            "required": false,
+            "unique": false,
+            "...field_specific_params": "Varies by field_type"
+          },
+          "is_new": true
+        }
+      ],
+      "set_as_visible_fields_in_reports": []
+    },
+    "field_types": {
+      "textfield": {
+        "params": {
+          "help_text": "string",
+          "display_format": "importance",
+          "required": "boolean",
+          "unique": "boolean",
+          "max_length": "number"
+        }
+      },
+      "numberfield": {
+        "params": {
+          "decimal_places": "number",
+          "allow_negative": "boolean",
+          "thousands_separator": "boolean"
+        }
+      },
+      "currencyfield": {
+        "params": {
+          "currency": "USD|GBP|EUR",
+          "decimal_places": "number"
+        }
+      },
+      "datefield": {
+        "params": {
+          "include_time": "boolean",
+          "date_format": "MM/dd/yyyy"
+        }
+      },
+      "singleselectfield": {
+        "params": {
+          "options": [
+            {"value": "option_code", "label": "Display Label", "color": "#hex"}
+          ],
+          "required": "boolean"
+        }
+      },
+      "statusfield": {
+        "params": {
+          "options": [
+            {"value": "status_code", "label": "Status Label", "color": "#hex"}
+          ]
+        }
+      },
+      "checkboxfield": {
+        "params": {
+          "default_value": "boolean"
+        }
+      },
+      "linkedrecordfield": {
+        "params": {
+          "linked_app_id": "target_table_id",
+          "multiple": "boolean",
+          "required": "boolean"
+        }
+      },
+      "userfield": {
+        "params": {
+          "multiple": "boolean",
+          "required": "boolean",
+          "restrict_to_workspace_members": "boolean"
+        }
+      }
+    },
+    "limits": {
+      "max_fields_per_request": "Unknown - tested with 2 successfully",
+      "slug_requirements": "10 character alphanumeric, must be unique"
+    },
+    "success_example": {
+      "endpoint": "/applications/6613bedd1889d8deeaef8b0e/bulk-add-fields/",
+      "payload": {
+        "fields": [
+          {
+            "slug": "arch789012",
+            "label": "Test Bulk Single",
+            "field_type": "textfield",
+            "params": {"help_text": "Testing bulk with single field"},
+            "is_new": true
+          }
+        ]
+      }
+    }
+  },
+
+  "DELETE_FIELD": {
+    "endpoint": "/api/v1/applications/{appId}/delete_field/",
+    "method": "POST",
+    "description": "Delete field from table",
     "status": "UNTESTED",
     "body_structure": {
-      "slug": "Field identifier (auto-generated if not provided)",
-      "label": "Display name",
-      "field_type": "Type identifier",
-      "params": "Field-specific parameters"
-    }
+      "slug": "field_slug_to_delete"
+    },
+    "warning": "Permanent deletion - field data will be lost"
   },
 
   "COUNT_RECORDS": {
