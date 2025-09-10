@@ -1,4 +1,4 @@
-import { TokenManager } from '../src/intelligent/token-manager';
+import { TokenManager } from '../src/intelligent/token-manager.js';
 // Context7: consulted for vitest
 import { vi } from 'vitest';
 

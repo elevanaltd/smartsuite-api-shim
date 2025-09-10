@@ -32,12 +32,12 @@ total_vids = new_vids + amend_vids + reuse_vids
 | **P2-Booking (Recce)** | 5 | 0.15 | +14 days | 2-week booking buffer |
 | **P2-Booking (Shoot)** | 10 | 0.15 | +14 days | 2-week booking buffer |
 | **P3-Attendance (Recce)** | 1 | 1.0 | - | Full day attendance |
-| **P4-Branding Collection** | 15 | 0.15 | - | Can run parallel |
+| **P4-Branding Collection** | 10 | 0.15 | - | Can run parallel |
 | **P5-Music Collection** | 5 | 0.15 | - | After branding |
 | **P6-MOGRT Check** | 5 | 0.15 | - | Can run with P5 |
 | **P7-MOGRT Creation** | 3 | 0.25 | - | Only if MOGRT needed |
 | **P8-Spec Collection** | 5 | 0.25 | - | Can run parallel |
-| **P9-Filming** | `ROUNDUP(0.15 * NEWVID * 6, 0)` | per video | - | Rounded up to days |
+| **P9-Filming** | `ROUNDUP(0.15 * NEWVID, 0.5)` | per video | - | Rounded up to half-days |
 | **P10-Media Ingestion** | 3 | 0.15 | - | After filming |
 | **P11-Client Delivery** | 3 | 0.15 | - | = Project Due Date |
 | **P12-Completion** | 5 | 0.15 | - | +7 days after P11 |
@@ -49,6 +49,7 @@ total_vids = new_vids + amend_vids + reuse_vids
 | **V1-User Manual Collection** | 5 | `0.05 * NEWVID` | Only if user_manual_checkbox = true |
 | **V2-Script Creation** | 5 | `0.15 * NEWVID` | New + Amend videos |
 | **V3-Script Review (Client)** | 5 | - | 7-day auto-approve |
+| **V4-Script Revision (Internal)** | 3 | `0.08 * NEWVID * 0.25` | Buffer: 25% probability |
 | **V5-Scene Planning** | 5 | `0.15 * NEWVID` | Can run parallel with V6 |
 | **V6-VO Generation** | 5 | `0.08 * NEWVID` | Can run parallel with V5 |
 | **V7-Edit Prep** | 3 | `0.08 * NEWVID` | After ingestion + assets |
@@ -144,7 +145,7 @@ Despite backward calculation, tasks execute in this order:
 ## Cross-Stream Dependencies
 
 **Asset Stream Convergence:**
-- P4-Branding (15 days) → P5-Music (5 days) → P6-MOGRT Check (5 days)  
+- P4-Branding (10 days) → P5-Music (5 days) → P6-MOGRT Check (5 days)  
 - If MOGRT needed: + P7-MOGRT Creation (3 days)
 - Assets Ready = Latest of (P5, P6, P7 if needed)
 
@@ -198,38 +199,39 @@ IF reuse_vids > 0:
 
 ## Example Calculation
 
-**Project:** EAV007 (6 new + 4 amend + 3 reuse videos)  
+**Project:** EAV007 (3 new + 3 amend + 4 reuse videos)  
 **Project Due:** 2025-08-15  
 
 ```
-NEWVID = 6 + 4 = 10
+NEWVID = 3 + 3 = 6
 
-P9-Filming Duration = ROUNDUP(0.15 * 10 * 6, 0) = ROUNDUP(9, 0) = 9 days
-V8-Edit Duration = ROUNDUP(0.25 * 10, 0.5) = ROUNDUP(2.5, 0.5) = 3 days
+P9-Filming Duration = ROUNDUP(0.15 * 6, 0.5) = ROUNDUP(0.9, 0.5) = 1 day
+V8-Edit Duration = ROUNDUP(0.25 * 6, 0.5) = ROUNDUP(1.5, 0.5) = 1.5 days
 
 Timeline (Working Backward):
 - P11-Delivery: 2025-08-12 to 2025-08-15 (3-day window, ends on Project Due)
 - P10-Ingestion: 2025-08-07 to 2025-08-11 (3-day window)  
-- P9-Filming: 2025-07-25 to 2025-08-06 (9-day window)
+- P9-Filming: 2025-08-05 to 2025-08-06 (1-day window)
 - P2-Booking(Shoot): 2025-06-27 to 2025-07-24 (10 days + 14 buffer)
 - P3-Attendance(Recce): 2025-06-26 to 2025-06-26 (1-day)
 - P2-Booking(Recce): 2025-06-06 to 2025-06-25 (5 days + 14 buffer)
 - P1-Setup: 2025-06-03 to 2025-06-05 (3-day window, FIRST TASK)
 
 Video Stream (parallel):
-- V9-Client Review: 2025-08-05 to 2025-08-11 (5 days, ends before P11 starts)
-- V9-Internal Review: 2025-07-31 to 2025-08-04 (3 days)
-- V8-Video Edit: 2025-07-29 to 2025-07-30 (3 days rounded to half-days)
-- V8-Quoting: 2025-07-24 to 2025-07-28 (3 days)
-- V7-Edit Prep: 2025-07-19 to 2025-07-23 (3 days)
-- V6-VO Generation: 2025-07-12 to 2025-07-18 (5 days)
-- V5-Scene Planning: 2025-07-18 to 2025-07-24 (5 days, must complete before P9)
-- V3-Client Review: 2025-07-11 to 2025-07-17 (5 days)
-- V3-Internal Review: 2025-07-08 to 2025-07-10 (3 days)
-- V2-Script Creation: 2025-07-01 to 2025-07-07 (5 days)
-- V1-Manual Collection: 2025-06-24 to 2025-06-30 (5 days if needed)
+- V9-Client Review: 2025-08-01 to 2025-08-07 (5 days, ends before P11 starts)
+- V9-Internal Review: 2025-07-29 to 2025-07-31 (3 days)
+- V8-Video Edit: 2025-07-26 to 2025-07-28 (1.5 days rounded to half-days)
+- V8-Quoting: 2025-07-23 to 2025-07-25 (3 days)
+- V7-Edit Prep: 2025-07-18 to 2025-07-22 (3 days)
+- V6-VO Generation: 2025-07-11 to 2025-07-17 (5 days)
+- V5-Scene Planning: 2025-07-02 to 2025-07-08 (5 days, must complete before P9)
+- V4-Script Revision: 2025-06-27 to 2025-07-01 (3 days if needed)
+- V3-Client Review: 2025-06-20 to 2025-06-26 (5 days)
+- V3-Internal Review: 2025-06-17 to 2025-06-19 (3 days)
+- V2-Script Creation: 2025-06-10 to 2025-06-16 (5 days)
+- V1-Manual Collection: 2025-06-03 to 2025-06-09 (5 days if needed)
 
-Total Project Duration: ~73 business days (June 3 to August 15)
+Total Project Duration: ~74 business days (June 3 to August 15)
 ```
 
 ## SmartSuite Integration

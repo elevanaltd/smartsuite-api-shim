@@ -78,7 +78,7 @@ project_tasks:
     
   p4_branding:
     name: "P4-Branding Collection"
-    duration: 15
+    duration: 10
     duration_type: "business_days"
     level: "project"
     variants: []
@@ -117,7 +117,7 @@ project_tasks:
     
   p9_filming:
     name: "P9-Filming"
-    duration_formula: "ROUNDUP(0.15 * (new_vids + amend_vids) * 6, 0)"
+    duration_formula: "ROUNDUP(0.15 * (new_vids + amend_vids), 0.5)"
     duration_min: 1
     duration_type: "business_days"
     level: "project"
@@ -201,6 +201,18 @@ video_tasks:
     auto_approve_days: 7
     preferred_start: "monday"
     description: "Client approval review of scripts"
+    
+  v4_script_revision_internal:
+    name: "V4-Script Revision"
+    duration: 3
+    duration_type: "business_days"
+    level: "video"
+    variants: ["internal"]
+    batch_allocate: ["new", "amend"]
+    dependencies: ["v3_script_review_internal_changes_needed"]
+    resource_formula: "0.08 * (new_vids + amend_vids) * 0.25"
+    conditional: true
+    description: "Buffer window for script revisions based on internal feedback"
     
   v5_scenes:
     name: "V5-Scene Planning"

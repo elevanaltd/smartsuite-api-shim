@@ -1,16 +1,12 @@
 {
+  // Critical-Engineer: consulted for build configuration and CI type-safety strategy
+  // This file is for building production artifacts.
+  // It inherits all compiler options from the base tsconfig.json
+  // and ONLY excludes test and spec files.
   "extends": "./tsconfig.json",
-  "include": [
-    "src/**/*"
-  ],
   "exclude": [
-    "test/**/*",
+    "node_modules",
     "**/*.test.ts",
-    "**/*.spec.ts",
-    "vitest.config.ts"
-  ],
-  "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./build"
-  }
+    "**/*.spec.ts"
+  ]
 }

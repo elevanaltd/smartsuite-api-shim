@@ -83,9 +83,9 @@ export class AuditLogger {
       operation: input.operation,
       tableId: input.tableId,
       recordId: input.recordId,
-      payload: input.payload,
-      result: input.result,
-      beforeData: input.beforeData,
+      ...(input.payload !== undefined && { payload: input.payload }),
+      ...(input.result !== undefined && { result: input.result }),
+      ...(input.beforeData !== undefined && { beforeData: input.beforeData }),
       reversalInstructions: input.reversalInstructions,
       hash: '' // Will be calculated after serialization
     };
@@ -129,8 +129,15 @@ export class AuditLogger {
       { create: 0, update: 0, delete: 0 }
     );
 
-    const affectedTables = [...new Set(entries.map(e => e.tableId))];
+    const affectedTables = Array.from(new Set(entries.map(e => e.tableId)));
     const timestamps = entries.map(e => e.timestamp).sort((a, b) => a.getTime() - b.getTime());
+    const firstTimestamp = timestamps[0];
+    const lastTimestamp = timestamps[timestamps.length - 1];
+
+    // TypeScript strict mode - ensure timestamps exist before using
+    if (!firstTimestamp || !lastTimestamp) {
+      throw new Error('Invalid timestamp data in audit entries');
+    }
 
     const baseReport: ComplianceReport = {
       standard,
@@ -139,12 +146,12 @@ export class AuditLogger {
       operationsByType,
       affectedTables,
       dateRange: {
-        from: timestamps[0],
-        to: timestamps[timestamps.length - 1]
+        from: firstTimestamp,
+        to: lastTimestamp
       },
       retentionAnalysis: {
-        oldestEntry: timestamps[0],
-        newestEntry: timestamps[timestamps.length - 1],
+        oldestEntry: firstTimestamp,
+        newestEntry: lastTimestamp,
         totalEntries: entries.length
       }
     };
@@ -156,7 +163,7 @@ export class AuditLogger {
         this.containsPersonalData(entry.beforeData)
       );
 
-      const dataSubjects = [...new Set(entries.map(e => e.recordId))];
+      const dataSubjects = Array.from(new Set(entries.map(e => e.recordId)));
       
       const rightToErasure = entries
         .filter(e => e.operation === 'delete')

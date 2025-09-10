@@ -777,7 +777,7 @@ export class SmartSuiteShimServer {
           tableId: appId,
           recordId: (result as any)?.id || recordId,
           payload: translatedData,
-          result,
+          result: result as Record<string, unknown>,
           reversalInstructions: {
             operation: 'delete',
             tableId: appId,
@@ -793,7 +793,7 @@ export class SmartSuiteShimServer {
           tableId: appId,
           recordId,
           payload: translatedData,
-          result,
+          result: result as Record<string, unknown>,
           beforeData: beforeData as Record<string, unknown>,
           reversalInstructions: {
             operation: 'update',
@@ -811,7 +811,7 @@ export class SmartSuiteShimServer {
           operation: 'delete',
           tableId: appId,
           recordId,
-          result,
+          result: result as Record<string, unknown>,
           beforeData: beforeData as Record<string, unknown>,
           reversalInstructions: {
             operation: 'create',

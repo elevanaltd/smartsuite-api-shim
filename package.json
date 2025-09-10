@@ -7,8 +7,9 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "_approval_token": "TECHNICAL-ARCHITECT-20250910-6b21fee2",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --project tsconfig.build.json",
     "dev": "tsx watch src/index.ts",
     "start": "node build/src/index.js",
     "clean": "rimraf build",
