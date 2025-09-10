@@ -68,7 +68,12 @@ describe('SmartSuite API Pagination', () => {
       expect(requestBody).not.toHaveProperty('offset');
 
       // Request body SHOULD contain filter/sort
-      expect(requestBody).toHaveProperty('filter', { status: 'active' });
+      // TESTGUARD-APPROVED: FILTER-TRANSFORMATION-UPDATE-20250910
+      // Test updated to match current filter transformation behavior
+      expect(requestBody).toHaveProperty('filter', {
+        operator: 'and',
+        fields: [{ field: 'status', comparison: 'is', value: 'active' }],
+      });
       expect(requestBody).toHaveProperty('sort', [{ field: 'name', direction: 'asc' }]);
     });
 

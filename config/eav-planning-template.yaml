@@ -62,7 +62,7 @@ project_tasks:
     duration_type: "business_days"
     level: "project"
     variants: ["shoot"]
-    dependencies: ["p3_attendance_recce"]
+    dependencies: ["p1_setup"]
     creates: ["p9_filming"]
     description: "Schedule main filming dates after recce"
     execution_note: "Must follow P3 chronologically, calculated backward from P9"
@@ -78,7 +78,7 @@ project_tasks:
     
   p4_branding:
     name: "P4-Branding Collection"
-    duration: 15
+    duration: 10
     duration_type: "business_days"
     level: "project"
     variants: []
@@ -115,9 +115,9 @@ project_tasks:
     parallel: true  # Can run alongside other P tasks
     description: "Collect development specifications and analyze content requirements"
     
-  p9_filming:
+  p9_filming_shoot:
     name: "P9-Filming"
-    duration_formula: "ROUNDUP(0.15 * (new_vids + amend_vids) * 6, 0)"
+    duration_formula: "ROUNDUP(0.15 * (new_vids + amend_vids), 0.5)"
     duration_min: 1
     duration_type: "business_days"
     level: "project"
@@ -202,6 +202,30 @@ video_tasks:
     preferred_start: "monday"
     description: "Client approval review of scripts"
     
+  v4_script_revision_internal:
+    name: "V4-Script Revision"
+    duration: 3
+    duration_type: "business_days"
+    level: "video"
+    variants: ["internal"]
+    batch_allocate: ["new", "amend"]
+    dependencies: ["v3_script_review_internal_changes_needed"]
+    resource_formula: "0.08 * (new_vids + amend_vids) * 0.25"
+    conditional: true
+    description: "Buffer window for script revisions based on internal feedback"
+    
+  v4_script_revision_client:
+    name: "V4-Script Revision"
+    duration: 2
+    duration_type: "business_days"
+    level: "video"
+    variants: ["client"]
+    batch_allocate: ["new", "amend"]
+    dependencies: ["v3_script_review_client_changes_needed"]
+    resource_formula: "0.15 * (new_vids + amend_vids) * 0.25"
+    conditional: true
+    description: "Buffer window for script revisions based on client feedback"
+    
   v5_scenes:
     name: "V5-Scene Planning"
     duration: 5
@@ -247,6 +271,7 @@ video_tasks:
     name: "V8-Video Edit"
     duration_formula: "ROUNDUP(0.25 * (new_vids + amend_vids), 0.5)"
     duration_min: 1
+    buffer_days: 7
     duration_type: "business_days"
     level: "video"
     variants: ["editing", "grading"]
@@ -286,7 +311,7 @@ video_tasks:
     variants: ["internal"]
     batch_allocate: ["new", "amend"]
     dependencies: ["v9_video_review_internal_changes_needed"]
-    resource_formula: "0.15 * (new_vids + amend_vids) * 0.5"
+    resource_formula: "0.15 * (new_vids + amend_vids) * 0.25"
     conditional: true
     description: "Revisions based on internal feedback"
     
@@ -298,7 +323,7 @@ video_tasks:
     variants: ["client"]
     batch_allocate: ["new", "amend"]
     dependencies: ["v9_video_review_client_changes_needed"]
-    resource_formula: "0.15 * (new_vids + amend_vids) * 0.5"
+    resource_formula: "0.15 * (new_vids + amend_vids) * 0.25"
     conditional: true
     description: "Revisions based on client feedback"
 
@@ -392,7 +417,10 @@ smartsuite_mapping:
     actual_hours: "actual_hours"
     priority: "priority"
     assigned_to: "assigned_to"
-    duration: "duration"
+    # THREE-FIELD MODEL:
+    due_date: "due_date"           # Simple deadline (My Work overview)
+    window_constraints: "duration"  # When work CAN happen (hard boundaries)
+    resource_allocation: "rsrc_alloc" # Visual resource booking
     # Lookup fields for video counts
     new_vids: "sac1cc3284"       # New vids count
     amend_vids: "s0a1f5ad8f"     # Amend vids count 
@@ -403,6 +431,12 @@ smartsuite_mapping:
     status: "to_do"
     priority: "normal"
     task_level: "project_level"  # or "video_level"
+    
+  # Field type definitions:
+  field_types:
+    due_date: "duedatefield"      # Simple deadline
+    duration: "duedatefield"      # Window constraints 
+    rsrc_alloc: "daterangefield"  # Resource allocation
 
 # VARIANT DEFINITIONS
 variants:

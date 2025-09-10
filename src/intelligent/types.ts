@@ -84,6 +84,22 @@ export interface OperationOutcome {
   suggestion?: string;
 }
 
+// Helper functions for creating type-safe OperationOutcomes
+export const createSuccessOutcome = (options?: {
+  responseTime?: number;
+  recordCount?: number;
+}): OperationOutcome => ({
+  success: true,
+  ...(options?.responseTime !== undefined && { responseTime: options.responseTime }),
+  ...(options?.recordCount !== undefined && { recordCount: options.recordCount }),
+});
+
+export const createFailureOutcome = (error: string, suggestion?: string): OperationOutcome => ({
+  success: false,
+  error,
+  ...(suggestion !== undefined && { suggestion }),
+});
+
 export interface IntelligentToolInput {
   mode: OperationMode;
   endpoint: string;

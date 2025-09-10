@@ -1,8 +1,11 @@
 // Context7: consulted for fs/promises
 // Context7: consulted for path
+// Context7: consulted for lru-cache
 // Critical-Engineer: consulted for Architecture pattern selection
 import * as fs from 'fs/promises';
 import * as path from 'path';
+
+import { LRUCache } from 'lru-cache';
 
 import { Clock, SystemClock } from '../common/clock.js';
 
@@ -19,66 +22,20 @@ import type {
   ValidationRule,
 } from './types.js';
 
-interface LRUCache<K, V> {
-  get(key: K): V | undefined;
-  set(key: K, value: V): void;
-  size(): number;
-  clear(): void;
-}
-
-class SimpleLRUCache<K, V> implements LRUCache<K, V> {
-  private cache = new Map<K, { value: V; timestamp: number; hits: number }>();
-  private maxSize: number;
-  private ttl: number;
-
-  constructor(maxSize: number = 100, ttl: number = 5 * 60 * 1000) {
-    this.maxSize = maxSize;
-    this.ttl = ttl;
-  }
-
-  get(key: K): V | undefined {
-    const entry = this.cache.get(key);
-    if (!entry) return undefined;
-
-    const now = Date.now();
-    if (now - entry.timestamp > this.ttl) {
-      this.cache.delete(key);
-      return undefined;
-    }
-
-    entry.hits++;
-    return entry.value;
-  }
-
-  set(key: K, value: V): void {
-    // Remove oldest entry if at capacity
-    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) {
-        this.cache.delete(firstKey);
-      }
-    }
-
-    this.cache.set(key, {
-      value,
-      timestamp: Date.now(),
-      hits: 0,
-    });
-  }
-
-  size(): number {
-    return this.cache.size;
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
+interface MemoryUsage {
+  totalMemoryMB: number;
+  entriesCount: number;
+  cacheSize: number;
+  learningBufferSize: number;
+  cacheHitRate?: number;
 }
 
 export class KnowledgeLibrary {
   private entries: Map<string, KnowledgeEntry[]> = new Map();
   private protocols: Map<string, SafetyProtocol> = new Map();
-  private cache: SimpleLRUCache<string, KnowledgeMatch[]>;
+  private cache: LRUCache<string, KnowledgeMatch[]>;
+  private cacheHits: number = 0;
+  private cacheRequests: number = 0;
   private version: KnowledgeVersion = {
     version: '1.0.0',
     patternCount: 0,
@@ -90,7 +47,26 @@ export class KnowledgeLibrary {
 
   constructor(clock: Clock = new SystemClock()) {
     this.clock = clock;
-    this.cache = new SimpleLRUCache(100, 5 * 60 * 1000);
+
+    // Configure LRU cache with memory-safe settings
+    this.cache = new LRUCache({
+      max: 100,                    // Maximum 100 cached queries
+      ttl: 5 * 60 * 1000,         // 5 minute TTL
+      maxSize: 50 * 1024 * 1024,  // 50MB max cache size
+      sizeCalculation: (value, key) => {
+        // Estimate memory usage: key size + value size
+        const keySize = new Blob([key]).size;
+        const valueSize = JSON.stringify(value).length * 2; // ~2 bytes per char
+        return keySize + valueSize;
+      },
+      dispose: (_value, _key, reason) => {
+        // Optional: Log cache evictions for monitoring
+        if (reason === 'evict') {
+          // Could add logging here if needed
+        }
+      },
+    });
+
     // CRITICAL SAFETY: Always load default patterns to ensure safety contracts
     // These patterns prevent dangerous operations like wrong HTTP methods,
     // UUID corruption, and bulk operation overruns
@@ -335,9 +311,13 @@ export class KnowledgeLibrary {
   findRelevantKnowledge(method: string, endpoint: string, payload?: unknown): KnowledgeMatch[] {
     const cacheKey = `${method}:${endpoint}:${JSON.stringify(payload || {})}`;
 
+    // Track cache requests for hit rate calculation
+    this.cacheRequests++;
+
     // Check cache first
     const cached = this.cache.get(cacheKey);
     if (cached) {
+      this.cacheHits++;
       return cached;
     }
 
@@ -488,11 +468,47 @@ export class KnowledgeLibrary {
   }
 
   getCacheSize(): number {
-    return this.cache.size();
+    return this.cache.size;
   }
 
   getCacheTTL(): number {
     return 5 * 60 * 1000; // 5 minutes in milliseconds
+  }
+
+  getMemoryUsage(): MemoryUsage {
+    // Estimate memory usage of entries
+    let entriesMemory = 0;
+    for (const [key, entryList] of this.entries) {
+      entriesMemory += new Blob([key]).size;
+      entriesMemory += JSON.stringify(entryList).length * 2; // ~2 bytes per char
+    }
+
+    // Estimate memory usage of learning buffer
+    let learningBufferMemory = 0;
+    for (const [key, operations] of this.learningBuffer) {
+      learningBufferMemory += new Blob([key]).size;
+      learningBufferMemory += JSON.stringify(operations).length * 2;
+    }
+
+    // Get cache size (in bytes, as configured in sizeCalculation)
+    const cacheMemoryBytes = this.cache.calculatedSize || 0;
+
+    // Calculate total memory in MB
+    const totalMemoryBytes = entriesMemory + learningBufferMemory + cacheMemoryBytes;
+    const totalMemoryMB = totalMemoryBytes / (1024 * 1024);
+
+    // Calculate cache hit rate
+    const cacheHitRate = this.cacheRequests > 0
+      ? this.cacheHits / this.cacheRequests
+      : 0;
+
+    return {
+      totalMemoryMB,
+      entriesCount: this.getEntryCount(),
+      cacheSize: this.cache.size,
+      learningBufferSize: this.learningBuffer.size,
+      cacheHitRate,
+    };
   }
 
   getVersion(): KnowledgeVersion {
