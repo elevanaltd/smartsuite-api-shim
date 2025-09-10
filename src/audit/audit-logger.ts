@@ -252,10 +252,12 @@ export class AuditLogger {
     const lockId = `${process.pid}-${Date.now()}-${Math.random()}`;
 
     // Wait for lock to be available
+    // eslint-disable-next-line no-await-in-loop -- Intentional polling for lock availability
     while (await fs.pathExists(this.lockFilePath)) {
       if (Date.now() - startTime > this.MAX_LOCK_WAIT_MS) {
         throw new Error('File lock timeout exceeded');
       }
+      // eslint-disable-next-line no-await-in-loop -- Intentional sleep for lock polling with jitter
       await this.sleep(10 + Math.random() * 40); // Add jitter to prevent thundering herd
     }
 

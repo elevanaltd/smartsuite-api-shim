@@ -99,6 +99,12 @@ module.exports = {
       rules: {
         'import/no-default-export': 'off'
       }
+    },
+    {
+      files: ['src/cli/**/*.ts'],
+      rules: {
+        'no-console': 'off' // CLI tools need console output
+      }
     }
   ],
   ignorePatterns: [
