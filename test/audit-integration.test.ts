@@ -8,6 +8,12 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
 import { AuditLogger } from '../src/audit/audit-logger.js';
+import * as smartsuiteClient from '../src/smartsuite-client.js';
+
+// Mock the createAuthenticatedClient to avoid real API calls
+vi.mock('../src/smartsuite-client.js', () => ({
+  createAuthenticatedClient: vi.fn()
+}));
 
 describe('Audit Integration', () => {
   let server: SmartSuiteShimServer;
@@ -15,27 +21,54 @@ describe('Audit Integration', () => {
   let auditLogger: AuditLogger;
 
   beforeEach(async () => {
+    // Set up test environment with mock credentials
+    process.env.SMARTSUITE_API_TOKEN = 'test-api-token';
+    process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace-id';
+    
     // Create test audit file path
     testAuditFile = path.join(process.cwd(), 'test-integration-audit.json');
     
-    // Mock the server to use test audit file
-    server = new SmartSuiteShimServer();
-    
-    // Replace the audit logger with our test instance
-    (server as any).auditLogger = new AuditLogger(testAuditFile);
-    auditLogger = (server as any).auditLogger;
-
+    // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-189f9d0e
     // Mock the SmartSuite client methods to avoid real API calls
     const mockClient = {
       createRecord: vi.fn().mockResolvedValue({ id: 'new-record-123', name: 'Test Record' }),
       updateRecord: vi.fn().mockResolvedValue({ id: 'record-123', name: 'Updated Record' }),
       deleteRecord: vi.fn().mockResolvedValue(undefined),
       getRecord: vi.fn().mockResolvedValue({ id: 'record-123', name: 'Original Record', value: 100 }),
-      listRecords: vi.fn(),
-      countRecords: vi.fn()
+      listRecords: vi.fn().mockResolvedValue([]), // Return empty array for connectivity check
+      countRecords: vi.fn().mockResolvedValue({ count: 0 }),
+      // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-53ac2faf
+      getSchema: vi.fn().mockResolvedValue({
+        structure: [
+          { id: 'field_001', slug: 'name', field_type: 'text', label: 'Name', required: false },
+          { id: 'field_002', slug: 'value', field_type: 'number', label: 'Value', required: false },
+          { id: 'field_003', slug: 'id', field_type: 'text', label: 'ID', required: false },
+          { id: 'field_004', slug: 'email', field_type: 'email', label: 'Email', required: false }
+        ],
+        fields: {
+          name: { slug: 'name', field_type: 'text', label: 'Name' },
+          value: { slug: 'value', field_type: 'number', label: 'Value' },
+          id: { slug: 'id', field_type: 'text', label: 'ID' },
+          email: { slug: 'email', field_type: 'email', label: 'Email' }
+        }
+      })
     };
-
-    (server as any).client = mockClient;
+    
+    // Mock createAuthenticatedClient to return our mock client
+    vi.mocked(smartsuiteClient.createAuthenticatedClient).mockResolvedValue(mockClient as any);
+    
+    // Create and initialize the server
+    server = new SmartSuiteShimServer();
+    
+    // Initialize authentication with mock credentials
+    await server.authenticate({
+      apiKey: 'test-api-token',
+      workspaceId: 'test-workspace-id'
+    });
+    
+    // Replace the audit logger with our test instance
+    (server as any).auditLogger = new AuditLogger(testAuditFile);
+    auditLogger = (server as any).auditLogger;
   });
 
   afterEach(async () => {
