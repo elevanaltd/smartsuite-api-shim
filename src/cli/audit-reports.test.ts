@@ -1,12 +1,16 @@
+// ERROR-ARCHITECT-APPROVED: ERROR-ARCHITECT-20250910-39aa03d2
 // TRACED: Tests for CLI audit report generation
 // Context7: consulted for vitest
 // Context7: consulted for fs-extra
 // Context7: consulted for path
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import * as fs from 'fs-extra';
 import * as path from 'path';
-import { generateComplianceReport } from './audit-reports.js';
+
+import * as fs from 'fs-extra';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 import { AuditLogger } from '../audit/audit-logger.js';
+
+import { generateComplianceReport } from './audit-reports.js';
 
 describe('CLI Audit Reports', () => {
   let testAuditFile: string;
@@ -15,11 +19,11 @@ describe('CLI Audit Reports', () => {
 
   beforeEach(async () => {
     testAuditFile = path.join(process.cwd(), 'test-cli-audit.json');
-    
+
     // Mock console output for testing
     consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-    
+    processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never) as any;
+
     // Create test audit data
     const auditLogger = new AuditLogger(testAuditFile);
     await auditLogger.logMutation({
@@ -28,7 +32,7 @@ describe('CLI Audit Reports', () => {
       recordId: 'user1',
       payload: { name: 'John Doe', email: 'john@example.com' },
       result: { id: 'user1' },
-      reversalInstructions: { operation: 'delete', tableId: 'users', recordId: 'user1' }
+      reversalInstructions: { operation: 'delete', tableId: 'users', recordId: 'user1' },
     });
   });
 
@@ -46,7 +50,7 @@ describe('CLI Audit Reports', () => {
 
       expect(consoleSpy).toHaveBeenCalled();
       const output = consoleSpy.mock.calls.map(call => call[0]).join('\n');
-      
+
       expect(output).toContain('SOC2 COMPLIANCE REPORT');
       expect(output).toContain('Total Operations: 1');
       expect(output).toContain('Create: 1');
@@ -68,7 +72,7 @@ describe('CLI Audit Reports', () => {
       await generateComplianceReport('GDPR', testAuditFile, 'text');
 
       const output = consoleSpy.mock.calls.map(call => call[0]).join('\n');
-      
+
       expect(output).toContain('GDPR COMPLIANCE REPORT');
       expect(output).toContain('GDPR-Specific Analysis');
       expect(output).toContain('Personal Data Operations');
@@ -81,7 +85,7 @@ describe('CLI Audit Reports', () => {
     it('should handle missing audit file gracefully', async () => {
       // FAILING TEST: Error handling for missing file
       const nonExistentFile = '/path/that/does/not/exist/audit.json';
-      
+
       await generateComplianceReport('SOC2', nonExistentFile, 'text');
 
       expect(processExitSpy).toHaveBeenCalledWith(1);
@@ -95,7 +99,7 @@ describe('CLI Audit Reports', () => {
       await generateComplianceReport('SOC2', invalidFile, 'text');
 
       expect(processExitSpy).toHaveBeenCalledWith(1);
-      
+
       // Clean up
       await fs.remove(invalidFile);
     });
@@ -113,7 +117,7 @@ describe('CLI Audit Reports', () => {
         recordId: 'test1',
         payload: { test: true },
         result: { id: 'test1' },
-        reversalInstructions: { operation: 'delete', tableId: 'test', recordId: 'test1' }
+        reversalInstructions: { operation: 'delete', tableId: 'test', recordId: 'test1' },
       });
 
       await generateComplianceReport('SOC2');
@@ -140,12 +144,12 @@ describe('CLI Audit Reports', () => {
     beforeEach(async () => {
       // Create more comprehensive test data
       const auditLogger = new AuditLogger(testAuditFile);
-      
+
       // Clear existing data
       if (await fs.pathExists(testAuditFile)) {
         await fs.remove(testAuditFile);
       }
-      
+
       const operations = [
         {
           operation: 'create' as const,
@@ -153,7 +157,7 @@ describe('CLI Audit Reports', () => {
           recordId: 'user1',
           payload: { name: 'John Doe', email: 'john@example.com' },
           result: { id: 'user1' },
-          reversalInstructions: { operation: 'delete' as const, tableId: 'users', recordId: 'user1' }
+          reversalInstructions: { operation: 'delete' as const, tableId: 'users', recordId: 'user1' },
         },
         {
           operation: 'update' as const,
@@ -166,8 +170,8 @@ describe('CLI Audit Reports', () => {
             operation: 'update' as const,
             tableId: 'users',
             recordId: 'user1',
-            payload: { email: 'john@example.com' }
-          }
+            payload: { email: 'john@example.com' },
+          },
         },
         {
           operation: 'delete' as const,
@@ -178,9 +182,9 @@ describe('CLI Audit Reports', () => {
           reversalInstructions: {
             operation: 'create' as const,
             tableId: 'orders',
-            payload: { id: 'order1', amount: 100 }
-          }
-        }
+            payload: { id: 'order1', amount: 100 },
+          },
+        },
       ];
 
       for (const op of operations) {
@@ -193,7 +197,7 @@ describe('CLI Audit Reports', () => {
       await generateComplianceReport('SOC2', testAuditFile, 'text');
 
       const output = consoleSpy.mock.calls.map(call => call[0]).join('\n');
-      
+
       expect(output).toContain('Total Operations: 3');
       expect(output).toContain('Create: 1');
       expect(output).toContain('Update: 1');
@@ -208,7 +212,7 @@ describe('CLI Audit Reports', () => {
       await generateComplianceReport('GDPR', testAuditFile, 'text');
 
       const output = consoleSpy.mock.calls.map(call => call[0]).join('\n');
-      
+
       expect(output).toContain('Personal Data Operations: 2'); // create and update with email/name
       expect(output).toContain('Data Subjects: 2'); // user1 and order1
     });

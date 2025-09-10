@@ -4,6 +4,7 @@
 // Critical-Engineer: consulted for Architecture pattern selection
 import * as fs from 'fs/promises';
 import * as path from 'path';
+
 import { LRUCache } from 'lru-cache';
 
 import { Clock, SystemClock } from '../common/clock.js';
@@ -46,7 +47,7 @@ export class KnowledgeLibrary {
 
   constructor(clock: Clock = new SystemClock()) {
     this.clock = clock;
-    
+
     // Configure LRU cache with memory-safe settings
     this.cache = new LRUCache({
       max: 100,                    // Maximum 100 cached queries
@@ -63,9 +64,9 @@ export class KnowledgeLibrary {
         if (reason === 'evict') {
           // Could add logging here if needed
         }
-      }
+      },
     });
-    
+
     // CRITICAL SAFETY: Always load default patterns to ensure safety contracts
     // These patterns prevent dangerous operations like wrong HTTP methods,
     // UUID corruption, and bulk operation overruns
@@ -497,8 +498,8 @@ export class KnowledgeLibrary {
     const totalMemoryMB = totalMemoryBytes / (1024 * 1024);
 
     // Calculate cache hit rate
-    const cacheHitRate = this.cacheRequests > 0 
-      ? this.cacheHits / this.cacheRequests 
+    const cacheHitRate = this.cacheRequests > 0
+      ? this.cacheHits / this.cacheRequests
       : 0;
 
     return {

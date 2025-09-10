@@ -25,9 +25,9 @@ describe('Filter Integration Tests', () => {
 
     const client = await createAuthenticatedClient({
       apiKey: 'test-key',
-      workspaceId: 'test-workspace'
+      workspaceId: 'test-workspace',
     });
-    
+
     // Test simple filter transformation
     await client.listRecords('test-app-id', {
       filter: { autonumber: 'EAV007' },
@@ -63,12 +63,12 @@ describe('Filter Integration Tests', () => {
     // TESTGUARD-APPROVED: Fix client instantiation to use actual API
     const client = await createAuthenticatedClient({
       apiKey: 'test-key',
-      workspaceId: 'test-workspace'
+      workspaceId: 'test-workspace',
     });
-    
+
     // Test lookup field transformation
     await client.listRecords('test-app-id', {
-      filter: { 
+      filter: {
         projects_link: '68abcd3975586ee1ff3e5b1f',
         autonumber: 'EAV007',
       },
@@ -105,9 +105,9 @@ describe('Filter Integration Tests', () => {
     // TESTGUARD-APPROVED: Fix client instantiation to use actual API
     const client = await createAuthenticatedClient({
       apiKey: 'test-key',
-      workspaceId: 'test-workspace'
+      workspaceId: 'test-workspace',
     });
-    
+
     const nestedFilter = {
       operator: 'or' as const,
       fields: [
@@ -115,7 +115,7 @@ describe('Filter Integration Tests', () => {
         { field: 'priority', comparison: 'greater_than', value: 5 },
       ],
     };
-    
+
     await client.listRecords('test-app-id', {
       filter: nestedFilter,
     });
@@ -145,9 +145,9 @@ describe('Filter Integration Tests', () => {
     // TESTGUARD-APPROVED: Fix client instantiation to use actual API
     const client = await createAuthenticatedClient({
       apiKey: 'test-key',
-      workspaceId: 'test-workspace'
+      workspaceId: 'test-workspace',
     });
-    
+
     // Test count with simple filter
     const result = await client.countRecords('test-app-id', {
       filter: { status: 'active' },

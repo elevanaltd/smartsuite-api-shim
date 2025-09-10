@@ -16,7 +16,7 @@ describe('AuthManager - Authentication State Management', () => {
   beforeEach(() => {
     originalEnv = { ...process.env };
     authManager = new AuthManager();
-    
+
     // Mock fetch for network tests
     global.fetch = vi.fn();
   });
@@ -57,7 +57,7 @@ describe('AuthManager - Authentication State Management', () => {
       // ARRANGE: Invalid credentials that return 401
       process.env.SMARTSUITE_API_TOKEN = 'invalid-token';
       process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
-      
+
       // Re-create authManager to pick up env vars
       authManager = new AuthManager();
 
@@ -65,7 +65,7 @@ describe('AuthManager - Authentication State Management', () => {
         ok: false,
         status: 401,
         statusText: 'Unauthorized',
-        json: () => Promise.resolve({ error: 'Invalid API key' })
+        json: () => Promise.resolve({ error: 'Invalid API key' }),
       });
 
       // ACT & ASSERT: Should throw clear authentication error
@@ -78,7 +78,7 @@ describe('AuthManager - Authentication State Management', () => {
       // ARRANGE: Valid token but no workspace access (403)
       process.env.SMARTSUITE_API_TOKEN = 'valid-token';
       process.env.SMARTSUITE_WORKSPACE_ID = 'unauthorized-workspace';
-      
+
       // Re-create authManager to pick up env vars
       authManager = new AuthManager();
 
@@ -86,7 +86,7 @@ describe('AuthManager - Authentication State Management', () => {
         ok: false,
         status: 403,
         statusText: 'Forbidden',
-        json: () => Promise.resolve({ error: 'No access to workspace' })
+        json: () => Promise.resolve({ error: 'No access to workspace' }),
       });
 
       // ACT & ASSERT: Should throw clear authorization error
@@ -111,14 +111,14 @@ describe('AuthManager - Authentication State Management', () => {
     it('FAILS - should log authentication attempts for security monitoring', async () => {
       // ARRANGE: Mock console for log verification
       const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
-      
+
       process.env.SMARTSUITE_API_TOKEN = 'test-token';
       process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([])
+        json: () => Promise.resolve([]),
       });
 
       // ACT: Attempt authentication
@@ -130,9 +130,9 @@ describe('AuthManager - Authentication State Management', () => {
 
       // ASSERT: Should log authentication attempt
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[AuthManager] Authentication attempt')
+        expect.stringContaining('[AuthManager] Authentication attempt'),
       );
-      
+
       consoleSpy.mockRestore();
     });
   });
@@ -154,13 +154,13 @@ describe('AuthManager - Authentication State Management', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([])
+        json: () => Promise.resolve([]),
       });
 
       // ACT: Validate auth (will fail in RED phase)
       try {
         await authManager.validateAuth();
-        
+
         // ASSERT: Should be authenticated after success
         expect(authManager.isAuthenticated()).toBe(true);
       } catch {
@@ -172,7 +172,7 @@ describe('AuthManager - Authentication State Management', () => {
       // ARRANGE: Set up environment
       process.env.SMARTSUITE_API_TOKEN = 'test-token';
       process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
-      
+
       // Re-create authManager to pick up env vars
       authManager = new AuthManager();
 
@@ -183,7 +183,7 @@ describe('AuthManager - Authentication State Management', () => {
       expect(config).toEqual({
         apiKey: 'test-token',
         workspaceId: 'test-workspace',
-        baseUrl: 'https://app.smartsuite.com'
+        baseUrl: 'https://app.smartsuite.com',
       });
     });
   });
@@ -209,7 +209,7 @@ describe('AuthManager - Authentication State Management', () => {
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
-        json: () => Promise.reject(new Error('Malformed JSON'))
+        json: () => Promise.reject(new Error('Malformed JSON')),
       });
 
       // ACT & ASSERT: Should handle gracefully with informative error

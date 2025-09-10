@@ -72,7 +72,7 @@ describe('SmartSuite API Pagination', () => {
       // Test updated to match current filter transformation behavior
       expect(requestBody).toHaveProperty('filter', {
         operator: 'and',
-        fields: [{ field: 'status', comparison: 'is', value: 'active' }]
+        fields: [{ field: 'status', comparison: 'is', value: 'active' }],
       });
       expect(requestBody).toHaveProperty('sort', [{ field: 'name', direction: 'asc' }]);
     });

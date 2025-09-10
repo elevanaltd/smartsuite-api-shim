@@ -214,6 +214,18 @@ video_tasks:
     conditional: true
     description: "Buffer window for script revisions based on internal feedback"
     
+  v4_script_revision_client:
+    name: "V4-Script Revision"
+    duration: 2
+    duration_type: "business_days"
+    level: "video"
+    variants: ["client"]
+    batch_allocate: ["new", "amend"]
+    dependencies: ["v3_script_review_client_changes_needed"]
+    resource_formula: "0.15 * (new_vids + amend_vids) * 0.25"
+    conditional: true
+    description: "Buffer window for script revisions based on client feedback"
+    
   v5_scenes:
     name: "V5-Scene Planning"
     duration: 5
@@ -298,7 +310,7 @@ video_tasks:
     variants: ["internal"]
     batch_allocate: ["new", "amend"]
     dependencies: ["v9_video_review_internal_changes_needed"]
-    resource_formula: "0.15 * (new_vids + amend_vids) * 0.5"
+    resource_formula: "0.15 * (new_vids + amend_vids) * 0.25"
     conditional: true
     description: "Revisions based on internal feedback"
     
@@ -310,7 +322,7 @@ video_tasks:
     variants: ["client"]
     batch_allocate: ["new", "amend"]
     dependencies: ["v9_video_review_client_changes_needed"]
-    resource_formula: "0.15 * (new_vids + amend_vids) * 0.5"
+    resource_formula: "0.15 * (new_vids + amend_vids) * 0.25"
     conditional: true
     description: "Revisions based on client feedback"
 

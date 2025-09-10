@@ -1,13 +1,16 @@
+// ERROR-ARCHITECT-APPROVED: ERROR-ARCHITECT-20250910-39aa03d2
 // TRACED: T - TEST_FIRST - Red state enforcement for audit logging functionality
 // Tests written BEFORE implementation to establish required behavior
 // Context7: consulted for vitest
-// Context7: consulted for fs-extra  
+// Context7: consulted for fs-extra
 // Context7: consulted for path
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import * as fs from 'fs-extra';
 import * as path from 'path';
+
+import * as fs from 'fs-extra';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+
 import { AuditLogger } from './audit-logger.js';
-import type { AuditLogEntry, ComplianceReport } from './audit-logger.js';
 
 describe('AuditLogger', () => {
   let auditLogger: AuditLogger;
@@ -41,14 +44,14 @@ describe('AuditLogger', () => {
         reversalInstructions: {
           operation: 'delete',
           tableId: 'table123',
-          recordId: 'rec123'
-        }
+          recordId: 'rec123',
+        },
       });
 
       const entries = await auditLogger.getEntries();
       expect(entries).toHaveLength(1);
-      
-      const entry = entries[0];
+
+      const entry = entries[0]!;
       expect(entry.timestamp).toBeInstanceOf(Date);
       expect(entry.operation).toBe('create');
       expect(entry.tableId).toBe('table123');
@@ -76,13 +79,13 @@ describe('AuditLogger', () => {
           operation: 'update',
           tableId: 'table123',
           recordId: 'rec123',
-          payload: beforeData
-        }
+          payload: beforeData,
+        },
       });
 
       const entries = await auditLogger.getEntries();
-      const entry = entries[0];
-      
+      const entry = entries[0]!;
+
       expect(entry.operation).toBe('update');
       expect(entry.beforeData).toEqual(beforeData);
       expect(entry.payload).toEqual(payload);
@@ -102,13 +105,13 @@ describe('AuditLogger', () => {
         reversalInstructions: {
           operation: 'create',
           tableId: 'table123',
-          payload: deletedData
-        }
+          payload: deletedData,
+        },
       });
 
       const entries = await auditLogger.getEntries();
-      const entry = entries[0];
-      
+      const entry = entries[0]!;
+
       expect(entry.operation).toBe('delete');
       expect(entry.beforeData).toEqual(deletedData);
       expect(entry.reversalInstructions.operation).toBe('create');
@@ -128,12 +131,12 @@ describe('AuditLogger', () => {
         reversalInstructions: {
           operation: 'delete',
           tableId: 'table123',
-          recordId: 'rec123'
-        }
+          recordId: 'rec123',
+        },
       });
 
       expect(await fs.pathExists(testAuditFile)).toBe(true);
-      
+
       const fileContent = await fs.readJson(testAuditFile);
       expect(fileContent).toBeInstanceOf(Array);
       expect(fileContent).toHaveLength(1);
@@ -148,7 +151,7 @@ describe('AuditLogger', () => {
         recordId: 'rec1',
         payload: { test: 1 },
         result: { id: 'rec1' },
-        reversalInstructions: { operation: 'delete', tableId: 'table1', recordId: 'rec1' }
+        reversalInstructions: { operation: 'delete', tableId: 'table1', recordId: 'rec1' },
       });
 
       await auditLogger.logMutation({
@@ -157,13 +160,13 @@ describe('AuditLogger', () => {
         recordId: 'rec2',
         payload: { test: 2 },
         result: { id: 'rec2' },
-        reversalInstructions: { operation: 'update', tableId: 'table2', recordId: 'rec2', payload: {} }
+        reversalInstructions: { operation: 'update', tableId: 'table2', recordId: 'rec2', payload: {} },
       });
 
       const entries = await auditLogger.getEntries();
       expect(entries).toHaveLength(2);
-      expect(entries[0].operation).toBe('create');
-      expect(entries[1].operation).toBe('update');
+      expect(entries[0]!.operation).toBe('create');
+      expect(entries[1]!.operation).toBe('update');
     });
 
     it('should survive application crashes and restarts', async () => {
@@ -174,15 +177,15 @@ describe('AuditLogger', () => {
         recordId: 'rec123',
         payload: { test: true },
         result: { id: 'rec123' },
-        reversalInstructions: { operation: 'delete', tableId: 'table123', recordId: 'rec123' }
+        reversalInstructions: { operation: 'delete', tableId: 'table123', recordId: 'rec123' },
       });
 
       // Simulate crash - create new instance
       const newAuditLogger = new AuditLogger(testAuditFile);
       const entries = await newAuditLogger.getEntries();
-      
+
       expect(entries).toHaveLength(1);
-      expect(entries[0].operation).toBe('create');
+      expect(entries[0]!.operation).toBe('create');
     });
   });
 
@@ -195,15 +198,15 @@ describe('AuditLogger', () => {
         recordId: 'rec123',
         payload: { test: true },
         result: { id: 'rec123' },
-        reversalInstructions: { operation: 'delete', tableId: 'table123', recordId: 'rec123' }
+        reversalInstructions: { operation: 'delete', tableId: 'table123', recordId: 'rec123' },
       });
 
       const entries = await auditLogger.getEntries();
       const originalEntry = { ...entries[0] };
 
       // Attempt to modify entry
-      entries[0].operation = 'update' as any;
-      entries[0].payload = { modified: true };
+      entries[0]!.operation = 'update' as any;
+      entries[0]!.payload = { modified: true };
 
       // Verify original data is preserved
       const freshEntries = await auditLogger.getEntries();
@@ -218,13 +221,13 @@ describe('AuditLogger', () => {
         recordId: 'rec123',
         payload: { test: true },
         result: { id: 'rec123' },
-        reversalInstructions: { operation: 'delete', tableId: 'table123', recordId: 'rec123' }
+        reversalInstructions: { operation: 'delete', tableId: 'table123', recordId: 'rec123' },
       });
 
       const entries = await auditLogger.getEntries();
-      expect(entries[0].hash).toBeDefined();
-      expect(typeof entries[0].hash).toBe('string');
-      expect(entries[0].hash).toHaveLength(64); // SHA-256 hex length
+      expect(entries[0]!.hash).toBeDefined();
+      expect(typeof entries[0]!.hash).toBe('string');
+      expect(entries[0]!.hash).toHaveLength(64); // SHA-256 hex length
     });
   });
 
@@ -238,7 +241,7 @@ describe('AuditLogger', () => {
           recordId: 'user1',
           payload: { name: 'John Doe', email: 'john@example.com' },
           result: { id: 'user1', name: 'John Doe', email: 'john@example.com' },
-          reversalInstructions: { operation: 'delete' as const, tableId: 'users', recordId: 'user1' }
+          reversalInstructions: { operation: 'delete' as const, tableId: 'users', recordId: 'user1' },
         },
         {
           operation: 'update' as const,
@@ -251,8 +254,8 @@ describe('AuditLogger', () => {
             operation: 'update' as const,
             tableId: 'users',
             recordId: 'user1',
-            payload: { email: 'john@example.com' }
-          }
+            payload: { email: 'john@example.com' },
+          },
         },
         {
           operation: 'delete' as const,
@@ -263,9 +266,9 @@ describe('AuditLogger', () => {
           reversalInstructions: {
             operation: 'create' as const,
             tableId: 'users',
-            payload: { id: 'user1', name: 'John Doe', email: 'john.doe@example.com' }
-          }
-        }
+            payload: { id: 'user1', name: 'John Doe', email: 'john.doe@example.com' },
+          },
+        },
       ];
 
       for (const op of testOperations) {
@@ -294,7 +297,7 @@ describe('AuditLogger', () => {
 
       expect(report.standard).toBe('GDPR');
       expect(report.personalDataOperations).toBeDefined();
-      expect(report.personalDataOperations.length).toBeGreaterThan(0);
+      expect(report.personalDataOperations!.length).toBeGreaterThan(0);
       expect(report.dataSubjects).toContain('user1');
       expect(report.rightToErasure).toEqual([{ recordId: 'user1', tableId: 'users', reversible: true }]);
     });
@@ -322,7 +325,7 @@ describe('AuditLogger', () => {
         recordId: 'rec123',
         payload: { test: true },
         result: { id: 'rec123' },
-        reversalInstructions: { operation: 'delete', tableId: 'table123', recordId: 'rec123' }
+        reversalInstructions: { operation: 'delete', tableId: 'table123', recordId: 'rec123' },
       })).rejects.toThrow();
     });
 
@@ -334,7 +337,7 @@ describe('AuditLogger', () => {
         recordId: 'rec123',
         payload: { test: true },
         result: { id: 'rec123' },
-        reversalInstructions: { operation: 'delete', tableId: 'table123', recordId: 'rec123' }
+        reversalInstructions: { operation: 'delete', tableId: 'table123', recordId: 'rec123' },
       })).rejects.toThrow('tableId is required');
 
       await expect(auditLogger.logMutation({
@@ -343,7 +346,7 @@ describe('AuditLogger', () => {
         recordId: '',
         payload: { test: true },
         result: { id: 'rec123' },
-        reversalInstructions: { operation: 'update', tableId: 'table123', recordId: 'rec123', payload: {} }
+        reversalInstructions: { operation: 'update', tableId: 'table123', recordId: 'rec123', payload: {} },
       })).rejects.toThrow('recordId is required');
     });
   });
@@ -352,7 +355,7 @@ describe('AuditLogger', () => {
     it('should handle concurrent mutations without corruption', async () => {
       // FAILING TEST: Concurrency safety
       const promises = [];
-      
+
       for (let i = 0; i < 10; i++) {
         promises.push(auditLogger.logMutation({
           operation: 'create',
@@ -360,7 +363,7 @@ describe('AuditLogger', () => {
           recordId: `rec${i}`,
           payload: { test: i },
           result: { id: `rec${i}`, test: i },
-          reversalInstructions: { operation: 'delete', tableId: `table${i}`, recordId: `rec${i}` }
+          reversalInstructions: { operation: 'delete', tableId: `table${i}`, recordId: `rec${i}` },
         }));
       }
 
@@ -368,7 +371,7 @@ describe('AuditLogger', () => {
 
       const entries = await auditLogger.getEntries();
       expect(entries).toHaveLength(10);
-      
+
       // Verify all entries are unique
       const recordIds = entries.map(e => e.recordId);
       const uniqueRecordIds = new Set(recordIds);

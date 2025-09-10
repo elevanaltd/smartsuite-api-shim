@@ -17,12 +17,12 @@ import { fileURLToPath } from 'url';
 // Context7: consulted for zod
 import { z } from 'zod';
 
-import { IntelligentOperationHandler, KnowledgeLibrary, SafetyEngine } from './intelligent/index.js';
-import { resolveKnowledgePath } from './lib/path-resolver.js';
-import type { IntelligentToolInput } from './intelligent/types.js';
 import { AuditLogger } from './audit/audit-logger.js';
+import { IntelligentOperationHandler, KnowledgeLibrary, SafetyEngine } from './intelligent/index.js';
+import type { IntelligentToolInput } from './intelligent/types.js';
 import { FieldTranslator } from './lib/field-translator.js';
 import { MappingService } from './lib/mapping-service.js';
+import { resolveKnowledgePath } from './lib/path-resolver.js';
 import { TableResolver } from './lib/table-resolver.js';
 import {
   SmartSuiteClient,
@@ -781,8 +781,8 @@ export class SmartSuiteShimServer {
           reversalInstructions: {
             operation: 'delete',
             tableId: appId,
-            recordId: (result as any)?.id || recordId
-          }
+            recordId: (result as any)?.id || recordId,
+          },
         });
         break;
       case 'update':
@@ -799,14 +799,14 @@ export class SmartSuiteShimServer {
             operation: 'update',
             tableId: appId,
             recordId,
-            payload: beforeData as Record<string, unknown>
-          }
+            payload: beforeData as Record<string, unknown>,
+          },
         });
         break;
       case 'delete':
         await this.client!.deleteRecord(appId, recordId);
         result = { deleted: recordId };
-        // AUDIT LOGGING: Delete operation  
+        // AUDIT LOGGING: Delete operation
         await this.auditLogger.logMutation({
           operation: 'delete',
           tableId: appId,
@@ -816,8 +816,8 @@ export class SmartSuiteShimServer {
           reversalInstructions: {
             operation: 'create',
             tableId: appId,
-            payload: beforeData as Record<string, unknown>
-          }
+            payload: beforeData as Record<string, unknown>,
+          },
         });
         break;
       default:

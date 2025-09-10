@@ -1,9 +1,9 @@
+// ERROR-ARCHITECT-APPROVED: ERROR-ARCHITECT-20250910-39aa03d2
 // Context7: consulted for vitest
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { KnowledgeLibrary } from './knowledge-library.js';
 import type { HttpMethod } from './types.js';
-import { createSuccessOutcome, createFailureOutcome } from './types.js';
 
 describe('KnowledgeLibrary', () => {
   let library: KnowledgeLibrary;
@@ -225,21 +225,20 @@ describe('KnowledgeLibrary', () => {
           timestamp: new Date().toISOString(),
         };
 
-        library.learnFromOperation(operation, {
-          success: i % 2 === 0, // Mix of success/failure
-          recordCount: i % 100,
-          error: i % 2 === 1 ? `Error ${i}` : undefined,
-        });
+        const outcome = i % 2 === 0
+          ? { success: true as const, recordCount: i % 100 }
+          : { success: false as const, recordCount: i % 100, error: `Error ${i}` };
+        library.learnFromOperation(operation, outcome);
       }
 
       const finalMemory = library.getMemoryUsage();
 
       // Memory should stay under 512MB even with 10K patterns
       expect(finalMemory.totalMemoryMB).toBeLessThan(512);
-      
+
       // Memory growth should be bounded by LRU cache
       expect(finalMemory.totalMemoryMB - initialMemory.totalMemoryMB).toBeLessThan(100);
-      
+
       // Cache should be working efficiently
       expect(library.getCacheSize()).toBeLessThanOrEqual(100);
     });
@@ -247,7 +246,7 @@ describe('KnowledgeLibrary', () => {
     it('should maintain cache hit rate above 80% for common patterns', () => {
       // Generate common patterns
       const commonEndpoints = ['/records/list', '/bulk_update', '/add_field'];
-      
+
       // Populate cache with common patterns
       for (let i = 0; i < 100; i++) {
         const endpoint = commonEndpoints[i % commonEndpoints.length];
@@ -257,13 +256,13 @@ describe('KnowledgeLibrary', () => {
       // Access common patterns again to test cache hit rate
       let cacheHits = 0;
       const testCount = 100;
-      
+
       for (let i = 0; i < testCount; i++) {
         const endpoint = commonEndpoints[i % commonEndpoints.length];
         const start = performance.now();
         library.findRelevantKnowledge('POST', `${endpoint}/${i % 30}`); // Reuse first 30 patterns
         const elapsed = performance.now() - start;
-        
+
         // Cache hits should be much faster (< 1ms)
         if (elapsed < 1) {
           cacheHits++;
@@ -276,12 +275,12 @@ describe('KnowledgeLibrary', () => {
 
     it('should report memory usage stats', () => {
       const memoryUsage = library.getMemoryUsage();
-      
+
       expect(memoryUsage).toHaveProperty('totalMemoryMB');
       expect(memoryUsage).toHaveProperty('entriesCount');
       expect(memoryUsage).toHaveProperty('cacheSize');
       expect(memoryUsage).toHaveProperty('learningBufferSize');
-      
+
       expect(memoryUsage.totalMemoryMB).toBeGreaterThan(0);
       expect(memoryUsage.entriesCount).toBeGreaterThan(0);
     });

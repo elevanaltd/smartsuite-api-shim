@@ -1,6 +1,7 @@
+import { vi } from 'vitest';
+
 import { TokenManager } from '../src/intelligent/token-manager.js';
 // Context7: consulted for vitest
-import { vi } from 'vitest';
 
 describe('TokenManager', () => {
   let tokenManager: TokenManager;
@@ -19,11 +20,11 @@ describe('TokenManager', () => {
 
     it('should estimate higher token count for complex data structures', () => {
       const complexData = {
-        records: Array(1000).fill({ 
+        records: Array(1000).fill({
           id: 'record-id-12345678',
           field1: 'some long field value with lots of text',
-          field2: { nested: { deeply: { structured: 'data' } } }
-        })
+          field2: { nested: { deeply: { structured: 'data' } } },
+        }),
       };
       const estimated = tokenManager.estimateTokens(JSON.stringify(complexData));
       expect(estimated).toBeGreaterThan(10000);
@@ -39,7 +40,7 @@ describe('TokenManager', () => {
   describe('validateTokenLimit', () => {
     it('should throw error when tokens exceed MAX_TOKENS limit', () => {
       const largeText = 'x'.repeat(400000); // ~100K+ tokens
-      
+
       expect(() => {
         tokenManager.validateTokenLimit(largeText);
       }).toThrow('Token limit exceeded: estimated');
@@ -48,18 +49,18 @@ describe('TokenManager', () => {
     it('should log warning when tokens exceed WARNING_THRESHOLD', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const warningText = 'x'.repeat(320000); // ~80K+ tokens
-      
+
       tokenManager.validateTokenLimit(warningText);
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Token usage warning: estimated')
+        expect.stringContaining('Token usage warning: estimated'),
       );
       consoleSpy.mockRestore();
     });
 
     it('should allow tokens under warning threshold without issues', () => {
       const smallText = 'This is a small text that should be fine';
-      
+
       expect(() => {
         tokenManager.validateTokenLimit(smallText);
       }).not.toThrow();
@@ -67,7 +68,7 @@ describe('TokenManager', () => {
 
     it('should handle non-string input by converting to JSON string', () => {
       const data = { small: 'data' };
-      
+
       expect(() => {
         tokenManager.validateTokenLimit(data);
       }).not.toThrow();
@@ -90,10 +91,10 @@ describe('TokenManager', () => {
             custom_fields: {
               field1: 'Custom field value 1',
               field2: 'Custom field value 2',
-              field3: 'Custom field value 3'
-            }
-          }
-        })
+              field3: 'Custom field value 3',
+            },
+          },
+        }),
       };
 
       expect(() => {
@@ -103,7 +104,7 @@ describe('TokenManager', () => {
 
     it('should provide clear error message for overflow prevention', () => {
       const overflowData = 'x'.repeat(500000);
-      
+
       expect(() => {
         tokenManager.validateTokenLimit(overflowData);
       }).toThrow(/Token limit exceeded: estimated \d+ tokens, max allowed: 100000/);

@@ -1,13 +1,16 @@
+// ERROR-ARCHITECT-APPROVED: ERROR-ARCHITECT-20250910-39aa03d2
 // TRACED: Simplified integration tests for audit trail functionality
 // Context7: consulted for vitest
 // Context7: consulted for fs-extra
 // Context7: consulted for path
 // TESTGUARD-APPROVED: Simplified test approach to verify audit logging integration
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import * as fs from 'fs-extra';
 import * as path from 'path';
-import { SmartSuiteShimServer } from '../src/mcp-server.js';
+
+import * as fs from 'fs-extra';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 import { AuditLogger } from '../src/audit/audit-logger.js';
+import { SmartSuiteShimServer } from '../src/mcp-server.js';
 
 describe('Audit Integration - Direct Testing', () => {
   let server: SmartSuiteShimServer;
@@ -17,7 +20,7 @@ describe('Audit Integration - Direct Testing', () => {
   beforeEach(async () => {
     testAuditFile = path.join(process.cwd(), 'test-direct-audit.json');
     server = new SmartSuiteShimServer();
-    
+
     // Replace the audit logger with our test instance
     auditLogger = new AuditLogger(testAuditFile);
     (server as any).auditLogger = auditLogger;
@@ -29,7 +32,7 @@ describe('Audit Integration - Direct Testing', () => {
       deleteRecord: vi.fn().mockResolvedValue(undefined),
       getRecord: vi.fn().mockResolvedValue({ id: 'rec-123', name: 'Original', data: 'test' }),
       listRecords: vi.fn(),
-      countRecords: vi.fn()
+      countRecords: vi.fn(),
     };
 
     (server as any).client = mockClient;
@@ -48,21 +51,21 @@ describe('Audit Integration - Direct Testing', () => {
       await auditLogger.logMutation({
         operation: 'create',
         tableId: '507f1f77bcf86cd799439011',
-        recordId: 'new-rec-123', 
+        recordId: 'new-rec-123',
         payload: { name: 'Test Record', value: 42 },
         result: { id: 'new-rec-123', name: 'Test Record' },
         reversalInstructions: {
           operation: 'delete',
           tableId: '507f1f77bcf86cd799439011',
-          recordId: 'new-rec-123'
-        }
+          recordId: 'new-rec-123',
+        },
       });
 
       // Verify audit entry was created
       const entries = await auditLogger.getEntries();
       expect(entries).toHaveLength(1);
-      
-      const entry = entries[0];
+
+      const entry = entries[0]!;
       expect(entry.operation).toBe('create');
       expect(entry.tableId).toBe('507f1f77bcf86cd799439011');
       expect(entry.recordId).toBe('new-rec-123');
@@ -81,14 +84,14 @@ describe('Audit Integration - Direct Testing', () => {
           operation: 'update',
           tableId: '507f1f77bcf86cd799439011',
           recordId: 'rec-123',
-          payload: { id: 'rec-123', name: 'Original Record' }
-        }
+          payload: { id: 'rec-123', name: 'Original Record' },
+        },
       });
 
       const entries = await auditLogger.getEntries();
       expect(entries).toHaveLength(1);
-      expect(entries[0].operation).toBe('update');
-      expect(entries[0].beforeData).toBeDefined();
+      expect(entries[0]!.operation).toBe('update');
+      expect(entries[0]!.beforeData).toBeDefined();
     });
 
     it('should handle delete operations with recovery data', async () => {
@@ -101,14 +104,14 @@ describe('Audit Integration - Direct Testing', () => {
         reversalInstructions: {
           operation: 'create',
           tableId: '507f1f77bcf86cd799439011',
-          payload: { id: 'rec-123', name: 'Original Record', data: 'test' }
-        }
+          payload: { id: 'rec-123', name: 'Original Record', data: 'test' },
+        },
       });
 
       const entries = await auditLogger.getEntries();
       expect(entries).toHaveLength(1);
-      expect(entries[0].operation).toBe('delete');
-      expect(entries[0].reversalInstructions.operation).toBe('create');
+      expect(entries[0]!.operation).toBe('delete');
+      expect(entries[0]!.reversalInstructions.operation).toBe('create');
     });
 
     it('should generate compliance reports from logged operations', async () => {
@@ -120,11 +123,11 @@ describe('Audit Integration - Direct Testing', () => {
           recordId: 'user1',
           payload: { name: 'John Doe', email: 'john@test.com' },
           result: { id: 'user1' },
-          reversalInstructions: { operation: 'delete' as const, tableId: 'users', recordId: 'user1' }
+          reversalInstructions: { operation: 'delete' as const, tableId: 'users', recordId: 'user1' },
         },
         {
           operation: 'update' as const,
-          tableId: 'users', 
+          tableId: 'users',
           recordId: 'user1',
           payload: { email: 'john.doe@test.com' },
           result: { id: 'user1' },
@@ -133,9 +136,9 @@ describe('Audit Integration - Direct Testing', () => {
             operation: 'update' as const,
             tableId: 'users',
             recordId: 'user1',
-            payload: { email: 'john@test.com' }
-          }
-        }
+            payload: { email: 'john@test.com' },
+          },
+        },
       ];
 
       for (const op of operations) {
@@ -144,7 +147,7 @@ describe('Audit Integration - Direct Testing', () => {
 
       // Generate compliance report
       const report = await auditLogger.generateComplianceReport('SOC2');
-      
+
       expect(report.standard).toBe('SOC2');
       expect(report.totalOperations).toBe(2);
       expect(report.operationsByType.create).toBe(1);
@@ -160,7 +163,7 @@ describe('Audit Integration - Direct Testing', () => {
         recordId: 'test-record',
         payload: { test: true },
         result: { id: 'test-record' },
-        reversalInstructions: { operation: 'delete', tableId: 'test-table', recordId: 'test-record' }
+        reversalInstructions: { operation: 'delete', tableId: 'test-table', recordId: 'test-record' },
       });
 
       // Verify file exists
@@ -169,10 +172,10 @@ describe('Audit Integration - Direct Testing', () => {
       // Create new audit logger instance (simulating restart)
       const newAuditLogger = new AuditLogger(testAuditFile);
       const entries = await newAuditLogger.getEntries();
-      
+
       expect(entries).toHaveLength(1);
-      expect(entries[0].operation).toBe('create');
-      expect(entries[0].tableId).toBe('test-table');
+      expect(entries[0]!.operation).toBe('create');
+      expect(entries[0]!.tableId).toBe('test-table');
     });
   });
 
@@ -185,8 +188,8 @@ describe('Audit Integration - Direct Testing', () => {
 
     it('should use the correct audit file path in production', () => {
       const productionServer = new SmartSuiteShimServer();
-      const expectedPath = path.join(process.cwd(), 'audit-trail.json');
-      
+      // const expectedPath = path.join(process.cwd(), 'audit-trail.json');
+
       expect((productionServer as any).auditLogger.auditFilePath).toContain('audit-trail.json');
     });
   });
@@ -195,14 +198,14 @@ describe('Audit Integration - Direct Testing', () => {
     it('should handle audit logging errors gracefully', async () => {
       // Create an audit logger with an invalid path
       const invalidLogger = new AuditLogger('/invalid/path/audit.json');
-      
+
       await expect(invalidLogger.logMutation({
         operation: 'create',
         tableId: 'test',
         recordId: 'test',
         payload: { test: true },
         result: { id: 'test' },
-        reversalInstructions: { operation: 'delete', tableId: 'test', recordId: 'test' }
+        reversalInstructions: { operation: 'delete', tableId: 'test', recordId: 'test' },
       })).rejects.toThrow();
     });
 
@@ -213,7 +216,7 @@ describe('Audit Integration - Direct Testing', () => {
         recordId: 'test',
         payload: { test: true },
         result: { id: 'test' },
-        reversalInstructions: { operation: 'delete', tableId: 'test', recordId: 'test' }
+        reversalInstructions: { operation: 'delete', tableId: 'test', recordId: 'test' },
       })).rejects.toThrow('tableId is required');
     });
   });

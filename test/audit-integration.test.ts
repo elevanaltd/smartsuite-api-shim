@@ -1,18 +1,21 @@
+// ERROR-ARCHITECT-APPROVED: ERROR-ARCHITECT-20250910-39aa03d2
 // TRACED: Integration tests for audit trail functionality
 // Context7: consulted for vitest
 // Context7: consulted for fs-extra
 // Context7: consulted for path
 // TESTGUARD-APPROVED: Method name correction from handleTool to executeTool
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import * as fs from 'fs-extra';
 import * as path from 'path';
-import { SmartSuiteShimServer } from '../src/mcp-server.js';
+
+import * as fs from 'fs-extra';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 import { AuditLogger } from '../src/audit/audit-logger.js';
+import { SmartSuiteShimServer } from '../src/mcp-server.js';
 import * as smartsuiteClient from '../src/smartsuite-client.js';
 
 // Mock the createAuthenticatedClient to avoid real API calls
 vi.mock('../src/smartsuite-client.js', () => ({
-  createAuthenticatedClient: vi.fn()
+  createAuthenticatedClient: vi.fn(),
 }));
 
 describe('Audit Integration', () => {
@@ -24,10 +27,10 @@ describe('Audit Integration', () => {
     // Set up test environment with mock credentials
     process.env.SMARTSUITE_API_TOKEN = 'test-api-token';
     process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace-id';
-    
+
     // Create test audit file path
     testAuditFile = path.join(process.cwd(), 'test-integration-audit.json');
-    
+
     // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-189f9d0e
     // Mock the SmartSuite client methods to avoid real API calls
     const mockClient = {
@@ -43,29 +46,29 @@ describe('Audit Integration', () => {
           { id: 'field_001', slug: 'name', field_type: 'text', label: 'Name', required: false },
           { id: 'field_002', slug: 'value', field_type: 'number', label: 'Value', required: false },
           { id: 'field_003', slug: 'id', field_type: 'text', label: 'ID', required: false },
-          { id: 'field_004', slug: 'email', field_type: 'email', label: 'Email', required: false }
+          { id: 'field_004', slug: 'email', field_type: 'email', label: 'Email', required: false },
         ],
         fields: {
           name: { slug: 'name', field_type: 'text', label: 'Name' },
           value: { slug: 'value', field_type: 'number', label: 'Value' },
           id: { slug: 'id', field_type: 'text', label: 'ID' },
-          email: { slug: 'email', field_type: 'email', label: 'Email' }
-        }
-      })
+          email: { slug: 'email', field_type: 'email', label: 'Email' },
+        },
+      }),
     };
-    
+
     // Mock createAuthenticatedClient to return our mock client
     vi.mocked(smartsuiteClient.createAuthenticatedClient).mockResolvedValue(mockClient as any);
-    
+
     // Create and initialize the server
     server = new SmartSuiteShimServer();
-    
+
     // Initialize authentication with mock credentials
     await server.authenticate({
       apiKey: 'test-api-token',
-      workspaceId: 'test-workspace-id'
+      workspaceId: 'test-workspace-id',
     });
-    
+
     // Replace the audit logger with our test instance
     (server as any).auditLogger = new AuditLogger(testAuditFile);
     auditLogger = (server as any).auditLogger;
@@ -86,7 +89,7 @@ describe('Audit Integration', () => {
         operation: 'create',
         appId: '507f1f77bcf86cd799439011', // Valid MongoDB ObjectId format
         data: { name: 'Test Record', value: 42 },
-        dry_run: true
+        dry_run: true,
       });
 
       expect(dryRunResult).toBeDefined();
@@ -96,7 +99,7 @@ describe('Audit Integration', () => {
         operation: 'create',
         appId: '507f1f77bcf86cd799439011',
         data: { name: 'Test Record', value: 42 },
-        dry_run: false
+        dry_run: false,
       });
 
       expect(result).toBeDefined();
@@ -105,7 +108,7 @@ describe('Audit Integration', () => {
       const auditEntries = await auditLogger.getEntries();
       expect(auditEntries).toHaveLength(1);
 
-      const entry = auditEntries[0];
+      const entry = auditEntries[0]!;
       expect(entry.operation).toBe('create');
       expect(entry.tableId).toBe('507f1f77bcf86cd799439011');
       expect(entry.recordId).toBe('new-record-123');
@@ -125,7 +128,7 @@ describe('Audit Integration', () => {
         appId: '507f1f77bcf86cd799439011',
         recordId: 'record-123',
         data: { name: 'Updated Record', value: 200 },
-        dry_run: true
+        dry_run: true,
       });
 
       // Perform actual update operation
@@ -134,7 +137,7 @@ describe('Audit Integration', () => {
         appId: '507f1f77bcf86cd799439011',
         recordId: 'record-123',
         data: { name: 'Updated Record', value: 200 },
-        dry_run: false
+        dry_run: false,
       });
 
       expect(result).toBeDefined();
@@ -143,7 +146,7 @@ describe('Audit Integration', () => {
       const auditEntries = await auditLogger.getEntries();
       expect(auditEntries).toHaveLength(1);
 
-      const entry = auditEntries[0];
+      const entry = auditEntries[0]!;
       expect(entry.operation).toBe('update');
       expect(entry.tableId).toBe('507f1f77bcf86cd799439011');
       expect(entry.recordId).toBe('record-123');
@@ -161,7 +164,7 @@ describe('Audit Integration', () => {
         operation: 'delete',
         appId: '507f1f77bcf86cd799439011',
         recordId: 'record-123',
-        dry_run: true
+        dry_run: true,
       });
 
       // Perform actual delete operation
@@ -169,7 +172,7 @@ describe('Audit Integration', () => {
         operation: 'delete',
         appId: '507f1f77bcf86cd799439011',
         recordId: 'record-123',
-        dry_run: false
+        dry_run: false,
       });
 
       expect(result).toEqual({ deleted: 'record-123' });
@@ -178,7 +181,7 @@ describe('Audit Integration', () => {
       const auditEntries = await auditLogger.getEntries();
       expect(auditEntries).toHaveLength(1);
 
-      const entry = auditEntries[0];
+      const entry = auditEntries[0]!;
       expect(entry.operation).toBe('delete');
       expect(entry.tableId).toBe('507f1f77bcf86cd799439011');
       expect(entry.recordId).toBe('record-123');
@@ -195,14 +198,14 @@ describe('Audit Integration', () => {
         operation: 'create',
         appId: '507f1f77bcf86cd799439011',
         data: { name: 'Test Record' },
-        dry_run: true
+        dry_run: true,
       });
 
       await server.executeTool('smartsuite_record', {
         operation: 'create',
         appId: '507f1f77bcf86cd799439011',
         data: { name: 'Test Record' },
-        dry_run: false
+        dry_run: false,
       });
 
       // Verify file was created
@@ -221,14 +224,14 @@ describe('Audit Integration', () => {
         operation: 'create',
         appId: '507f1f77bcf86cd799439011',
         data: { name: 'Test Record' },
-        dry_run: true
+        dry_run: true,
       });
 
       await server.executeTool('smartsuite_record', {
         operation: 'create',
         appId: '507f1f77bcf86cd799439011',
         data: { name: 'Test Record' },
-        dry_run: false
+        dry_run: false,
       });
 
       // Update record
@@ -237,7 +240,7 @@ describe('Audit Integration', () => {
         appId: '507f1f77bcf86cd799439011',
         recordId: 'new-record-123',
         data: { name: 'Updated Record' },
-        dry_run: true
+        dry_run: true,
       });
 
       await server.executeTool('smartsuite_record', {
@@ -245,7 +248,7 @@ describe('Audit Integration', () => {
         appId: '507f1f77bcf86cd799439011',
         recordId: 'new-record-123',
         data: { name: 'Updated Record' },
-        dry_run: false
+        dry_run: false,
       });
 
       // Delete record
@@ -253,22 +256,22 @@ describe('Audit Integration', () => {
         operation: 'delete',
         appId: '507f1f77bcf86cd799439011',
         recordId: 'new-record-123',
-        dry_run: true
+        dry_run: true,
       });
 
       await server.executeTool('smartsuite_record', {
         operation: 'delete',
         appId: '507f1f77bcf86cd799439011',
         recordId: 'new-record-123',
-        dry_run: false
+        dry_run: false,
       });
 
       // Verify all operations were audited
       const auditEntries = await auditLogger.getEntries();
       expect(auditEntries).toHaveLength(3);
-      expect(auditEntries[0].operation).toBe('create');
-      expect(auditEntries[1].operation).toBe('update');
-      expect(auditEntries[2].operation).toBe('delete');
+      expect(auditEntries[0]!.operation).toBe('create');
+      expect(auditEntries[1]!.operation).toBe('update');
+      expect(auditEntries[2]!.operation).toBe('delete');
     });
   });
 
@@ -279,19 +282,19 @@ describe('Audit Integration', () => {
         {
           operation: 'create' as const,
           appId: '507f1f77bcf86cd799439011',
-          data: { name: 'John Doe', email: 'john@example.com' }
+          data: { name: 'John Doe', email: 'john@example.com' },
         },
         {
           operation: 'update' as const,
           appId: '507f1f77bcf86cd799439011',
           recordId: 'new-record-123',
-          data: { email: 'john.doe@example.com' }
+          data: { email: 'john.doe@example.com' },
         },
         {
           operation: 'delete' as const,
           appId: '507f1f77bcf86cd799439011',
-          recordId: 'new-record-123'
-        }
+          recordId: 'new-record-123',
+        },
       ];
 
       for (const op of operations) {

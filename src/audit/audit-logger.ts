@@ -1,10 +1,11 @@
 // TRACED: Implementation after failing tests - GREEN state
 // Context7: consulted for fs-extra
-// Context7: consulted for path  
+// Context7: consulted for path
 // Context7: consulted for crypto
-import * as fs from 'fs-extra';
-import * as path from 'path';
 import { createHash } from 'crypto';
+import * as path from 'path';
+
+import * as fs from 'fs-extra';
 
 export interface AuditLogEntry {
   id: string;
@@ -87,7 +88,7 @@ export class AuditLogger {
       ...(input.result !== undefined && { result: input.result }),
       ...(input.beforeData !== undefined && { beforeData: input.beforeData }),
       reversalInstructions: input.reversalInstructions,
-      hash: '' // Will be calculated after serialization
+      hash: '', // Will be calculated after serialization
     };
 
     // Generate hash for integrity verification
@@ -117,7 +118,7 @@ export class AuditLogger {
         operationsByType: { create: 0, update: 0, delete: 0 },
         affectedTables: [],
         dateRange: { from: now, to: now },
-        retentionAnalysis: { oldestEntry: now, newestEntry: now, totalEntries: 0 }
+        retentionAnalysis: { oldestEntry: now, newestEntry: now, totalEntries: 0 },
       };
     }
 
@@ -126,7 +127,7 @@ export class AuditLogger {
         acc[entry.operation]++;
         return acc;
       },
-      { create: 0, update: 0, delete: 0 }
+      { create: 0, update: 0, delete: 0 },
     );
 
     const affectedTables = Array.from(new Set(entries.map(e => e.tableId)));
@@ -147,37 +148,37 @@ export class AuditLogger {
       affectedTables,
       dateRange: {
         from: firstTimestamp,
-        to: lastTimestamp
+        to: lastTimestamp,
       },
       retentionAnalysis: {
         oldestEntry: firstTimestamp,
         newestEntry: lastTimestamp,
-        totalEntries: entries.length
-      }
+        totalEntries: entries.length,
+      },
     };
 
     if (standard === 'GDPR') {
       // Filter for personal data operations (simple heuristic based on common field names)
       const personalDataOperations = entries.filter(entry =>
         this.containsPersonalData(entry.payload) ||
-        this.containsPersonalData(entry.beforeData)
+        this.containsPersonalData(entry.beforeData),
       );
 
       const dataSubjects = Array.from(new Set(entries.map(e => e.recordId)));
-      
+
       const rightToErasure = entries
         .filter(e => e.operation === 'delete')
         .map(e => ({
           recordId: e.recordId,
           tableId: e.tableId,
-          reversible: e.reversalInstructions.operation === 'create'
+          reversible: e.reversalInstructions.operation === 'create',
         }));
 
       return {
         ...baseReport,
         personalDataOperations,
         dataSubjects,
-        rightToErasure
+        rightToErasure,
       };
     }
 
@@ -215,9 +216,9 @@ export class AuditLogger {
       payload: entry.payload,
       result: entry.result,
       beforeData: entry.beforeData,
-      reversalInstructions: entry.reversalInstructions
+      reversalInstructions: entry.reversalInstructions,
     });
-    
+
     return createHash('sha256').update(content).digest('hex');
   }
 
@@ -227,7 +228,7 @@ export class AuditLogger {
       await fs.ensureDir(path.dirname(this.auditFilePath));
 
       let entries: AuditLogEntry[] = [];
-      
+
       // Read existing entries if file exists
       if (await fs.pathExists(this.auditFilePath)) {
         entries = await fs.readJson(this.auditFilePath);
@@ -239,7 +240,7 @@ export class AuditLogger {
       // Write back to file (atomic operation via temp file)
       const tempFilePath = `${this.auditFilePath}.tmp.${Date.now()}.${Math.random().toString(36).substring(7)}`;
       await fs.writeJson(tempFilePath, entries, { spaces: 2 });
-      
+
       // Atomic move - fs-extra move with overwrite option
       await fs.move(tempFilePath, this.auditFilePath, { overwrite: true });
     });
@@ -248,7 +249,7 @@ export class AuditLogger {
   private async withFileLock<T>(operation: () => Promise<T>): Promise<T> {
     const startTime = Date.now();
     const lockId = `${process.pid}-${Date.now()}-${Math.random()}`;
-    
+
     // Wait for lock to be available
     while (await fs.pathExists(this.lockFilePath)) {
       if (Date.now() - startTime > this.MAX_LOCK_WAIT_MS) {
@@ -291,18 +292,18 @@ export class AuditLogger {
   private deserializeEntry(rawEntry: any): AuditLogEntry {
     return {
       ...rawEntry,
-      timestamp: new Date(rawEntry.timestamp)
+      timestamp: new Date(rawEntry.timestamp),
     };
   }
 
   private containsPersonalData(data?: Record<string, unknown>): boolean {
     if (!data) return false;
-    
+
     const personalDataFields = ['name', 'email', 'phone', 'address', 'ssn', 'passport', 'dob'];
     const keys = Object.keys(data).map(k => k.toLowerCase());
-    
-    return personalDataFields.some(field => 
-      keys.some(key => key.includes(field))
+
+    return personalDataFields.some(field =>
+      keys.some(key => key.includes(field)),
     );
   }
 }

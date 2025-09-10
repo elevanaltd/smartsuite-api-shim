@@ -85,9 +85,9 @@ export interface OperationOutcome {
 }
 
 // Helper functions for creating type-safe OperationOutcomes
-export const createSuccessOutcome = (options?: { 
-  responseTime?: number; 
-  recordCount?: number; 
+export const createSuccessOutcome = (options?: {
+  responseTime?: number;
+  recordCount?: number;
 }): OperationOutcome => ({
   success: true,
   ...(options?.responseTime !== undefined && { responseTime: options.responseTime }),

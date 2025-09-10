@@ -50,6 +50,7 @@ total_vids = new_vids + amend_vids + reuse_vids
 | **V2-Script Creation** | 5 | `0.15 * NEWVID` | New + Amend videos |
 | **V3-Script Review (Client)** | 5 | - | 7-day auto-approve |
 | **V4-Script Revision (Internal)** | 3 | `0.08 * NEWVID * 0.25` | Buffer: 25% probability |
+| **V4-Script Revision (Client)** | 2 | `0.15 * NEWVID * 0.25` | Buffer: 25% probability |
 | **V5-Scene Planning** | 5 | `0.15 * NEWVID` | Can run parallel with V6 |
 | **V6-VO Generation** | 5 | `0.08 * NEWVID` | Can run parallel with V5 |
 | **V7-Edit Prep** | 3 | `0.08 * NEWVID` | After ingestion + assets |
@@ -57,8 +58,8 @@ total_vids = new_vids + amend_vids + reuse_vids
 | **V8-Video Edit (Editing/Grading)** | `ROUNDUP(0.25 * NEWVID, 0.5)` | per video | Rounded to half-days |
 | **V9-Video Review (Internal)** | 3 | `0.08 * NEWVID` | Internal QA |
 | **V9-Video Review (Client)** | 5 | - | 7-day auto-approve |
-| **V10-Video Revision (Internal)** | 2 | `0.15 * NEWVID * 0.5` | Buffer: 50% probability |
-| **V10-Video Revision (Client)** | 2 | `0.15 * NEWVID * 0.5` | Buffer: 50% probability |
+| **V10-Video Revision (Internal)** | 2 | `0.15 * NEWVID * 0.25` | Buffer: 25% probability |
+| **V10-Video Revision (Client)** | 2 | `0.15 * NEWVID * 0.25` | Buffer: 25% probability |
 
 ### Special Workflows
 
@@ -90,35 +91,39 @@ total_vids = new_vids + amend_vids + reuse_vids
 14. P1-Setup from_date = P1 to_date - 3 days
 
 Video Stream (parallel with main production):
-15. V9-Video Review(Client) to_date = P11 from_date
-16. V9-Video Review(Client) from_date = V9 to_date - 5 days
-17. V9-Video Review(Internal) to_date = V9-Client from_date
-18. V9-Video Review(Internal) from_date = V9-Internal to_date - 3 days
-19. V8-Video Edit to_date = V9-Internal from_date
-20. V8-Video Edit from_date = V8 to_date - ROUNDUP(0.25 * NEWVID, 0.5) days
-21. V8-Video Edit(Quoting) to_date = V8-Edit from_date
-22. V8-Video Edit(Quoting) from_date = V8-Quoting to_date - 3 days
-23. V7-Edit Prep to_date = V8-Quoting from_date
-24. V7-Edit Prep from_date = V7 to_date - 3 days
-25. V6-VO Generation to_date = V7 from_date
-26. V6-VO Generation from_date = V6 to_date - 5 days
-27. V5-Scene Planning to_date = P9 from_date
-28. V5-Scene Planning from_date = V5 to_date - 5 days
-29. V3-Script Review(Client) to_date = V5 from_date
-30. V3-Script Review(Client) from_date = V3 to_date - 5 days
-31. V3-Script Review(Internal) to_date = V3-Client from_date
-32. V3-Script Review(Internal) from_date = V3-Internal to_date - 3 days
-33. V2-Script Creation to_date = V3-Internal from_date
-34. V2-Script Creation from_date = V2 to_date - 5 days
-35. V1-User Manual (if needed) to_date = V2 from_date
-36. V1-User Manual from_date = V1 to_date - 5 days
+15. V10-Video Revision(Client) to_date = P11 from_date
+16. V10-Video Revision(Client) from_date = V10-Client to_date - 2 days
+17. V9-Video Review(Client) to_date = V10-Video-Revision(Client) from_date
+18. V9-Video Review(Client) from_date = V9 to_date - 5 days
+19. V9-Video Review(Internal) to_date = V9-Client from_date
+20. V9-Video Review(Internal) from_date = V9-Internal to_date - 3 days
+21. V8-Video Edit to_date = V9-Internal from_date
+22. V8-Video Edit from_date = V8 to_date - ROUNDUP(0.25 * NEWVID, 0.5) days
+23. V8-Video Edit(Quoting) to_date = V8-Edit from_date
+24. V8-Video Edit(Quoting) from_date = V8-Quoting to_date - 3 days
+25. V7-Edit Prep to_date = V8-Quoting from_date
+26. V7-Edit Prep from_date = V7 to_date - 3 days
+27. V6-VO Generation to_date = V7 from_date
+28. V6-VO Generation from_date = V6 to_date - 5 days
+29. V5-Scene Planning to_date = P9 from_date
+30. V5-Scene Planning from_date = V5 to_date - 5 days
+31. V3-Script Review(Client) to_date = V4-Script-Revision(Client) from_date
+32. V3-Script Review(Client) from_date = V3 to_date - 5 days  
+33. V4-Script Revision(Client) to_date = V5 from_date
+34. V4-Script Revision(Client) from_date = V4-Client to_date - 2 days
+35. V3-Script Review(Internal) to_date = V3-Client from_date
+36. V3-Script Review(Internal) from_date = V3-Internal to_date - 3 days
+37. V2-Script Creation to_date = V3-Internal from_date
+38. V2-Script Creation from_date = V2 to_date - 5 days
+39. V1-User Manual (if needed) to_date = V2 from_date
+40. V1-User Manual from_date = V1 to_date - 5 days
 
 Asset Stream (parallel):
-37. P8-Spec Collection can start after P1-Setup
-38. P4-Branding can start after P1-Setup
-39. P5-Music follows P4-Branding
-40. P6-MOGRT Check follows P4-Branding
-41. P7-MOGRT Creation (if needed) follows P6
+41. P8-Spec Collection can start after P1-Setup
+42. P4-Branding can start after P1-Setup
+43. P5-Music follows P4-Branding
+44. P6-MOGRT Check follows P4-Branding
+45. P7-MOGRT Creation (if needed) follows P6
 ```
 
 **Forward Execution Logic (Chronological Order):**

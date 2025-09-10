@@ -16,7 +16,7 @@ export interface AuthValidationResult {
 
 /**
  * AuthManager - Centralized authentication state management
- * 
+ *
  * SECURITY PRINCIPLES:
  * - Fail loudly, never silently
  * - Clear error messages for troubleshooting
@@ -35,7 +35,7 @@ export class AuthManager {
       this.authConfig = {
         apiKey: config.apiKey,
         workspaceId: config.workspaceId,
-        baseUrl: config.baseUrl || 'https://app.smartsuite.com'
+        baseUrl: config.baseUrl || 'https://app.smartsuite.com',
       };
     } else {
       this.loadFromEnvironment();
@@ -54,7 +54,7 @@ export class AuthManager {
       this.authConfig = {
         apiKey,
         workspaceId,
-        baseUrl: process.env.SMARTSUITE_BASE_URL || 'https://app.smartsuite.com'
+        baseUrl: process.env.SMARTSUITE_BASE_URL || 'https://app.smartsuite.com',
       };
       console.info('[AuthManager] Authentication configuration loaded from environment');
     }
@@ -63,7 +63,7 @@ export class AuthManager {
   /**
    * Validate current authentication state
    * SECURITY: Fails loudly with actionable error messages
-   * 
+   *
    * @throws {Error} When authentication validation fails
    * @returns {Promise<AuthValidationResult>} Validation result on success
    */
@@ -89,7 +89,7 @@ export class AuthManager {
 
       // SECURITY CHECK 2: Test credentials against SmartSuite API
       const validationUrl = `${this.authConfig.baseUrl}/api/v1/applications`;
-      
+
       let response: Response;
       try {
         response = await fetch(validationUrl, {
@@ -100,7 +100,7 @@ export class AuthManager {
             'Content-Type': 'application/json',
           },
           // SECURITY: Add timeout to prevent hanging requests
-          signal: AbortSignal.timeout(10000)
+          signal: AbortSignal.timeout(10000),
         });
       } catch (networkError) {
         const errorMessage = networkError instanceof Error ? networkError.message : String(networkError);
@@ -113,7 +113,7 @@ export class AuthManager {
       // SECURITY CHECK 3: Handle API response errors with specific messaging
       if (!response.ok) {
         let apiError: { error?: string; message?: string } = {};
-        
+
         try {
           apiError = await response.json() as { error?: string; message?: string };
         } catch {
@@ -145,7 +145,7 @@ export class AuthManager {
       // SUCCESS: Mark as authenticated
       this.authenticated = true;
       this.lastValidation = { success: true, timestamp: startTime };
-      
+
       console.info('[AuthManager] Authentication successful');
       return this.lastValidation;
 
@@ -177,7 +177,7 @@ export class AuthManager {
   /**
    * Require authentication for API operations
    * SECURITY: Throws immediately if not authenticated
-   * 
+   *
    * @throws {Error} When not authenticated
    */
   requireAuth(): void {
@@ -208,7 +208,7 @@ export class AuthManager {
   /**
    * Sanitize error messages to prevent credential exposure
    * SECURITY: Removes potential API keys or tokens from error messages
-   * 
+   *
    * @param message Original error message
    * @returns Sanitized error message
    */
