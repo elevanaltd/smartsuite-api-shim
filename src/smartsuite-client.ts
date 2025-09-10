@@ -161,12 +161,15 @@ export async function createAuthenticatedClient(
       };
 
       if (options?.filter) {
-        // Validate filter structure before sending
-        const filterError = FilterValidator.validate(options.filter);
+        // Transform simple filters to SmartSuite's nested structure
+        const transformedFilter = FilterValidator.transformFilter(options.filter);
+
+        // Validate transformed filter structure before sending
+        const filterError = FilterValidator.validate(transformedFilter);
         if (filterError) {
-          throw new Error(`Invalid filter structure: ${filterError}\nFilter: ${FilterValidator.format(options.filter)}`);
+          throw new Error(`Invalid filter structure: ${filterError}\nOriginal Filter: ${FilterValidator.format(options.filter)}\nTransformed Filter: ${FilterValidator.format(transformedFilter)}`);
         }
-        requestBody.filter = options.filter;
+        requestBody.filter = transformedFilter;
       }
       if (options?.sort) {
         requestBody.sort = options.sort;
@@ -215,7 +218,15 @@ export async function createAuthenticatedClient(
       };
 
       if (options?.filter) {
-        requestBody.filter = options.filter;
+        // Transform simple filters to SmartSuite's nested structure
+        const transformedFilter = FilterValidator.transformFilter(options.filter);
+
+        // Validate transformed filter structure before sending
+        const filterError = FilterValidator.validate(transformedFilter);
+        if (filterError) {
+          throw new Error(`Invalid filter structure: ${filterError}\nOriginal Filter: ${FilterValidator.format(options.filter)}\nTransformed Filter: ${FilterValidator.format(transformedFilter)}`);
+        }
+        requestBody.filter = transformedFilter;
       }
 
       const response = await fetch(url.toString(), {

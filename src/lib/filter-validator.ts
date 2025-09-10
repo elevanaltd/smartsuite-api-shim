@@ -16,6 +16,48 @@ export interface Filter {
 
 export class FilterValidator {
   /**
+   * Transform simple object filters to SmartSuite's nested structure
+   * Handles both simple {field: value} and complex {operator, fields} formats
+   *
+   * @param filter - Filter to transform (simple object or nested structure)
+   * @returns Transformed filter in SmartSuite API format
+   */
+  static transformFilter(filter: unknown): unknown {
+    // Handle null/undefined
+    if (filter === null || filter === undefined) {
+      return filter;
+    }
+
+    if (typeof filter !== 'object' || Array.isArray(filter)) {
+      return filter;
+    }
+
+    const filterObj = filter as Record<string, unknown>;
+
+    // Check if already in nested format (has operator and/or fields)
+    if ('operator' in filterObj || 'fields' in filterObj) {
+      return filter; // Return as-is for already nested filters
+    }
+
+    // Transform simple object format to nested structure
+    const fields: FilterField[] = Object.entries(filterObj).map(([field, value]) => {
+      // Detect lookup fields by pattern and convert values to arrays
+      const isLookupField = field.includes('_link') || field.includes('_links');
+
+      return {
+        field,
+        comparison: 'is',
+        value: isLookupField && typeof value === 'string' ? [value] : value,
+      };
+    });
+
+    return {
+      operator: 'and',
+      fields,
+    };
+  }
+
+  /**
    * Validate filter structure before sending to API
    * Returns null if valid, or error message if invalid
    */
