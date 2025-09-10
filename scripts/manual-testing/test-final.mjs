@@ -1,10 +1,10 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { KnowledgeLibrary } from './build/src/intelligent/knowledge-library.js';
-import { SafetyEngine } from './build/src/intelligent/safety-engine.js';
-import { SmartSuiteAPIProxy } from './build/src/intelligent/api-proxy.js';
-import { createAuthenticatedClient } from './build/src/smartsuite-client.js';
+import { KnowledgeLibrary } from '../../build/src/intelligent/knowledge-library.js';
+import { SafetyEngine } from '../../build/src/intelligent/safety-engine.js';
+import { SmartSuiteAPIProxy } from '../../build/src/intelligent/api-proxy.js';
+import { createAuthenticatedClient } from '../../build/src/smartsuite-client.js';
 
 async function testComplete() {
   console.log('=== SmartSuite API Shim Intelligent Tool - Complete Test ===\n');
@@ -20,7 +20,7 @@ async function testComplete() {
   
   // Initialize components
   const knowledgeLibrary = new KnowledgeLibrary();
-  await knowledgeLibrary.loadFromResearch('./src/knowledge');
+  await knowledgeLibrary.loadFromResearch('../../src/knowledge');
   
   const safetyEngine = new SafetyEngine();
   
