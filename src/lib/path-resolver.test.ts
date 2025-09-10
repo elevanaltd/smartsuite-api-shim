@@ -145,9 +145,11 @@ describe('Path Resolver', () => {
     });
 
     it('should resolve asset path for development environment', async () => {
-      // Mock fileURLToPath within the test
-      const { fileURLToPath } = await import('url');
-      vi.mocked(fileURLToPath).mockReturnValue('/project/src/intelligent/module.js');
+      // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-53de831d
+      // Fix: vi.mocked doesn't work with dynamic imports, use vi.doMock
+      vi.doMock('url', () => ({
+        fileURLToPath: vi.fn(() => '/project/src/intelligent/module.js')
+      }));
 
       const mockImportUrl = 'file:///project/src/intelligent/module.js';
       const mockCurrentDir = '/project/src/intelligent';

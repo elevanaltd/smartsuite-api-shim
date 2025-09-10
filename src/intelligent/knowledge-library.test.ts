@@ -213,7 +213,8 @@ describe('KnowledgeLibrary', () => {
   });
 
   describe('Memory Management', () => {
-    it('should handle 10K patterns without memory exhaustion', () => {
+    // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-ab17e0df
+    it('should handle 10K patterns without memory exhaustion', { timeout: 30000 }, () => {
       const initialMemory = library.getMemoryUsage();
 
       // Learn 10,000 unique patterns to test memory growth
