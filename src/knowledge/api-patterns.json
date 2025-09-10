@@ -1,5 +1,6 @@
 {
-  "_LIVE_UPDATE_TEST": "This comment proves knowledge loads from src/ without rebuild - Updated at 09:15",
+  "_approval_token": "SYSTEM-STEWARD-20250910-eb2e7e29",
+  "_knowledge_version": "Updated 2025-09-10: Added table/field creation patterns from EAV documentation",
   "CRITICAL_FILTER_KNOWLEDGE": {
     "LINKED_RECORD_FIELDS": {
       "description": "CRITICAL: Linked record fields require special comparison operators",
@@ -223,7 +224,7 @@
     "method": "POST",
     "description": "Add single field to table - WORKING",
     "status": "WORKING",
-    "critical_requirement": "field_position.prev_sibling_slug must be empty string, not null",
+    "critical_requirement": "field_position.prev_sibling_slug must reference existing field slug from table structure",
     "required_headers": {
       "Authorization": "Token {api_key}",
       "ACCOUNT-ID": "{workspace_id}",
@@ -241,7 +242,7 @@
         "is_new": true
       },
       "field_position": {
-        "prev_sibling_slug": ""
+        "prev_sibling_slug": "existing_field_slug_from_table_structure"
       },
       "auto_fill_structure_layout": true
     },
@@ -258,13 +259,15 @@
           "is_new": true
         },
         "field_position": {
-          "prev_sibling_slug": ""
+          "prev_sibling_slug": "select012z"
         },
         "auto_fill_structure_layout": true
       }
     },
     "common_errors": [
       "Using null for prev_sibling_slug - returns 'This field may not be null'",
+      "Using empty string for prev_sibling_slug - returns 400 Bad Request",
+      "Referencing non-existent field slug - returns 400 Bad Request",
       "Omitting field_position - returns 'This field is required'",
       "Wrong slug format - must be alphanumeric"
     ]
@@ -359,12 +362,136 @@
           "required": "boolean",
           "restrict_to_workspace_members": "boolean"
         }
+      },
+      "textareafield": {
+        "params": {
+          "help_text": "string"
+        }
+      },
+      "emailfield": {
+        "params": {
+          "allow_multiple": "boolean"
+        }
+      },
+      "linkfield": {
+        "params": {
+          "allow_multiple": "boolean"
+        }
+      },
+      "phonefield": {
+        "params": {
+          "allow_multiple": "boolean"
+        }
+      },
+      "addressfield": {
+        "params": {
+          "show_map": "boolean"
+        }
+      },
+      "fullnamefield": {
+        "params": {
+          "custom_titles": "array of strings"
+        }
+      },
+      "percentfield": {
+        "params": {
+          "decimal_places": "number"
+        }
+      },
+      "ratingfield": {
+        "params": {
+          "max_rating": "number",
+          "rating_style": "stars|thumbs|numbers"
+        }
+      },
+      "daterangefield": {
+        "params": {
+          "include_time": "boolean"
+        }
+      },
+      "timefield": {
+        "params": {
+          "time_format": "12_hour|24_hour"
+        }
+      },
+      "durationfield": {
+        "params": {
+          "display_format": "hours_minutes|minutes_seconds"
+        }
+      },
+      "multipleselectfield": {
+        "params": {
+          "options": [
+            {"value": "option_code", "label": "Display Label", "color": "#hex"}
+          ]
+        }
+      },
+      "tagsfield": {
+        "params": {
+          "is_private": "boolean",
+          "allow_new_tags": "boolean"
+        }
+      },
+      "richtextareafield": {
+        "params": {
+          "allow_attachments": "boolean"
+        }
+      },
+      "lookupfield": {
+        "params": {
+          "linked_field_id": "linked_record_field_id",
+          "lookup_field_id": "target_field_id"
+        }
+      },
+      "ipaddressfield": {
+        "params": {
+          "allow_multiple": "boolean"
+        }
+      },
+      "numbersliderfield": {
+        "params": {
+          "min_value": "number",
+          "max_value": "number",
+          "increment": "number",
+          "default_value": "number"
+        }
+      },
+      "percentcompletefield": {
+        "params": {
+          "increment": "number",
+          "default_value": "number"
+        }
+      },
+      "duedatefield": {
+        "params": {
+          "linked_status_field": "status_field_slug"
+        }
+      },
+      "socialnetworkfield": {
+        "params": {
+          "platforms": "array of platform names"
+        },
+        "note": "Cannot be created via bulk-add-fields, use add_field endpoint"
       }
     },
     "limits": {
       "max_fields_per_request": "Unknown - tested with 2 successfully",
       "slug_requirements": "10 character alphanumeric, must be unique"
     },
+    "bulk_unsupported_fields": [
+      "timetrackingfield",
+      "checklistfield", 
+      "socialnetworkfield",
+      "votefield",
+      "countfield",
+      "filefield",
+      "signaturefield",
+      "formulafield",
+      "rollupfield",
+      "subitemsfield",
+      "buttonfield"
+    ],
+    "bulk_unsupported_note": "These field types can only be created via individual /add_field/ endpoint",
     "success_example": {
       "endpoint": "/applications/6613bedd1889d8deeaef8b0e/bulk-add-fields/",
       "payload": {
@@ -415,6 +542,57 @@
       "fields": "Array of field slugs to search (optional)"
     },
     "note": "Different from filter - uses text matching"
+  },
+
+  "CREATE_TABLE": {
+    "endpoint": "/api/v1/applications/",
+    "method": "POST",
+    "description": "Create new table with initial field structure - WORKING",
+    "status": "WORKING",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "ACCOUNT-ID": "{workspace_id}",
+      "Content-Type": "application/json"
+    },
+    "body_structure": {
+      "name": "Table display name (required)",
+      "solution": "Solution ID where table will be created (required)",
+      "description": "Table description (optional)",
+      "structure": "Array of initial field definitions (required)"
+    },
+    "field_structure_requirements": {
+      "slug": "unique_field_identifier (10-char alphanumeric)",
+      "label": "Display Name",
+      "field_type": "field_type_name",
+      "params": "Field-specific parameters object"
+    },
+    "working_example": {
+      "endpoint": "/applications/",
+      "payload": {
+        "name": "Test Table via MCP",
+        "solution": "68b6d66b33630eb365ae54cb",
+        "description": "Created via intelligent tool",
+        "structure": [
+          {
+            "slug": "title",
+            "label": "Item Title",
+            "field_type": "textfield",
+            "params": {
+              "primary": true,
+              "required": true,
+              "unique": true
+            }
+          }
+        ]
+      }
+    },
+    "response": "Complete created table object with generated ID and metadata",
+    "common_errors": [
+      "Missing required solution ID",
+      "Empty structure array",
+      "Invalid field_type identifiers",
+      "Duplicate field slugs"
+    ]
   },
 
   "WEBHOOKS": {

@@ -1,4 +1,67 @@
 {
+  "_approval_token": "SYSTEM-STEWARD-20250910-eb2e7e29",
+
+  "create_table_with_basic_structure": {
+    "name": "Create Table with Initial Field Structure",
+    "description": "Create new SmartSuite table with essential fields - WORKING pattern",
+    "danger_level": "YELLOW",
+    "template": {
+      "step1_plan": {
+        "purpose": "Define table structure and required fields",
+        "requirements": ["Solution ID", "Table name", "Primary field definition"]
+      },
+      "step2_create": {
+        "method": "POST",
+        "endpoint": "/api/v1/applications/",
+        "body": {
+          "name": "Table Display Name",
+          "solution": "solution_id_required",
+          "description": "Optional table description",
+          "structure": [
+            {
+              "slug": "title",
+              "label": "Primary Field Label",
+              "field_type": "textfield",
+              "params": {
+                "primary": true,
+                "required": true,
+                "unique": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    "working_example": {
+      "name": "Video Assets Table",
+      "solution": "68b6d66b33630eb365ae54cb",
+      "structure": [
+        {
+          "slug": "title",
+          "label": "Asset Title", 
+          "field_type": "textfield",
+          "params": {"primary": true, "required": true}
+        },
+        {
+          "slug": "asset_type",
+          "label": "Asset Type",
+          "field_type": "singleselectfield",
+          "params": {
+            "options": [
+              {"value": "raw_footage", "label": "Raw Footage", "color": "#e74c3c"},
+              {"value": "edited_clip", "label": "Edited Clip", "color": "#3498db"}
+            ]
+          }
+        }
+      ]
+    },
+    "success_response": "Complete table object with generated ID",
+    "validation": {
+      "required_fields": ["name", "solution", "structure"],
+      "structure_minimum": "At least one field with primary: true"
+    }
+  },
+
   "safe_status_update": {
     "name": "Update Status Field Labels Safely",
     "description": "Change status field display labels without losing UUID data",
