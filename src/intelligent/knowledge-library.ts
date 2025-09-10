@@ -2,6 +2,7 @@
 // Context7: consulted for path
 // Context7: consulted for lru-cache
 // Critical-Engineer: consulted for Architecture pattern selection
+// Critical-Engineer: consulted for Build process and asset management strategy
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
