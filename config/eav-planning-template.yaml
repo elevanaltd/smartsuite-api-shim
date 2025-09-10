@@ -21,6 +21,16 @@ scheduling:
     internal_tasks: "any_weekday"
     delivery: "thursday"         # Allow Friday buffer for issues
 
+  # Scheduling Principles
+  calculation_method: "backward_from_due_date"
+  execution_order: "forward_from_setup"
+  principle: |
+    Tasks are calculated backward from P11 (Project Due Date) to determine
+    their latest allowable start dates. However, tasks execute forward in
+    logical sequence starting from P1-Setup. Each task has a window duration
+    that creates a from_date (start) and to_date (end). The predecessor's
+    to_date becomes the successor's from_date in backward calculation.
+
 # PROJECT-LEVEL TASKS (Always Required)
 project_tasks:
   p1_setup:
@@ -35,22 +45,27 @@ project_tasks:
     
   p2_booking_recce:
     name: "P2-Booking"
-    duration: 10
+    duration: 5
+    buffer_days: 14
     duration_type: "business_days"
     level: "project"
     variants: ["recce"]
     dependencies: ["p1_setup"]
     creates: ["p3_attendance_recce"]
     description: "Schedule reconnaissance visit with client"
+    execution_note: "Must follow P1 chronologically, calculated backward from P3"
     
   p2_booking_shoot:
     name: "P2-Booking"
     duration: 10
+    buffer_days: 14
     duration_type: "business_days"
     level: "project"
     variants: ["shoot"]
     dependencies: ["p3_attendance_recce"]
+    creates: ["p9_filming"]
     description: "Schedule main filming dates after recce"
+    execution_note: "Must follow P3 chronologically, calculated backward from P9"
     
   p3_attendance_recce:
     name: "P3-Attendance"
@@ -73,7 +88,7 @@ project_tasks:
     
   p5_music:
     name: "P5-Music Collection"
-    duration: 15
+    duration: 5
     duration_type: "business_days"
     level: "project"
     variants: []
@@ -82,7 +97,7 @@ project_tasks:
     
   p6_mogrt_check:
     name: "P6-MOGRT Check"
-    duration: 10
+    duration: 5
     duration_type: "business_days"
     level: "project"
     variants: []
@@ -92,7 +107,7 @@ project_tasks:
     
   p8_specs:
     name: "P8-Spec Collection"
-    duration: 10
+    duration: 5
     duration_type: "business_days"
     level: "project"
     variants: []
@@ -102,13 +117,16 @@ project_tasks:
     
   p9_filming:
     name: "P9-Filming"
-    duration_formula: "ROUNDUP(0.15 * (new_vids + amend_vids), 0)"
+    duration_formula: "ROUNDUP(0.15 * (new_vids + amend_vids) * 6, 0)"
     duration_min: 1
     duration_type: "business_days"
     level: "project"
     variants: ["shoot"]
     dependencies: ["p2_booking_shoot", "v5_scenes_complete"]
+    creates: ["p10_ingestion"]
     description: "Execute filming according to scene plans"
+    resource_days: "0.15 per video"
+    execution_note: "Critical convergence point - must follow both booking and scene planning"
     
   p10_ingestion:
     name: "P10-Media Ingestion"
@@ -227,7 +245,7 @@ video_tasks:
     
   v8_video_edit:
     name: "V8-Video Edit"
-    duration_formula: "ROUNDUP(0.25 * (new_vids + amend_vids), 0)"
+    duration_formula: "ROUNDUP(0.25 * (new_vids + amend_vids), 0.5)"
     duration_min: 1
     duration_type: "business_days"
     level: "video"
@@ -235,6 +253,7 @@ video_tasks:
     batch_allocate: ["new", "amend"]
     dependencies: ["v8_video_edit_quoting_approved"]
     description: "Assemble video, sync audio, add graphics"
+    resource_days: "0.25 per video, rounded to half-day"
     
   v9_video_review_internal:
     name: "V9-Video Review"
@@ -258,8 +277,43 @@ video_tasks:
     preferred_start: "monday"
     description: "Client approval review via Frame.io"
 
+  # Buffer tasks for revision cycles
+  v10_video_revision_internal:
+    name: "V10-Video Revision"
+    duration: 2
+    duration_type: "business_days"
+    level: "video"
+    variants: ["internal"]
+    batch_allocate: ["new", "amend"]
+    dependencies: ["v9_video_review_internal_changes_needed"]
+    resource_formula: "0.15 * (new_vids + amend_vids) * 0.5"
+    conditional: true
+    description: "Revisions based on internal feedback"
+    
+  v10_video_revision_client:
+    name: "V10-Video Revision"
+    duration: 2
+    duration_type: "business_days"
+    level: "video"
+    variants: ["client"]
+    batch_allocate: ["new", "amend"]
+    dependencies: ["v9_video_review_client_changes_needed"]
+    resource_formula: "0.15 * (new_vids + amend_vids) * 0.5"
+    conditional: true
+    description: "Revisions based on client feedback"
+
 # SPECIAL WORKFLOWS
 special_tasks:
+  p7_mogrt_creation:
+    name: "P7-MOGRT Creation"
+    duration: 3
+    duration_type: "business_days"
+    level: "project"
+    variants: []
+    dependencies: ["p6_mogrt_check"]
+    conditional: "mogrt_required = true"
+    resource_days: 0.25
+    description: "Create motion graphics template when not available"
   v9_video_review_reuse:
     name: "V9-Video Review"
     duration: 10
@@ -291,6 +345,23 @@ calculation_rules:
   duration_formulas:
     # Formula variables available: new_vids, amend_vids, reuse_vids, total_vids
     supported_functions: ["ROUNDUP", "ROUNDDOWN", "MAX", "MIN", "CEIL", "FLOOR"]
+    
+  resource_calculations:
+    # Base resource estimates (in days per task/video)
+    project_admin: 0.15  # Most P-level tasks
+    video_admin: 0.05   # V1 user manual collection 
+    script_creation: 0.15  # V2
+    scene_planning: 0.15   # V5
+    vo_generation: 0.08    # V6
+    edit_prep: 0.08        # V7
+    video_edit: 0.25       # V8 (per video)
+    internal_review: 0.08  # V9
+    
+  buffer_strategies:
+    booking_buffer: 14     # days added to P2 booking tasks
+    client_review_window: 5  # days for client approvals
+    auto_approve_days: 7     # days before auto-approval
+    revision_probability: 0.5  # 50% chance of revisions needed
 
 # DEPENDENCY DEFINITIONS
 dependencies:
@@ -321,6 +392,12 @@ smartsuite_mapping:
     actual_hours: "actual_hours"
     priority: "priority"
     assigned_to: "assigned_to"
+    duration: "duration"
+    # Lookup fields for video counts
+    new_vids: "sac1cc3284"       # New vids count
+    amend_vids: "s0a1f5ad8f"     # Amend vids count 
+    reuse_vids: "s4e387c8f5"     # Reuse vids count
+    project_due_date: "s9cb92c387" # Project due date
     
   default_values:
     status: "to_do"

@@ -14,7 +14,7 @@
     "clean": "rimraf build",
     "prebuild": "npm run clean",
     "postbuild": "npm run copy-assets && npm run validate-build",
-    "copy-assets": "copyfiles \"config/**/*.yaml\" \"config/**/*.yml\" build/",
+    "copy-assets": "copyfiles \"config/**/*.yaml\" \"config/**/*.yml\" \"src/knowledge/**/*.json\" build/",
     "validate-build": "MCP_VALIDATE_AND_EXIT=true node build/src/index.js",
     "test": "vitest",
     "test:watch": "vitest --watch",

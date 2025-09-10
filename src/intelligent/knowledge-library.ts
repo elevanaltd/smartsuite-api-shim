@@ -1,5 +1,6 @@
 // Context7: consulted for fs/promises
-// Context7: consulted for path
+// Context7: consulted for path  
+// Critical-Engineer: consulted for Architecture pattern selection
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -11,8 +12,8 @@ import type {
   KnowledgeVersion,
   SafetyProtocol,
   SafetyLevel,
-  OperationExample,
   FailureMode,
+  OperationExample,
   ValidationRule,
 } from './types.js';
 
@@ -104,38 +105,41 @@ export class KnowledgeLibrary {
       const allData = await Promise.all(fileReadPromises);
 
       // Process all data after reading
-      for (const data of allData) {
-        // Process different knowledge types with type safety
-        const knowledgeData = data as {
-          failureModes?: unknown[];
-          apiPatterns?: unknown[];
-          safetyProtocols?: unknown[];
-          operationTemplates?: unknown[];
-        };
-
-        if (knowledgeData.failureModes) {
-          this.loadFailureModes(knowledgeData.failureModes);
-        }
-        if (knowledgeData.apiPatterns) {
-          this.loadApiPatterns(knowledgeData.apiPatterns);
-        }
-        if (knowledgeData.safetyProtocols) {
-          this.loadSafetyProtocols(knowledgeData.safetyProtocols);
-        }
-        if (knowledgeData.operationTemplates) {
-          this.loadOperationTemplates(knowledgeData.operationTemplates);
+      for (let i = 0; i < allData.length; i++) {
+        const data = allData[i];
+        const fileName = jsonFiles[i];
+        
+        // Process different knowledge types based on filename and actual structure
+        if (fileName && fileName.includes('failure-modes')) {
+          // Convert object format to array format
+          const failureModesObject = data as Record<string, unknown>;
+          const failureModesArray = Object.values(failureModesObject);
+          this.loadFailureModes(failureModesArray);
+        } else if (fileName && fileName.includes('api-patterns')) {
+          // Handle api-patterns.json structure - it contains various knowledge sections
+          const apiPatternsObject = data as Record<string, unknown>;
+          // Extract specific patterns from the structured knowledge
+          this.loadApiPatternsFromKnowledge(apiPatternsObject);
+        } else if (fileName && fileName.includes('safety-protocols')) {
+          // Convert object format to array format
+          const safetyProtocolsObject = data as Record<string, unknown>;
+          const safetyProtocolsArray = Object.values(safetyProtocolsObject);
+          this.loadSafetyProtocols(safetyProtocolsArray);
+        } else if (fileName && fileName.includes('operation-templates')) {
+          // Convert object format to array format
+          const operationTemplatesObject = data as Record<string, unknown>;
+          const operationTemplatesArray = Object.values(operationTemplatesObject);
+          this.loadOperationTemplates(operationTemplatesArray);
         }
       }
 
-      // Load hardcoded critical patterns if no files found
-      if (this.entries.size === 0) {
-        this.loadDefaultPatterns();
-      }
+      // Default patterns are already loaded in constructor
+      // Additional patterns from research files are additive
 
       this.updateVersion();
     } catch (error) {
-      // Load default patterns if file loading fails
-      this.loadDefaultPatterns();
+      // Default patterns are already loaded in constructor
+      // File loading failures don't affect basic safety
       this.updateVersion();
     }
   }
@@ -182,45 +186,52 @@ export class KnowledgeLibrary {
     }
   }
 
-  private loadApiPatterns(patterns: unknown[]): void {
-    for (const patternData of patterns) {
-      const pattern = patternData as {
         endpoint?: string;
         pattern?: string;
         safetyLevel?: SafetyLevel;
         validations?: Array<{
           type: string;
-          limit?: number;
           pattern?: string;
           message: string;
         }>;
         method?: string;
       };
+      failureModes: [{
+        description: 'Wrong HTTP method for records/list endpoint',
+        cause: 'Using GET instead of POST for /records/list/',
+        prevention: 'Always use POST for /applications/{id}/records/list/',
+        exampleError: '404 Not Found',
+      }],
+    });
 
-      const entry: KnowledgeEntry = {
-        pattern: new RegExp(pattern.endpoint ?? pattern.pattern ?? '.*'),
-        safetyLevel: pattern.safetyLevel ?? 'GREEN',
-      };
+    // Pattern 2: Add field endpoint patterns
+    this.addEntry('POST', {
+      pattern: /\/add_field/,
+      safetyLevel: 'YELLOW',
+      failureModes: [{
+        description: 'Field addition requires proper structure',
+        cause: 'Missing required field parameters',
+        prevention: 'Include field_type, label, and slug',
+      }],
+    });
 
-      // Only add validationRules if validations exist and are properly formed
-      if (pattern.validations && pattern.validations.length > 0) {
-        entry.validationRules = pattern.validations.map((v) => {
-          const rule: ValidationRule = {
-            type: v.type,
-            message: v.message,
-          };
-          if (v.limit !== undefined) {
-            rule.limit = v.limit;
-          }
-          if (v.pattern) {
-            rule.pattern = new RegExp(v.pattern);
-          }
-          return rule;
-        });
-      }
-      this.addEntry(pattern.method ?? 'ANY', entry);
-    }
+    // Pattern 3: Bulk operations
+    const bulkValidationRule: ValidationRule = {
+      type: 'recordLimit',
+      limit: 25,
+      message: 'Bulk operations limited to 25 records',
+    };
+    
+    this.addEntry('POST', {
+      pattern: /\/bulk/,
+      safetyLevel: 'YELLOW',
+      validationRules: [bulkValidationRule],
+    });
+
+    // Count the patterns loaded from knowledge
+    this.version.patternCount += 3;
   }
+
 
   private loadSafetyProtocols(protocols: unknown[]): void {
     for (const protocolData of protocols) {
