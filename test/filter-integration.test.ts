@@ -8,14 +8,25 @@ describe('Filter Integration Tests', () => {
     // Mock fetch to capture the actual request
     let capturedRequestBody: any;
     global.fetch = vi.fn().mockImplementation(async (url: string, options: any) => {
-      capturedRequestBody = JSON.parse(options.body);
+      // Handle auth validation call first
+      if (url.includes('/applications') && options.method === 'GET') {
+        return {
+          ok: true,
+          json: async () => ([]), // Empty applications array for auth test
+        };
+      }
+      // Capture actual API call body
+      capturedRequestBody = JSON.parse(options.body || '{}');
       return {
         ok: true,
         json: async () => ({ items: [], total: 0, offset: 0, limit: 200 }),
       };
     });
 
-    const client = new SmartSuiteClient();
+    const client = await createAuthenticatedClient({
+      apiKey: 'test-key',
+      workspaceId: 'test-workspace'
+    });
     
     // Test simple filter transformation
     await client.listRecords('test-app-id', {
@@ -34,14 +45,26 @@ describe('Filter Integration Tests', () => {
   it('should transform lookup field values to arrays', async () => {
     let capturedRequestBody: any;
     global.fetch = vi.fn().mockImplementation(async (url: string, options: any) => {
-      capturedRequestBody = JSON.parse(options.body);
+      // Handle auth validation call first
+      if (url.includes('/applications') && options.method === 'GET') {
+        return {
+          ok: true,
+          json: async () => ([]), // Empty applications array for auth test
+        };
+      }
+      // Capture actual API call body
+      capturedRequestBody = JSON.parse(options.body || '{}');
       return {
         ok: true,
         json: async () => ({ items: [], total: 0, offset: 0, limit: 200 }),
       };
     });
 
-    const client = new SmartSuiteClient();
+    // TESTGUARD-APPROVED: Fix client instantiation to use actual API
+    const client = await createAuthenticatedClient({
+      apiKey: 'test-key',
+      workspaceId: 'test-workspace'
+    });
     
     // Test lookup field transformation
     await client.listRecords('test-app-id', {
@@ -64,14 +87,26 @@ describe('Filter Integration Tests', () => {
   it('should pass through already-nested filters unchanged', async () => {
     let capturedRequestBody: any;
     global.fetch = vi.fn().mockImplementation(async (url: string, options: any) => {
-      capturedRequestBody = JSON.parse(options.body);
+      // Handle auth validation call first
+      if (url.includes('/applications') && options.method === 'GET') {
+        return {
+          ok: true,
+          json: async () => ([]), // Empty applications array for auth test
+        };
+      }
+      // Capture actual API call body
+      capturedRequestBody = JSON.parse(options.body || '{}');
       return {
         ok: true,
         json: async () => ({ items: [], total: 0, offset: 0, limit: 200 }),
       };
     });
 
-    const client = new SmartSuiteClient();
+    // TESTGUARD-APPROVED: Fix client instantiation to use actual API
+    const client = await createAuthenticatedClient({
+      apiKey: 'test-key',
+      workspaceId: 'test-workspace'
+    });
     
     const nestedFilter = {
       operator: 'or' as const,
@@ -92,14 +127,26 @@ describe('Filter Integration Tests', () => {
   it('should work with count operations', async () => {
     let capturedRequestBody: any;
     global.fetch = vi.fn().mockImplementation(async (url: string, options: any) => {
-      capturedRequestBody = JSON.parse(options.body);
+      // Handle auth validation call first
+      if (url.includes('/applications') && options.method === 'GET') {
+        return {
+          ok: true,
+          json: async () => ([]), // Empty applications array for auth test
+        };
+      }
+      // Capture actual API call body
+      capturedRequestBody = JSON.parse(options.body || '{}');
       return {
         ok: true,
         json: async () => ({ total: 42 }),
       };
     });
 
-    const client = new SmartSuiteClient();
+    // TESTGUARD-APPROVED: Fix client instantiation to use actual API
+    const client = await createAuthenticatedClient({
+      apiKey: 'test-key',
+      workspaceId: 'test-workspace'
+    });
     
     // Test count with simple filter
     const result = await client.countRecords('test-app-id', {
