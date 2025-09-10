@@ -143,9 +143,9 @@ project_tasks:
     duration_type: "business_days"
     level: "project"
     variants: []
-    dependencies: ["all_videos_approved"]
+    dependencies: ["v10_video_revision_client"]
     due_date_rule: "project_due_date"
-    description: "Export final formats, upload to platforms, generate delivery docs"
+    description: "Export final formats, upload to platforms, generate delivery docs - after all video revision buffers"
     
   p12_completion:
     name: "P12-Completion & Invoicing"
@@ -188,7 +188,8 @@ video_tasks:
     variants: ["internal"]
     batch_allocate: ["new", "amend"]
     dependencies: ["v2_script_creation"]
-    description: "Internal quality review of scripts"
+    creates: ["v4_script_revision_internal"]
+    description: "Internal quality review of scripts - sequential progression to internal revision buffer"
     
   v3_script_review_client:
     name: "V3-Script Review"
@@ -197,10 +198,37 @@ video_tasks:
     level: "video"
     variants: ["client"]
     batch_allocate: ["new", "amend"]
-    dependencies: ["v3_script_review_internal_approved"]
+    dependencies: ["v4_script_revision_internal"]
+    creates: ["v4_script_revision_client"]
     auto_approve_days: 7
     preferred_start: "monday"
-    description: "Client approval review of scripts"
+    description: "Client approval review of scripts - sequential progression from internal revision buffer"
+    
+  v4_script_revision_internal:
+    name: "V4-Script Revision"
+    duration: 3
+    duration_type: "business_days"
+    level: "video"
+    variants: ["internal"]
+    batch_allocate: ["new", "amend"]
+    dependencies: ["v3_script_review_internal"]
+    creates: ["v3_script_review_client"]
+    resource_formula: "0.08 * (new_vids + amend_vids) * 0.25"
+    conditional: true
+    description: "Buffer window for script revisions - sequential progression to client review"
+    
+  v4_script_revision_client:
+    name: "V4-Script Revision"
+    duration: 2
+    duration_type: "business_days"
+    level: "video"
+    variants: ["client"]
+    batch_allocate: ["new", "amend"]
+    dependencies: ["v3_script_review_client"]
+    creates: ["v5_scenes", "v6_vo_generation"]
+    resource_formula: "0.15 * (new_vids + amend_vids) * 0.25"
+    conditional: true
+    description: "Buffer window for script revisions - sequential progression to scene planning and VO"
     
   v4_script_revision_internal:
     name: "V4-Script Revision"
@@ -233,8 +261,8 @@ video_tasks:
     level: "video"
     variants: []
     batch_allocate: ["new", "amend"]
-    dependencies: ["v3_script_review_client_approved"]
-    description: "Create detailed scene plans and prepare shot requirements"
+    dependencies: ["v4_script_revision_client"]
+    description: "Create detailed scene plans and prepare shot requirements - after client revision buffer"
     
   v6_vo_generation:
     name: "V6-VO Generation"
@@ -243,9 +271,9 @@ video_tasks:
     level: "video"
     variants: []
     batch_allocate: ["new", "amend"]
-    dependencies: ["v3_script_review_client_approved"]
+    dependencies: ["v4_script_revision_client"]
     parallel: true  # Can run with V5
-    description: "Generate AI voiceover from approved scripts"
+    description: "Generate AI voiceover from approved scripts - after client revision buffer"
     
   v7_edit_prep:
     name: "V7-Edit Prep"
@@ -288,7 +316,8 @@ video_tasks:
     variants: ["internal"]
     batch_allocate: ["new", "amend"]
     dependencies: ["v8_video_edit"]
-    description: "Internal quality assurance review"
+    creates: ["v10_video_revision_internal"]
+    description: "Internal quality assurance review - sequential progression to internal revision buffer"
     
   v9_video_review_client:
     name: "V9-Video Review"
@@ -297,10 +326,11 @@ video_tasks:
     level: "video"
     variants: ["client"]
     batch_allocate: ["new", "amend"]
-    dependencies: ["v9_video_review_internal_approved"]
+    dependencies: ["v10_video_revision_internal"]
+    creates: ["v10_video_revision_client"]
     auto_approve_days: 7
     preferred_start: "monday"
-    description: "Client approval review via Frame.io"
+    description: "Client approval review via Frame.io - sequential progression from internal revision buffer"
 
   # Buffer tasks for revision cycles
   v10_video_revision_internal:
@@ -310,10 +340,11 @@ video_tasks:
     level: "video"
     variants: ["internal"]
     batch_allocate: ["new", "amend"]
-    dependencies: ["v9_video_review_internal_changes_needed"]
+    dependencies: ["v9_video_review_internal"]
+    creates: ["v9_video_review_client"]
     resource_formula: "0.15 * (new_vids + amend_vids) * 0.25"
     conditional: true
-    description: "Revisions based on internal feedback"
+    description: "Buffer window for internal revisions - sequential progression to client review"
     
   v10_video_revision_client:
     name: "V10-Video Revision"
@@ -322,10 +353,11 @@ video_tasks:
     level: "video"
     variants: ["client"]
     batch_allocate: ["new", "amend"]
-    dependencies: ["v9_video_review_client_changes_needed"]
+    dependencies: ["v9_video_review_client"]
+    creates: ["p11_delivery"]
     resource_formula: "0.15 * (new_vids + amend_vids) * 0.25"
     conditional: true
-    description: "Revisions based on client feedback"
+    description: "Buffer window for client revisions - sequential progression to final delivery"
 
 # SPECIAL WORKFLOWS
 special_tasks:
@@ -395,8 +427,9 @@ dependencies:
     requires_all: ["p4_branding_complete", "p5_music_complete", "p6_mogrt_check_complete"]
   
   all_videos_approved:
-    requires_all: ["v9_video_review_client_complete"]
+    requires_all: ["v10_video_revision_client_complete"]
     scope: "all_new_amend_videos"
+    note: "Changed to V10 client revision completion for sequential flow"
   
   v1_manuals_if_required:
     condition: "IF user_manual_checkbox = true THEN v1_manuals_complete ELSE p8_specs_complete"

@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { createAuthenticatedClient } from './build/src/smartsuite-client.js';
+import { createAuthenticatedClient } from '../../build/src/smartsuite-client.js';
 
 async function test() {
   console.log('Environment check:');
