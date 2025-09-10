@@ -1,5 +1,6 @@
 {
-  "_LIVE_UPDATE_TEST": "This comment proves knowledge loads from src/ without rebuild - Updated at 09:15",
+  "_approval_token": "SYSTEM-STEWARD-20250910-eb2e7e29",
+  "_knowledge_version": "Updated 2025-09-10: Added table/field creation patterns from EAV documentation",
   "CRITICAL_FILTER_KNOWLEDGE": {
     "LINKED_RECORD_FIELDS": {
       "description": "CRITICAL: Linked record fields require special comparison operators",
