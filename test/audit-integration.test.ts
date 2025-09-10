@@ -11,7 +11,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { AuditLogger } from '../src/audit/audit-logger.js';
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
+// TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-c1d32fb5
 import * as smartsuiteClient from '../src/smartsuite-client.js';
+import type { SmartSuiteClient } from '../src/smartsuite-client.js';
 
 // Mock the createAuthenticatedClient to avoid real API calls
 vi.mock('../src/smartsuite-client.js', () => ({
@@ -57,8 +59,9 @@ describe('Audit Integration', () => {
       }),
     };
 
+    // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-86f6bc81
     // Mock createAuthenticatedClient to return our mock client
-    vi.mocked(smartsuiteClient.createAuthenticatedClient).mockResolvedValue(mockClient as any);
+    vi.mocked(smartsuiteClient.createAuthenticatedClient).mockResolvedValue(mockClient as unknown as SmartSuiteClient);
 
     // Create and initialize the server
     server = new SmartSuiteShimServer();

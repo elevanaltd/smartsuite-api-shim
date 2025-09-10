@@ -763,7 +763,7 @@ export class SmartSuiteShimServer {
         beforeData = await this.client!.getRecord(appId, recordId);
       } catch (error) {
         // If we can't get beforeData, continue but log without it
-        console.warn(`Failed to fetch beforeData for ${operation} audit: ${error}`);
+        console.warn(`Failed to fetch beforeData for ${operation} audit: ${String(error)}`);
       }
     }
 

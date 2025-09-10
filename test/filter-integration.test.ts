@@ -16,7 +16,7 @@ describe('Filter Integration Tests', () => {
         };
       }
       // Capture actual API call body
-      capturedRequestBody = JSON.parse(options.body || '{}');
+      capturedRequestBody = JSON.parse((options.body as string) || '{}');
       return {
         ok: true,
         json: async () => ({ items: [], total: 0, offset: 0, limit: 200 }),
@@ -53,7 +53,7 @@ describe('Filter Integration Tests', () => {
         };
       }
       // Capture actual API call body
-      capturedRequestBody = JSON.parse(options.body || '{}');
+      capturedRequestBody = JSON.parse((options.body as string) || '{}');
       return {
         ok: true,
         json: async () => ({ items: [], total: 0, offset: 0, limit: 200 }),
@@ -95,7 +95,7 @@ describe('Filter Integration Tests', () => {
         };
       }
       // Capture actual API call body
-      capturedRequestBody = JSON.parse(options.body || '{}');
+      capturedRequestBody = JSON.parse((options.body as string) || '{}');
       return {
         ok: true,
         json: async () => ({ items: [], total: 0, offset: 0, limit: 200 }),
@@ -135,7 +135,7 @@ describe('Filter Integration Tests', () => {
         };
       }
       // Capture actual API call body
-      capturedRequestBody = JSON.parse(options.body || '{}');
+      capturedRequestBody = JSON.parse((options.body as string) || '{}');
       return {
         ok: true,
         json: async () => ({ total: 42 }),

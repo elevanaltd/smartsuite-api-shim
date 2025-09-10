@@ -22,6 +22,13 @@ NEWVID = new_vids + amend_vids  # Used in most task duration formulas
 total_vids = new_vids + amend_vids + reuse_vids
 ```
 
+## Three-Field Model (Updated)
+
+**Field Purpose Definitions:**
+1. **`due_date`** (duedatefield): Simple deadline for My Work overview
+2. **`duration`** (duedatefield): Window constraints (when work CAN happen)
+3. **`rsrc_alloc`** (daterangefield): Visual resource allocation/booking
+
 ## Task Duration & Resource Calculations
 
 ### Project-Level Tasks
@@ -247,7 +254,9 @@ Total Project Duration: ~74 business days (June 3 to August 15)
 - `s0a1f5ad8f`: Amend video count (lookup)  
 - `s4e387c8f5`: Reuse video count (lookup)
 - `s9cb92c387`: Project due date (lookup)
-- `due_date`: Calculated task due date
+- `due_date`: Simple deadline display
+- `duration`: Window constraints (hard boundaries) 
+- `rsrc_alloc`: Visual resource allocation
 - `task_code`: Task type (P1, V2, etc.)
 - `task_variant`: Task variant (recce, client, etc.)
 

@@ -128,7 +128,8 @@ describe('KnowledgeLibrary Production Asset Loading', () => {
 
       } catch (error) {
         // This test will fail until build process is fixed
-        throw new Error(`Build knowledge directory not found: ${error}`);
+        // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-6da67cf7
+        throw new Error(`Build knowledge directory not found: ${String(error)}`);
       }
     });
   });

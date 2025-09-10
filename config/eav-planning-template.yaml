@@ -416,7 +416,10 @@ smartsuite_mapping:
     actual_hours: "actual_hours"
     priority: "priority"
     assigned_to: "assigned_to"
-    duration: "duration"
+    # THREE-FIELD MODEL:
+    due_date: "due_date"           # Simple deadline (My Work overview)
+    window_constraints: "duration"  # When work CAN happen (hard boundaries)
+    resource_allocation: "rsrc_alloc" # Visual resource booking
     # Lookup fields for video counts
     new_vids: "sac1cc3284"       # New vids count
     amend_vids: "s0a1f5ad8f"     # Amend vids count 
@@ -427,6 +430,12 @@ smartsuite_mapping:
     status: "to_do"
     priority: "normal"
     task_level: "project_level"  # or "video_level"
+    
+  # Field type definitions:
+  field_types:
+    due_date: "duedatefield"      # Simple deadline
+    duration: "duedatefield"      # Window constraints 
+    rsrc_alloc: "daterangefield"  # Resource allocation
 
 # VARIANT DEFINITIONS
 variants:
