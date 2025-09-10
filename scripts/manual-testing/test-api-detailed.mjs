@@ -1,4 +1,4 @@
-import { createAuthenticatedClient } from './build/src/smartsuite-client.js';
+import { createAuthenticatedClient } from '../../build/src/smartsuite-client.js';
 
 async function testDirectAPI() {
   console.log('Testing direct SmartSuite API call...\n');
