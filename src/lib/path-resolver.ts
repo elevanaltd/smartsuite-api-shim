@@ -112,7 +112,7 @@ export function resolveAssetPath(relativePath: string, importMetaUrl: string): s
 
   // Development: navigate up to find project root and src directory
   let searchDir = currentDir;
-  
+
   // Special case: if we're in an intelligent subdirectory, look for src at parent level
   if (searchDir.includes('/intelligent') || searchDir.includes('\\intelligent')) {
     const parentOfIntelligent = searchDir.replace(/[/\\]intelligent.*$/, '');
@@ -126,7 +126,7 @@ export function resolveAssetPath(relativePath: string, importMetaUrl: string): s
       }
     }
   }
-  
+
   for (let i = 0; i < 10; i++) {
     // Check if we're currently IN the src directory
     if (searchDir.endsWith('/src') || searchDir.endsWith('\\src')) {

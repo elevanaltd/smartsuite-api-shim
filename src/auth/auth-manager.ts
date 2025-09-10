@@ -69,7 +69,7 @@ export class AuthManager {
    */
   async validateAuth(): Promise<AuthValidationResult> {
     const startTime = new Date();
-    // Authentication attempt started
+    console.info('[AuthManager] Authentication attempt started');
 
     try {
       // SECURITY CHECK 1: Validate required credentials are present
@@ -202,7 +202,7 @@ export class AuthManager {
     this.authenticated = false;
     this.authConfig = null;
     this.lastValidation = null;
-    console.info('[AuthManager] Authentication state reset');
+    // Authentication state reset
   }
 
   /**

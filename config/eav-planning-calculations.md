@@ -234,7 +234,7 @@ Video Stream (parallel):
 - V9-Internal Review: 2025-07-29 to 2025-07-31 (3 days)
 - V8-Video Edit: 2025-07-26 to 2025-07-28 (1.5 days rounded to half-days)
 - V8-Quoting: 2025-07-23 to 2025-07-25 (3 days)
-- V7-Edit Prep: 2025-07-18 to 2025-07-22 (3 days)
+- V7-Edit Prep: 2025-07-18 to 2025-07-22 (3 days + 7 buffer)
 - V6-VO Generation: 2025-07-11 to 2025-07-17 (5 days)
 - V5-Scene Planning: 2025-07-02 to 2025-07-08 (5 days, must complete before P9)
 - V4-Script Revision: 2025-06-27 to 2025-07-01 (3 days if needed)

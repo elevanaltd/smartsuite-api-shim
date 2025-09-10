@@ -271,6 +271,7 @@ video_tasks:
     name: "V8-Video Edit"
     duration_formula: "ROUNDUP(0.25 * (new_vids + amend_vids), 0.5)"
     duration_min: 1
+    buffer_days: 7
     duration_type: "business_days"
     level: "video"
     variants: ["editing", "grading"]
