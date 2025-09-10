@@ -32,8 +32,9 @@ export class SmartSuiteAPIProxy {
     try {
       // 1. Knowledge-driven validation
       const knowledge = this.knowledgeLibrary.findRelevantKnowledge(
-        input.endpoint,
         input.method,
+        input.endpoint,
+        input.payload,
       );
 
       // 2. Safety assessment with confirmation requirement
@@ -71,10 +72,10 @@ export class SmartSuiteAPIProxy {
         endpoint: fullEndpoint,
         ...(correctedInput.payload !== undefined && { data: correctedInput.payload }),
       };
-      const response: Record<string, unknown> = await this.client.request(requestOptions) as Record<string, unknown>;
+      const response = await this.client.request(requestOptions);
 
       // 6. Capture learning from successful operation
-      this.captureSuccessPattern(correctedInput, response);
+      this.captureSuccessPattern(correctedInput, response as Record<string, unknown>);
 
       return {
         success: true,
@@ -115,8 +116,9 @@ export class SmartSuiteAPIProxy {
 
     // Find relevant knowledge
     const knowledge = this.knowledgeLibrary.findRelevantKnowledge(
-      input.endpoint,
       input.method,
+      input.endpoint,
+      input.payload,
     );
 
     // Assess safety

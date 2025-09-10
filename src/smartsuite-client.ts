@@ -435,12 +435,58 @@ export async function createAuthenticatedClient(
         throw new Error(errorMessage);
       }
 
-      // Handle 204 No Content
+      // Handle 204 No Content - Critical-Engineer: consulted for API client reliability and error handling
       if (response.status === 204) {
-        return { success: true };
+        return { success: true, status: 'executed' };
       }
 
-      return response.json();
+      // Robust response parsing with comprehensive diagnostics
+      const contentLength = response.headers.get('content-length');
+      const contentType = response.headers.get('content-type') ?? 'unknown';
+      // Handle explicit empty responses
+      if (contentLength === '0') {
+        return { success: true, status: 'executed' };
+      }
+
+      // Parse response text first to handle all edge cases
+      const responseText = await response.text();
+      if (!responseText || responseText.trim().length === 0) {
+        return { success: true, status: 'executed' };
+      }
+
+      // Only attempt JSON parsing for JSON content types
+      if (!contentType.includes('application/json')) {
+        console.warn('[SmartSuite Client] Non-JSON response received:', {
+          status: response.status,
+          contentType,
+          url: options.endpoint,
+          method: options.method,
+          bodyPreview: responseText.substring(0, 200),
+        });
+        // Return success for non-JSON responses if status was OK
+        return { success: true, status: 'executed', rawResponse: responseText };
+      }
+
+      try {
+        return JSON.parse(responseText);
+      } catch (parseError) {
+        // Critical diagnostic information for debugging JSON parse failures
+        console.error('[SmartSuite Client] JSON Parse Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          contentType,
+          contentLength,
+          url: options.endpoint,
+          method: options.method,
+          bodyPreview: responseText.substring(0, 500),
+          error: parseError instanceof Error ? parseError.message : String(parseError),
+        });
+        throw new Error(
+          `Failed to parse API response as JSON. Status: ${response.status}, ` +
+          `Content-Type: ${contentType}, Endpoint: ${options.endpoint}. ` +
+          `Response preview: ${responseText.substring(0, 100)}`,
+        );
+      }
     },
   };
 
