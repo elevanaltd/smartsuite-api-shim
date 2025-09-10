@@ -3,8 +3,7 @@
 // Context7: consulted for vitest
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Import will fail until we create the class - this is expected in TDD RED phase
-// @ts-expect-error - Expected error during RED phase
+// AuthManager import - class exists after successful TDD GREEN phase
 import { AuthManager } from '../src/auth/auth-manager.js';
 
 // Mock environment and network dependencies
