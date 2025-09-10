@@ -99,8 +99,10 @@ export class SmartSuiteShimServer {
   private async initializeIntelligentHandler(): Promise<void> {
     if (!this.intelligentHandler) {
       const knowledgeLibrary = new KnowledgeLibrary();
-      // Load knowledge from research files
-      const knowledgePath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'knowledge');
+      // ALWAYS load knowledge from source directory - no rebuild needed for knowledge updates
+      // This allows hot-reloading of knowledge patterns without compilation
+      const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+      const knowledgePath = path.join(projectRoot, 'src', 'knowledge');
       await knowledgeLibrary.loadFromResearch(knowledgePath);
       const safetyEngine = new SafetyEngine(knowledgeLibrary);
       // Pass the SmartSuiteClient to enable execute and dry_run modes

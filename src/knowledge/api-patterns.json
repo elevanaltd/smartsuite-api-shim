@@ -1,4 +1,5 @@
 {
+  "_LIVE_UPDATE_TEST": "This comment proves knowledge loads from src/ without rebuild - Updated at 09:15",
   "CRITICAL_FILTER_KNOWLEDGE": {
     "LINKED_RECORD_FIELDS": {
       "description": "CRITICAL: Linked record fields require special comparison operators",
