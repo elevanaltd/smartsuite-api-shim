@@ -44,7 +44,7 @@ describe('KnowledgeLibrary Production Asset Loading', () => {
       // This will fail until we implement proper __dirname handling
       
       // Mock production build scenario where import.meta.url points to build/src/
-      const mockImportMetaUrl = 'file:///app/build/src/mcp-server.js';
+      // const mockImportMetaUrl = 'file:///app/build/src/mcp-server.js';
       
       // Mock path resolution to test the fix
       vi.mock('path', () => ({
