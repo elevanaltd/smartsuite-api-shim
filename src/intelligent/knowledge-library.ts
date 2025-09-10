@@ -87,6 +87,11 @@ export class KnowledgeLibrary {
 
   constructor() {
     this.cache = new SimpleLRUCache(100, 5 * 60 * 1000);
+    // CRITICAL SAFETY: Always load default patterns to ensure safety contracts
+    // These patterns prevent dangerous operations like wrong HTTP methods,
+    // UUID corruption, and bulk operation overruns
+    this.loadDefaultPatterns();
+    this.updateVersion();
   }
 
   async loadFromResearch(researchPath: string): Promise<void> {
@@ -186,16 +191,15 @@ export class KnowledgeLibrary {
     }
   }
 
-        endpoint?: string;
-        pattern?: string;
-        safetyLevel?: SafetyLevel;
-        validations?: Array<{
-          type: string;
-          pattern?: string;
-          message: string;
-        }>;
-        method?: string;
-      };
+  private loadApiPatternsFromKnowledge(_knowledgeData: Record<string, unknown>): void {
+    // Extract critical patterns from the knowledge structure
+    // The api-patterns.json contains various sections, not just an array of patterns
+    // TODO: Parse the actual knowledge data structure when needed
+    
+    // Pattern 1: Records list endpoint - must use POST not GET
+    this.addEntry('GET', {
+      pattern: /\/records\/list/,
+      safetyLevel: 'RED',
       failureModes: [{
         description: 'Wrong HTTP method for records/list endpoint',
         cause: 'Using GET instead of POST for /records/list/',
