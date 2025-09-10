@@ -703,12 +703,13 @@ export class SmartSuiteShimServer {
 
     if (dry_run) {
       // Perform proper validation with actual API checks
-      return this.performDryRunValidation(operation, appId, recordId, inputData, translatedData);
+      return this.performDryRunValidation(operation, appId, recordId, inputData ?? {}, translatedData ?? {});
     }
 
     // ENFORCEMENT: Check if a successful dry-run was performed for this operation
     const operationKey = this.generateOperationKey(operation, appId, recordId);
-    const dataHash = this.generateDataHash(translatedData);
+    // Ensure consistent data hash for delete operations (no data)
+    const dataHash = this.generateDataHash(translatedData ?? {});
 
     // Clean expired validations
     this.cleanExpiredValidations();
@@ -1006,8 +1007,9 @@ export class SmartSuiteShimServer {
    */
   private generateDataHash(data: Record<string, unknown> | undefined): string {
     // Simple JSON stringify for hashing - in production, use crypto hash
-    if (!data) {
-      return JSON.stringify(null);
+    if (!data || Object.keys(data).length === 0) {
+      // Treat undefined and empty object the same for consistency
+      return JSON.stringify({});
     }
     return JSON.stringify(data, Object.keys(data).sort());
   }
@@ -1143,6 +1145,11 @@ export class SmartSuiteShimServer {
     schema: Record<string, unknown>, // SmartSuiteSchema type
   ): string[] {
     const errors: string[] = [];
+
+    // Skip validation for delete operations (no data to validate)
+    if (operation === 'delete') {
+      return [];
+    }
 
     if (!schema.structure || !Array.isArray(schema.structure)) {
       return ['Schema structure not available for validation'];

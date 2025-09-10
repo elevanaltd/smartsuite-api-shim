@@ -102,8 +102,8 @@ export class AuditLogger {
       return [];
     }
 
-    const entries = await fs.readJson(this.auditFilePath);
-    return entries.map(this.deserializeEntry);
+    const entries = await fs.readJson(this.auditFilePath) as unknown[];
+    return entries.map((entry) => this.deserializeEntry(entry));
   }
 
   async generateComplianceReport(standard: 'SOC2' | 'GDPR'): Promise<ComplianceReport> {
@@ -231,7 +231,8 @@ export class AuditLogger {
 
       // Read existing entries if file exists
       if (await fs.pathExists(this.auditFilePath)) {
-        entries = await fs.readJson(this.auditFilePath);
+        const rawEntries = await fs.readJson(this.auditFilePath) as unknown[];
+        entries = rawEntries.map((entry) => this.deserializeEntry(entry));
       }
 
       // Append new entry
@@ -261,8 +262,8 @@ export class AuditLogger {
     // Acquire lock atomically
     try {
       await fs.writeFile(this.lockFilePath, lockId, { flag: 'wx' }); // wx = exclusive create
-    } catch (error: any) {
-      if (error.code === 'EEXIST') {
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'EEXIST') {
         // Lock exists, retry
         await this.sleep(10);
         return this.withFileLock(operation);
@@ -289,10 +290,11 @@ export class AuditLogger {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  private deserializeEntry(rawEntry: any): AuditLogEntry {
+  private deserializeEntry(rawEntry: unknown): AuditLogEntry {
+    const entry = rawEntry as Record<string, unknown>;
     return {
-      ...rawEntry,
-      timestamp: new Date(rawEntry.timestamp),
+      ...(entry as Omit<AuditLogEntry, 'timestamp'>),
+      timestamp: new Date(entry.timestamp as string),
     };
   }
 

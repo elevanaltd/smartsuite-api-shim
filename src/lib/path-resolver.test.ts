@@ -10,6 +10,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('fs');
 vi.mock('path');
 
+// Get mocked versions with proper typing
+const mockedFs = vi.mocked(fs);
+const mockedPath = vi.mocked(path);
+
 // We'll import the functions to test after they're implemented
 describe('Path Resolver', () => {
   beforeEach(() => {
@@ -26,9 +30,9 @@ describe('Path Resolver', () => {
       const mockImportUrl = 'file:///app/build/src/mcp-server.js';
       const mockCurrentDir = '/app/build/src';
 
-      vi.mocked(path.dirname).mockReturnValue(mockCurrentDir);
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(path.join).mockImplementation((...args) => args.join('/'));
+      mockedPath.dirname.mockReturnValue(mockCurrentDir);
+      mockedFs.existsSync.mockReturnValue(true);
+      mockedPath.join.mockImplementation((...args) => args.join('/'));
 
       // This will fail until we implement resolveKnowledgePath
       const { resolveKnowledgePath } = await import('./path-resolver.js');
@@ -42,14 +46,14 @@ describe('Path Resolver', () => {
       const mockImportUrl = 'file:///project/src/mcp-server.js';
       const mockCurrentDir = '/project/src';
 
-      vi.mocked(path.dirname).mockReturnValue(mockCurrentDir);
+      mockedPath.dirname.mockReturnValue(mockCurrentDir);
       // Mock package.json exists at project root
-      vi.mocked(fs.existsSync).mockImplementation((p) => {
+      mockedFs.existsSync.mockImplementation((p) => {
         const pathStr = String(p);
         return pathStr.includes('package.json') || pathStr.includes('src/knowledge');
       });
-      vi.mocked(path.join).mockImplementation((...args) => args.join('/'));
-      vi.mocked(path.dirname).mockImplementation((p) => {
+      mockedPath.join.mockImplementation((...args) => args.join('/'));
+      mockedPath.dirname.mockImplementation((p) => {
         const parts = String(p).split('/');
         parts.pop();
         return parts.join('/');
@@ -64,9 +68,9 @@ describe('Path Resolver', () => {
     it('should handle fallback when knowledge directory not found', async () => {
       const mockImportUrl = 'file:///app/build/src/mcp-server.js';
 
-      vi.mocked(path.dirname).mockReturnValue('/app/build/src');
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      vi.mocked(path.resolve).mockReturnValue('/app/build/src/../knowledge');
+      mockedPath.dirname.mockReturnValue('/app/build/src');
+      mockedFs.existsSync.mockReturnValue(false);
+      mockedPath.resolve.mockReturnValue('/app/build/src/../knowledge');
 
       const { resolveKnowledgePath } = await import('./path-resolver.js');
 
@@ -135,8 +139,8 @@ describe('Path Resolver', () => {
       const mockImportUrl = 'file:///app/build/src/module.js';
       const mockCurrentDir = '/app/build/src/intelligent';
 
-      vi.mocked(path.dirname).mockReturnValue(mockCurrentDir);
-      vi.mocked(path.join).mockImplementation((...args) => args.join('/'));
+      mockedPath.dirname.mockReturnValue(mockCurrentDir);
+      mockedPath.join.mockImplementation((...args) => args.join('/'));
 
       const { resolveAssetPath } = await import('./path-resolver.js');
 
@@ -148,20 +152,20 @@ describe('Path Resolver', () => {
       // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-53de831d
       // Fix: vi.mocked doesn't work with dynamic imports, use vi.doMock
       vi.doMock('url', () => ({
-        fileURLToPath: vi.fn(() => '/project/src/intelligent/module.js')
+        fileURLToPath: vi.fn(() => '/project/src/intelligent/module.js'),
       }));
 
       const mockImportUrl = 'file:///project/src/intelligent/module.js';
       const mockCurrentDir = '/project/src/intelligent';
 
-      vi.mocked(path.dirname).mockReturnValue(mockCurrentDir);
-      vi.mocked(fs.existsSync).mockImplementation((p) => {
+      mockedPath.dirname.mockReturnValue(mockCurrentDir);
+      mockedFs.existsSync.mockImplementation((p) => {
         const pathStr = String(p);
         // Return true when we check for the src directory existing at /project/src
         return pathStr === '/project/src';
       });
-      vi.mocked(path.join).mockImplementation((...args) => args.join('/'));
-      vi.mocked(path.resolve).mockImplementation((...args) => args.join('/'));
+      mockedPath.join.mockImplementation((...args) => args.join('/'));
+      mockedPath.resolve.mockImplementation((...args) => args.join('/'));
 
       const { resolveAssetPath } = await import('./path-resolver.js');
 

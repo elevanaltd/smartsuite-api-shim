@@ -116,12 +116,12 @@ export function resolveAssetPath(relativePath: string, importMetaUrl: string): s
     // Check if current directory contains src/
     const srcPath = path.join(searchDir, 'src');
     if (fs.existsSync(srcPath)) {
-      return path.join(srcPath, relativePath);
+      return path.resolve(srcPath, relativePath);
     }
 
     // Check if we're currently IN the src directory
     if (searchDir.endsWith('/src') || searchDir.endsWith('\\src')) {
-      return path.join(searchDir, relativePath);
+      return path.resolve(searchDir, relativePath);
     }
 
     const parentDir = path.dirname(searchDir);

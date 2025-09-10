@@ -100,6 +100,9 @@ describe('AuthManager - Authentication State Management', () => {
       process.env.SMARTSUITE_API_TOKEN = 'test-token';
       process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
 
+      // Create new AuthManager after setting environment variables
+      authManager = new AuthManager();
+
       global.fetch = vi.fn().mockRejectedValue(new Error('ETIMEDOUT'));
 
       // ACT & ASSERT: Should throw clear network error
@@ -204,6 +207,9 @@ describe('AuthManager - Authentication State Management', () => {
       // ARRANGE: API returns malformed JSON
       process.env.SMARTSUITE_API_TOKEN = 'test-token';
       process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
+
+      // Create new AuthManager after setting environment variables
+      authManager = new AuthManager();
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
