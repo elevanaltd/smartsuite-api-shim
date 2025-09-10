@@ -18,7 +18,9 @@ import { fileURLToPath } from 'url';
 import { z } from 'zod';
 
 import { IntelligentOperationHandler, KnowledgeLibrary, SafetyEngine } from './intelligent/index.js';
+import { resolveKnowledgePath } from './lib/path-resolver.js';
 import type { IntelligentToolInput } from './intelligent/types.js';
+import { AuditLogger } from './audit/audit-logger.js';
 import { FieldTranslator } from './lib/field-translator.js';
 import { MappingService } from './lib/mapping-service.js';
 import { TableResolver } from './lib/table-resolver.js';
@@ -72,6 +74,7 @@ export class SmartSuiteShimServer {
   private fieldMappingsInitialized = false;
   private authConfig?: SmartSuiteClientConfig;
   private intelligentHandler?: IntelligentOperationHandler;
+  private auditLogger: AuditLogger;
 
   // Validation enforcement: Track recent dry-runs to ensure validation before execution
   private validationCache = new Map<string, {
@@ -87,6 +90,8 @@ export class SmartSuiteShimServer {
     this.mappingService = new MappingService();
     this.tableResolver = new TableResolver();
     this.fieldTranslator = new FieldTranslator();
+    // Initialize audit logger with default path
+    this.auditLogger = new AuditLogger(path.join(process.cwd(), 'audit-trail.json'));
     // IntelligentHandler will be initialized in initializeIntelligentHandler
 
     // Critical-Engineer: consulted for server initialization and auto-authentication strategy
@@ -99,10 +104,10 @@ export class SmartSuiteShimServer {
   private async initializeIntelligentHandler(): Promise<void> {
     if (!this.intelligentHandler) {
       const knowledgeLibrary = new KnowledgeLibrary();
-      // ALWAYS load knowledge from source directory - no rebuild needed for knowledge updates
-      // This allows hot-reloading of knowledge patterns without compilation
-      const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-      const knowledgePath = path.join(projectRoot, 'src', 'knowledge');
+      // Use path resolver to handle both development and production environments
+      // Development: loads from src/knowledge
+      // Production: loads from build/src/knowledge (copied during build)
+      const knowledgePath = resolveKnowledgePath(import.meta.url);
       await knowledgeLibrary.loadFromResearch(knowledgePath);
       const safetyEngine = new SafetyEngine(knowledgeLibrary);
       // Pass the SmartSuiteClient to enable execute and dry_run modes
@@ -751,17 +756,69 @@ export class SmartSuiteShimServer {
     // Validation passed - clear it from cache (single use)
     this.validationCache.delete(operationKey);
 
+    // For update/delete operations, capture beforeData for audit trail
+    let beforeData: unknown;
+    if (operation === 'update' || operation === 'delete') {
+      try {
+        beforeData = await this.client!.getRecord(appId, recordId);
+      } catch (error) {
+        // If we can't get beforeData, continue but log without it
+        console.warn(`Failed to fetch beforeData for ${operation} audit: ${error}`);
+      }
+    }
+
     let result: unknown;
     switch (operation) {
       case 'create':
         result = await this.client!.createRecord(appId, translatedData);
+        // AUDIT LOGGING: Create operation
+        await this.auditLogger.logMutation({
+          operation: 'create',
+          tableId: appId,
+          recordId: (result as any)?.id || recordId,
+          payload: translatedData,
+          result,
+          reversalInstructions: {
+            operation: 'delete',
+            tableId: appId,
+            recordId: (result as any)?.id || recordId
+          }
+        });
         break;
       case 'update':
         result = await this.client!.updateRecord(appId, recordId, translatedData);
+        // AUDIT LOGGING: Update operation
+        await this.auditLogger.logMutation({
+          operation: 'update',
+          tableId: appId,
+          recordId,
+          payload: translatedData,
+          result,
+          beforeData: beforeData as Record<string, unknown>,
+          reversalInstructions: {
+            operation: 'update',
+            tableId: appId,
+            recordId,
+            payload: beforeData as Record<string, unknown>
+          }
+        });
         break;
       case 'delete':
         await this.client!.deleteRecord(appId, recordId);
         result = { deleted: recordId };
+        // AUDIT LOGGING: Delete operation  
+        await this.auditLogger.logMutation({
+          operation: 'delete',
+          tableId: appId,
+          recordId,
+          result,
+          beforeData: beforeData as Record<string, unknown>,
+          reversalInstructions: {
+            operation: 'create',
+            tableId: appId,
+            payload: beforeData as Record<string, unknown>
+          }
+        });
         break;
       default:
         throw new Error(`Unknown record operation: ${String(operation)}`);
@@ -947,8 +1004,11 @@ export class SmartSuiteShimServer {
   /**
    * Generate a hash of the data for comparison
    */
-  private generateDataHash(data: Record<string, unknown>): string {
+  private generateDataHash(data: Record<string, unknown> | undefined): string {
     // Simple JSON stringify for hashing - in production, use crypto hash
+    if (!data) {
+      return JSON.stringify(null);
+    }
     return JSON.stringify(data, Object.keys(data).sort());
   }
 

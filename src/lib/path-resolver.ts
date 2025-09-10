@@ -31,7 +31,7 @@ export function resolveKnowledgePath(importMetaUrl: string): string {
     
     // Find the build/src directory
     const buildSrcMatch = currentDir.match(/(.*[/\\]build[/\\]src)/);
-    if (buildSrcMatch) {
+    if (buildSrcMatch && buildSrcMatch[1]) {
       const buildSrcPath = buildSrcMatch[1];
       const knowledgePath = path.join(buildSrcPath, 'knowledge');
       
@@ -105,7 +105,7 @@ export function resolveAssetPath(relativePath: string, importMetaUrl: string): s
   if (isProduction) {
     // In production, assets should be copied to build/src/
     const buildSrcMatch = currentDir.match(/(.*[/\\]build[/\\]src)/);
-    if (buildSrcMatch) {
+    if (buildSrcMatch && buildSrcMatch[1]) {
       return path.join(buildSrcMatch[1], relativePath);
     }
   }
