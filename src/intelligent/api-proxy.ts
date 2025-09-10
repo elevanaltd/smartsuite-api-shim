@@ -1,5 +1,4 @@
 import { SmartSuiteClient, SmartSuiteRequestOptions } from '../smartsuite-client.js';
-
 import { KnowledgeLibrary } from './knowledge-library.js';
 import { SafetyEngine } from './safety-engine.js';
 import type {

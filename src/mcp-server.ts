@@ -107,7 +107,7 @@ export class SmartSuiteShimServer {
       this.intelligentHandler = new IntelligentOperationHandler(
         knowledgeLibrary,
         safetyEngine,
-        this.client,  // Now passes client for API proxy functionality
+        this.client  // Now passes client for API proxy functionality
       );
     }
   }
@@ -654,7 +654,7 @@ export class SmartSuiteShimServer {
       ...(wasTruncated && {
         truncated: true,
         originalCount: items.length,
-        message: `Response truncated to ${MAX_ITEMS_FOR_MCP} items to optimize context. Use limit parameter to control size.`,
+        message: `Response truncated to ${MAX_ITEMS_FOR_MCP} items to optimize context. Use limit parameter to control size.`
       }),
     };
   }
