@@ -62,7 +62,7 @@ project_tasks:
     duration_type: "business_days"
     level: "project"
     variants: ["shoot"]
-    dependencies: ["p3_attendance_recce"]
+    dependencies: ["p1_setup"]
     creates: ["p9_filming"]
     description: "Schedule main filming dates after recce"
     execution_note: "Must follow P3 chronologically, calculated backward from P9"
@@ -115,7 +115,7 @@ project_tasks:
     parallel: true  # Can run alongside other P tasks
     description: "Collect development specifications and analyze content requirements"
     
-  p9_filming:
+  p9_filming_shoot:
     name: "P9-Filming"
     duration_formula: "ROUNDUP(0.15 * (new_vids + amend_vids), 0.5)"
     duration_min: 1

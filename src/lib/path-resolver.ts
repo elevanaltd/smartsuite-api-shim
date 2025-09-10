@@ -112,16 +112,31 @@ export function resolveAssetPath(relativePath: string, importMetaUrl: string): s
 
   // Development: navigate up to find project root and src directory
   let searchDir = currentDir;
+  
+  // Special case: if we're in an intelligent subdirectory, look for src at parent level
+  if (searchDir.includes('/intelligent') || searchDir.includes('\\intelligent')) {
+    const parentOfIntelligent = searchDir.replace(/[/\\]intelligent.*$/, '');
+    if (parentOfIntelligent && parentOfIntelligent !== searchDir) {
+      if (parentOfIntelligent.endsWith('/src') || parentOfIntelligent.endsWith('\\src')) {
+        return path.resolve(parentOfIntelligent, relativePath);
+      }
+      const srcPath = path.join(parentOfIntelligent, 'src');
+      if (fs.existsSync(srcPath)) {
+        return path.resolve(srcPath, relativePath);
+      }
+    }
+  }
+  
   for (let i = 0; i < 10; i++) {
+    // Check if we're currently IN the src directory
+    if (searchDir.endsWith('/src') || searchDir.endsWith('\\src')) {
+      return path.resolve(searchDir, relativePath);
+    }
+
     // Check if current directory contains src/
     const srcPath = path.join(searchDir, 'src');
     if (fs.existsSync(srcPath)) {
       return path.resolve(srcPath, relativePath);
-    }
-
-    // Check if we're currently IN the src directory
-    if (searchDir.endsWith('/src') || searchDir.endsWith('\\src')) {
-      return path.resolve(searchDir, relativePath);
     }
 
     const parentDir = path.dirname(searchDir);
@@ -129,5 +144,5 @@ export function resolveAssetPath(relativePath: string, importMetaUrl: string): s
     searchDir = parentDir;
   }
 
-  return path.resolve(currentDir, '../' + relativePath);
+  return path.resolve(currentDir, '..', relativePath);
 }

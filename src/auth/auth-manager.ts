@@ -35,7 +35,7 @@ export class AuthManager {
       this.authConfig = {
         apiKey: config.apiKey,
         workspaceId: config.workspaceId,
-        baseUrl: config.baseUrl || 'https://app.smartsuite.com',
+        baseUrl: config.baseUrl ?? 'https://app.smartsuite.com',
       };
     } else {
       this.loadFromEnvironment();
@@ -54,9 +54,9 @@ export class AuthManager {
       this.authConfig = {
         apiKey,
         workspaceId,
-        baseUrl: process.env.SMARTSUITE_BASE_URL || 'https://app.smartsuite.com',
+        baseUrl: process.env.SMARTSUITE_BASE_URL ?? 'https://app.smartsuite.com',
       };
-      console.info('[AuthManager] Authentication configuration loaded from environment');
+      // Authentication configuration loaded from environment variables
     }
   }
 
@@ -69,7 +69,7 @@ export class AuthManager {
    */
   async validateAuth(): Promise<AuthValidationResult> {
     const startTime = new Date();
-    console.info('[AuthManager] Authentication attempt started');
+    // Authentication attempt started
 
     try {
       // SECURITY CHECK 1: Validate required credentials are present
@@ -120,7 +120,7 @@ export class AuthManager {
           // Use default error if JSON parsing fails
         }
 
-        const errorDetail = apiError.error || apiError.message || response.statusText;
+        const errorDetail = apiError.error ?? apiError.message ?? response.statusText;
         let userError: string;
 
         switch (response.status) {
@@ -146,7 +146,7 @@ export class AuthManager {
       this.authenticated = true;
       this.lastValidation = { success: true, timestamp: startTime };
 
-      console.info('[AuthManager] Authentication successful');
+      // Authentication successful
       return this.lastValidation;
 
     } catch (error) {
