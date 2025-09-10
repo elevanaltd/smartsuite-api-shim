@@ -224,7 +224,7 @@
     "method": "POST",
     "description": "Add single field to table - WORKING",
     "status": "WORKING",
-    "critical_requirement": "field_position.prev_sibling_slug must be empty string, not null",
+    "critical_requirement": "field_position.prev_sibling_slug must reference existing field slug from table structure",
     "required_headers": {
       "Authorization": "Token {api_key}",
       "ACCOUNT-ID": "{workspace_id}",
@@ -242,7 +242,7 @@
         "is_new": true
       },
       "field_position": {
-        "prev_sibling_slug": ""
+        "prev_sibling_slug": "existing_field_slug_from_table_structure"
       },
       "auto_fill_structure_layout": true
     },
@@ -259,13 +259,15 @@
           "is_new": true
         },
         "field_position": {
-          "prev_sibling_slug": ""
+          "prev_sibling_slug": "select012z"
         },
         "auto_fill_structure_layout": true
       }
     },
     "common_errors": [
       "Using null for prev_sibling_slug - returns 'This field may not be null'",
+      "Using empty string for prev_sibling_slug - returns 400 Bad Request",
+      "Referencing non-existent field slug - returns 400 Bad Request",
       "Omitting field_position - returns 'This field is required'",
       "Wrong slug format - must be alphanumeric"
     ]
