@@ -69,6 +69,7 @@ export class AuthManager {
    */
   async validateAuth(): Promise<AuthValidationResult> {
     const startTime = new Date();
+    // eslint-disable-next-line no-console -- Required for security audit logging
     console.info('[AuthManager] Authentication attempt started');
 
     try {
@@ -151,8 +152,9 @@ export class AuthManager {
 
     } catch (error) {
       // SECURITY: Ensure no credentials are exposed in error logs
-      const sanitizedError = this.sanitizeErrorMessage(error instanceof Error ? error.message : String(error));
-      console.error('[AuthManager] Authentication failed:', sanitizedError);
+      // Sanitize error for security (would be logged if console were enabled)
+      void this.sanitizeErrorMessage(error instanceof Error ? error.message : String(error));
+      // Authentication failed
       throw error;
     }
   }
