@@ -1,8 +1,10 @@
 // Context7: consulted for fs/promises
-// Context7: consulted for path  
+// Context7: consulted for path
 // Critical-Engineer: consulted for Architecture pattern selection
 import * as fs from 'fs/promises';
 import * as path from 'path';
+
+import { Clock, SystemClock } from '../common/clock.js';
 
 import type {
   KnowledgeEntry,
@@ -80,12 +82,14 @@ export class KnowledgeLibrary {
   private version: KnowledgeVersion = {
     version: '1.0.0',
     patternCount: 0,
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: '', // Will be initialized in constructor
     compatibility: '1.0.0',
   };
   private learningBuffer: Map<string, Array<{ operation: Operation; outcome: OperationOutcome }>> = new Map();
+  private clock: Clock;
 
-  constructor() {
+  constructor(clock: Clock = new SystemClock()) {
+    this.clock = clock;
     this.cache = new SimpleLRUCache(100, 5 * 60 * 1000);
     // CRITICAL SAFETY: Always load default patterns to ensure safety contracts
     // These patterns prevent dangerous operations like wrong HTTP methods,
@@ -113,24 +117,24 @@ export class KnowledgeLibrary {
       for (let i = 0; i < allData.length; i++) {
         const data = allData[i];
         const fileName = jsonFiles[i];
-        
+
         // Process different knowledge types based on filename and actual structure
-        if (fileName && fileName.includes('failure-modes')) {
+        if (fileName?.includes('failure-modes')) {
           // Convert object format to array format
           const failureModesObject = data as Record<string, unknown>;
           const failureModesArray = Object.values(failureModesObject);
           this.loadFailureModes(failureModesArray);
-        } else if (fileName && fileName.includes('api-patterns')) {
+        } else if (fileName?.includes('api-patterns')) {
           // Handle api-patterns.json structure - it contains various knowledge sections
           const apiPatternsObject = data as Record<string, unknown>;
           // Extract specific patterns from the structured knowledge
           this.loadApiPatternsFromKnowledge(apiPatternsObject);
-        } else if (fileName && fileName.includes('safety-protocols')) {
+        } else if (fileName?.includes('safety-protocols')) {
           // Convert object format to array format
           const safetyProtocolsObject = data as Record<string, unknown>;
           const safetyProtocolsArray = Object.values(safetyProtocolsObject);
           this.loadSafetyProtocols(safetyProtocolsArray);
-        } else if (fileName && fileName.includes('operation-templates')) {
+        } else if (fileName?.includes('operation-templates')) {
           // Convert object format to array format
           const operationTemplatesObject = data as Record<string, unknown>;
           const operationTemplatesArray = Object.values(operationTemplatesObject);
@@ -195,7 +199,7 @@ export class KnowledgeLibrary {
     // Extract critical patterns from the knowledge structure
     // The api-patterns.json contains various sections, not just an array of patterns
     // TODO: Parse the actual knowledge data structure when needed
-    
+
     // Pattern 1: Records list endpoint - must use POST not GET
     this.addEntry('GET', {
       pattern: /\/records\/list/,
@@ -210,7 +214,7 @@ export class KnowledgeLibrary {
 
     // Pattern 2: Add field endpoint patterns
     this.addEntry('POST', {
-      pattern: /\/add_field/,
+      pattern: /\/add_field(\/|$)/,
       safetyLevel: 'YELLOW',
       failureModes: [{
         description: 'Field addition requires proper structure',
@@ -225,7 +229,7 @@ export class KnowledgeLibrary {
       limit: 25,
       message: 'Bulk operations limited to 25 records',
     };
-    
+
     this.addEntry('POST', {
       pattern: /\/bulk/,
       safetyLevel: 'YELLOW',
@@ -275,7 +279,7 @@ export class KnowledgeLibrary {
   private loadDefaultPatterns(): void {
     // Critical pattern 1: Wrong HTTP method for records
     this.addEntry('GET', {
-      pattern: /\/records$/,
+      pattern: /\/records(\/|$)/,
       safetyLevel: 'RED',
       failureModes: [{
         description: 'Wrong HTTP method for record listing',
@@ -287,7 +291,7 @@ export class KnowledgeLibrary {
 
     // Critical pattern 2: UUID corruption in status fields
     this.addEntry('POST', {
-      pattern: /change_field/,
+      pattern: /change_field(\/|$)/,
       safetyLevel: 'RED',
       protocols: [{
         pattern: /singleselectfield.*options/,
@@ -304,6 +308,17 @@ export class KnowledgeLibrary {
         type: 'recordLimit',
         limit: 25,
         message: 'Bulk operations limited to 25 records per API constraints',
+      }],
+    });
+
+    // Pattern 4: Add field endpoint patterns
+    this.addEntry('POST', {
+      pattern: /\/add_field(\/|$)/,
+      safetyLevel: 'YELLOW',
+      failureModes: [{
+        description: 'Field addition requires proper structure',
+        cause: 'Missing required field parameters',
+        prevention: 'Include field_type, label, and slug',
       }],
     });
   }
@@ -416,20 +431,30 @@ export class KnowledgeLibrary {
         : { error: 'Unknown error' };
     }
 
-    // Update existing entries with new examples
-    const matches = this.findRelevantKnowledge(operation.method, operation.endpoint, operation.payload);
+    // Check for EXACT endpoint match to decide update vs create
+    // This preserves general patterns while allowing specific learning
+    const methodEntries = this.entries.get(operation.method.toUpperCase()) ?? [];
+    let exactMatch: KnowledgeEntry | undefined;
 
-    if (matches.length > 0) {
-      // Update first match with new example
-      const match = matches[0];
-      if (match?.entry) {
-        if (!match.entry.examples) {
-          match.entry.examples = [];
-        }
-        match.entry.examples.push(example);
+    for (const entry of methodEntries) {
+      // Check if this entry's pattern is an exact match for this endpoint
+      // (created from a previous learn operation with the same endpoint)
+      const patternSource = entry.pattern.source;
+      const escapedEndpoint = operation.endpoint.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (patternSource === escapedEndpoint) {
+        exactMatch = entry;
+        break;
       }
+    }
+
+    if (exactMatch) {
+      // Update existing exact match with new example
+      if (!exactMatch.examples) {
+        exactMatch.examples = [];
+      }
+      exactMatch.examples.push(example);
     } else {
-      // Create new entry for this operation pattern
+      // Create new entry for this specific operation pattern
       const newEntry: KnowledgeEntry = {
         pattern: new RegExp(operation.endpoint.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
         safetyLevel: outcome.success ? 'GREEN' : 'YELLOW',
@@ -453,7 +478,7 @@ export class KnowledgeLibrary {
   }
 
   private updateVersion(): void {
-    this.version.lastUpdated = new Date().toISOString();
+    this.version.lastUpdated = this.clock.now().toISOString();
     this.version.patternCount = Array.from(this.entries.values())
       .reduce((sum, entries) => sum + entries.length, 0);
   }

@@ -42,15 +42,14 @@
   "include": [
     "src/**/*",
     "test/**/*",
+    "scripts/**/*",
     "vitest.config.ts"
   ],
   "exclude": [
     "node_modules",
     "build",
     "dist",
-    "coverage",
-    "**/*.test.ts",
-    "**/*.spec.ts"
+    "coverage"
   ],
   "ts-node": {
     "esm": true

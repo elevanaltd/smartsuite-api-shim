@@ -59,6 +59,11 @@ export interface SmartSuiteRequestOptions {
   data?: Record<string, unknown>;
 }
 
+export type SmartSuiteRequestResponse =
+  | { success: true; status: string; rawResponse?: string }
+  | Record<string, unknown>
+  | unknown[];
+
 export interface SmartSuiteClient {
   apiKey: string;
   workspaceId: string;
@@ -73,7 +78,7 @@ export interface SmartSuiteClient {
   ) => Promise<SmartSuiteRecord>;
   deleteRecord: (appId: string, recordId: string) => Promise<void>;
   getSchema: (appId: string) => Promise<SmartSuiteSchema>;
-  request: (options: SmartSuiteRequestOptions) => Promise<any>;
+  request: (options: SmartSuiteRequestOptions) => Promise<SmartSuiteRequestResponse>;
 }
 
 export async function createAuthenticatedClient(
@@ -405,7 +410,7 @@ export async function createAuthenticatedClient(
       return response.json() as Promise<SmartSuiteSchema>;
     },
 
-    async request(options: SmartSuiteRequestOptions): Promise<any> {
+    async request(options: SmartSuiteRequestOptions): Promise<SmartSuiteRequestResponse> {
       const url = baseUrl + '/api/v1' + options.endpoint;
       const fetchOptions: RequestInit = {
         method: options.method,
@@ -468,7 +473,7 @@ export async function createAuthenticatedClient(
       }
 
       try {
-        return JSON.parse(responseText);
+        return JSON.parse(responseText) as SmartSuiteRequestResponse;
       } catch (parseError) {
         // Critical diagnostic information for debugging JSON parse failures
         console.error('[SmartSuite Client] JSON Parse Error:', {

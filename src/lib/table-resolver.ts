@@ -81,10 +81,11 @@ export class TableResolver {
       }
 
       // Load all mappings with collision detection
-      for (const file of yamlFiles) {
+      const loadPromises = yamlFiles.map(file => {
         const filePath = path.join(mappingsDir, file);
-        await this.loadFromYaml(filePath);
-      }
+        return this.loadFromYaml(filePath);
+      });
+      await Promise.all(loadPromises);
     } catch (error) {
       const errorMessage = `Failed to load mappings from directory ${mappingsDir}: ${error instanceof Error ? error.message : String(error)}`;
       throw new Error(errorMessage);
@@ -119,7 +120,7 @@ export class TableResolver {
    */
   getTableByName(name: string): TableInfo | null {
     const normalizedName = name.toLowerCase();
-    return this.tableMap.get(normalizedName) || null;
+    return this.tableMap.get(normalizedName) ?? null;
   }
 
   /**

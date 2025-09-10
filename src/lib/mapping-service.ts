@@ -114,6 +114,9 @@ export class MappingService {
       }
 
       // Second pass: load validated mappings
+      const tableLoadPromises: Promise<void>[] = [];
+      const fieldLoadPromises: Promise<void>[] = [];
+
       for (const { file, content } of validatedMappings) {
         const filePath = path.join(mappingsDir, file);
         // Load into TableResolver
@@ -122,16 +125,27 @@ export class MappingService {
         const contentFields = content.fields as Record<string, unknown> | undefined;
 
         if (contentTableId && contentTableName) {
-          await this.tableResolver.loadFromYaml(filePath);
-          this.loadedTables.add(contentTableName);
+          tableLoadPromises.push(
+            this.tableResolver.loadFromYaml(filePath).then(() => {
+              this.loadedTables.add(contentTableName);
+              return;
+            }),
+          );
         }
 
         // Load into FieldTranslator
         if (contentTableId && contentFields) {
-          await this.fieldTranslator.loadFromYaml(filePath);
-          this.fieldCount += Object.keys(contentFields).length;
+          const fieldCount = Object.keys(contentFields).length;
+          fieldLoadPromises.push(
+            this.fieldTranslator.loadFromYaml(filePath).then(() => {
+              this.fieldCount += fieldCount;
+              return;
+            }),
+          );
         }
       }
+
+      await Promise.all([...tableLoadPromises, ...fieldLoadPromises]);
 
     } catch (error) {
       // Reset on failure - atomic loading
