@@ -144,19 +144,27 @@ describe('Path Resolver', () => {
     });
 
     it('should resolve asset path for development environment', async () => {
+      // Mock fileURLToPath within the test
+      const { fileURLToPath } = await import('url');
+      vi.mocked(fileURLToPath).mockReturnValue('/project/src/intelligent/module.js');
+      
       const mockImportUrl = 'file:///project/src/intelligent/module.js';
       const mockCurrentDir = '/project/src/intelligent';
       
       vi.mocked(path.dirname).mockReturnValue(mockCurrentDir);
       vi.mocked(fs.existsSync).mockImplementation((p) => {
         const pathStr = String(p);
-        return pathStr.includes('/project/src');
+        // Return true when we check for the src directory existing at /project/src
+        return pathStr === '/project/src';
       });
       vi.mocked(path.join).mockImplementation((...args) => args.join('/'));
+      vi.mocked(path.resolve).mockImplementation((...args) => args.join('/'));
       
       const { resolveAssetPath } = await import('./path-resolver.js');
       
       const result = resolveAssetPath('knowledge/api-patterns.json', mockImportUrl);
+      // Since we're in /project/src/intelligent and we find /project/src exists,
+      // it should return /project/src/knowledge/api-patterns.json
       expect(result).toBe('/project/src/knowledge/api-patterns.json');
     });
   });
