@@ -173,7 +173,7 @@ Despite backward calculation, tasks execute in this order:
 - Booking Buffer: +14 days for all P2 tasks
 - Client Review: 5-day window with 7-day auto-approve
 - Internal Review: 3-day window 
-- Revision Probability: 50% (affects V10 buffer tasks)
+- Revision Probability: 25% (affects V4/V10 buffer tasks - sequential, not loops)
 
 **Buffer Calculation:**
 ```

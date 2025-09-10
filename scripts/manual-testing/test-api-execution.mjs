@@ -1,7 +1,7 @@
-import { KnowledgeLibrary } from './build/src/intelligent/knowledge-library.js';
-import { SafetyEngine } from './build/src/intelligent/safety-engine.js';
-import { SmartSuiteAPIProxy } from './build/src/intelligent/api-proxy.js';
-import { createAuthenticatedClient } from './build/src/smartsuite-client.js';
+import { KnowledgeLibrary } from '../../build/src/intelligent/knowledge-library.js';
+import { SafetyEngine } from '../../build/src/intelligent/safety-engine.js';
+import { SmartSuiteAPIProxy } from '../../build/src/intelligent/api-proxy.js';
+import { createAuthenticatedClient } from '../../build/src/smartsuite-client.js';
 
 async function testAPIExecution() {
   console.log('Testing SmartSuite API Shim Intelligent Tool...\n');
