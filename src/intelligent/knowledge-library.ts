@@ -55,13 +55,13 @@ export class KnowledgeLibrary {
       max: 100,                    // Maximum 100 cached queries
       ttl: 5 * 60 * 1000,         // 5 minute TTL
       maxSize: 50 * 1024 * 1024,  // 50MB max cache size
-      sizeCalculation: (value, key) => {
+      sizeCalculation: (value, key): number => {
         // Estimate memory usage: key size + value size
         const keySize = new Blob([key]).size;
         const valueSize = JSON.stringify(value).length * 2; // ~2 bytes per char
         return keySize + valueSize;
       },
-      dispose: (_value, _key, reason) => {
+      dispose: (_value, _key, reason): void => {
         // Optional: Log cache evictions for monitoring
         if (reason === 'evict') {
           // Could add logging here if needed
@@ -227,7 +227,7 @@ export class KnowledgeLibrary {
           failureModes.push({
             description: `Common mistake: ${mistake}`,
             cause: mistake,
-            prevention: pattern.critical_note || pattern.performance_note || 'Follow documented patterns',
+            prevention: pattern.critical_note ?? pattern.performance_note ?? 'Follow documented patterns',
           });
         }
       }
@@ -236,7 +236,7 @@ export class KnowledgeLibrary {
         failureModes.push({
           description: 'Critical warning',
           cause: pattern.critical_warning,
-          prevention: pattern.recovery_note || 'Consult documentation before proceeding',
+          prevention: pattern.recovery_note ?? 'Consult documentation before proceeding',
         });
       }
 

@@ -33,11 +33,11 @@ vi.mock('fs', () => ({
 
 vi.mock('js-yaml');
 
-// TESTGUARD-APPROVED: TESTGUARD-20250911-a66a62fa
+// TESTGUARD-APPROVED: TESTGUARD-20250911-fd04947c
 const mockExistsSync = vi.mocked(existsSync);
 // Critical-Engineer & TestGuard: Explicit typing to correct TypeScript's overload inference
 // Implementation expects string[] since it calls fs.readdir without options
-const mockReaddir = vi.mocked(fs.readdir) as Mock<[PathLike, ...any[]], Promise<string[]>>;
+const mockReaddir = vi.mocked(fs.readdir) as Mock<(path: PathLike, options?: any) => Promise<string[]>>;
 const mockReadFile = vi.mocked(fs.readFile);
 const mockYamlLoad = vi.mocked(yaml.load);
 
