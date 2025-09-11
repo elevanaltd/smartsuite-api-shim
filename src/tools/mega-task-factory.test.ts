@@ -4,12 +4,14 @@
 // TESTGUARD-APPROVED: Removing unused imports after type strengthening
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+import type { SmartSuiteClient } from '../smartsuite-client.js';
+import type { ProjectData, MegaTaskDefinition } from '../types/mega-task-types.js';
+
+import { ChecklistFormatter } from './formatting/checklist-formatter.js';
 import { MegaTaskFactory } from './mega-task-factory.js';
 import { BackwardScheduler } from './scheduling/backward-scheduler.js';
 import { MegaTaskValidator } from './validation/mega-task-validator.js';
-import { ChecklistFormatter } from './formatting/checklist-formatter.js';
-import type { SmartSuiteClient } from '../smartsuite-client.js';
-import type { ProjectData, MegaTaskDefinition } from '../types/mega-task-types.js';
 
 describe('MegaTaskFactory', () => {
   let factory: MegaTaskFactory;
@@ -27,7 +29,7 @@ describe('MegaTaskFactory', () => {
       deleteRecord: vi.fn(),
       countRecords: vi.fn(),
     } as unknown as SmartSuiteClient;
-    
+
     factory = new MegaTaskFactory(mockClient);
   });
 
@@ -35,7 +37,7 @@ describe('MegaTaskFactory', () => {
     it('should fail - RED phase: create complete workflow in dry-run mode', async () => {
       // This test should fail because implementation doesn't exist yet
       const projectId = '68abcd3975586ee1ff3e5b1f';
-      
+
       // Mock project data response
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: projectId,
@@ -44,12 +46,12 @@ describe('MegaTaskFactory', () => {
         newvidcount: 7,
         amendvidscount: 0,
         reusevidscount: 0,
-        assigned_to: ['66fa7af64b11acf6780c4436']
+        assigned_to: ['66fa7af64b11acf6780c4436'],
       });
 
       const result = await factory.createMegaTaskWorkflow({
         project_id: projectId,
-        mode: 'dry_run'
+        mode: 'dry_run',
       });
 
       expect(result.success).toBe(true);
@@ -62,7 +64,7 @@ describe('MegaTaskFactory', () => {
 
     it('should fail - RED phase: create workflow with conditional tasks', async () => {
       const projectId = '68abcd3975586ee1ff3e5b1f';
-      
+
       // Mock project with reuse videos
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: projectId,
@@ -71,12 +73,12 @@ describe('MegaTaskFactory', () => {
         newvidcount: 5,
         amendvidscount: 2,
         reusevidscount: 3,
-        assigned_to: ['66fa7af64b11acf6780c4436']
+        assigned_to: ['66fa7af64b11acf6780c4436'],
       });
 
       const result = await factory.createMegaTaskWorkflow({
         project_id: projectId,
-        mode: 'dry_run'
+        mode: 'dry_run',
       });
 
       expect(result.tasks.created).toHaveLength(15); // 14 standard + 1 reuse_review
@@ -85,7 +87,7 @@ describe('MegaTaskFactory', () => {
 
     it('should fail - RED phase: execute mode creates actual tasks', async () => {
       const projectId = '68abcd3975586ee1ff3e5b1f';
-      
+
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: projectId,
         eavcode: 'EAV009',
@@ -93,7 +95,7 @@ describe('MegaTaskFactory', () => {
         newvidcount: 3,
         amendvidscount: 0,
         reusevidscount: 0,
-        assigned_to: ['66fa7af64b11acf6780c4436']
+        assigned_to: ['66fa7af64b11acf6780c4436'],
       });
 
       // Mock successful bulk creation
@@ -101,17 +103,17 @@ describe('MegaTaskFactory', () => {
         items: Array.from({ length: 14 }, (_, i) => ({
           id: `68cd1234abcd5678ef90123${i}`,
           task12code: `${String(i + 1).padStart(2, '0')}_${['setup', 'booking', 'recce'][i] || 'task'}`,
-          title: `EAV009: Task ${i + 1}`
-        }))
+          title: `EAV009: Task ${i + 1}`,
+        })),
       });
 
       vi.mocked(mockClient.bulkUpdate).mockResolvedValue({
-        items: []
+        items: [],
       });
 
       const result = await factory.createMegaTaskWorkflow({
         project_id: projectId,
-        mode: 'execute'
+        mode: 'execute',
       });
 
       expect(result.success).toBe(true);
@@ -121,7 +123,7 @@ describe('MegaTaskFactory', () => {
 
     it('should fail - RED phase: reject invalid schedule that exceeds due date', async () => {
       const projectId = '68abcd3975586ee1ff3e5b1f';
-      
+
       // Mock project with impossible timeline (due tomorrow)
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: projectId,
@@ -130,12 +132,12 @@ describe('MegaTaskFactory', () => {
         newvidcount: 10,
         amendvidscount: 0,
         reusevidscount: 0,
-        assigned_to: ['66fa7af64b11acf6780c4436']
+        assigned_to: ['66fa7af64b11acf6780c4436'],
       });
 
       await expect(factory.createMegaTaskWorkflow({
         project_id: projectId,
-        mode: 'execute'
+        mode: 'execute',
       })).rejects.toThrow('Schedule cannot fit within project timeline');
     });
   });
@@ -157,7 +159,7 @@ describe('BackwardScheduler', () => {
         newVids: 7,
         amendVids: 0,
         reuseVids: 0,
-        projectManager: '66fa7af64b11acf6780c4436'
+        projectManager: '66fa7af64b11acf6780c4436',
       };
 
       const schedule = scheduler.calculateSchedule(projectData);
@@ -177,7 +179,7 @@ describe('BackwardScheduler', () => {
         newVids: 5,
         amendVids: 0,
         reuseVids: 0,
-        projectManager: '66fa7af64b11acf6780c4436'
+        projectManager: '66fa7af64b11acf6780c4436',
       };
 
       const schedule = scheduler.calculateSchedule(projectData);
@@ -201,7 +203,7 @@ describe('BackwardScheduler', () => {
         newVids: 15, // Large project
         amendVids: 5,
         reuseVids: 0,
-        projectManager: '66fa7af64b11acf6780c4436'
+        projectManager: '66fa7af64b11acf6780c4436',
       };
 
       const schedule = scheduler.calculateSchedule(projectData);
@@ -221,7 +223,7 @@ describe('BackwardScheduler', () => {
         newVids: 10,
         amendVids: 0,
         reuseVids: 0,
-        projectManager: '66fa7af64b11acf6780c4436'
+        projectManager: '66fa7af64b11acf6780c4436',
       };
 
       const schedule = scheduler.calculateSchedule(projectData);
@@ -258,7 +260,7 @@ describe('MegaTaskValidator', () => {
         newVids: -1, // Invalid
         amendVids: 0,
         reuseVids: 0,
-        projectManager: '66fa7af64b11acf6780c4436'
+        projectManager: '66fa7af64b11acf6780c4436',
       };
 
       expect(() => validator.validateProjectData(invalidProject)).toThrow('Video counts must be non-negative');
@@ -275,8 +277,8 @@ describe('MegaTaskValidator', () => {
           duration: 3,
           assigneeId: '66fa7af64b11acf6780c4436',
           priority: 'high',
-          checklist: []
-        }
+          checklist: [],
+        },
         // Missing other required tasks
       ];
 
@@ -296,12 +298,12 @@ describe('ChecklistFormatter', () => {
     it('should fail - RED phase: convert simple text to SmartDoc rich text format', () => {
       const simpleChecklist = [
         'Agreement signed and finalized',
-        'All videos added and production types confirmed'
+        'All videos added and production types confirmed',
       ];
 
       const formatted = formatter.formatChecklistToSmartDocFormat(
         simpleChecklist,
-        'TASK001'
+        'TASK001',
       );
 
       expect(formatted.items).toHaveLength(2);
@@ -317,17 +319,22 @@ describe('ChecklistFormatter', () => {
       const videos = [
         { title: 'Introduction Video' },
         { title: 'Setup Guide' },
-        { title: 'Advanced Features' }
+        { title: 'Advanced Features' },
       ];
 
       const formatted = formatter.formatDynamicVideoChecklist(
         videos,
-        'TASK001'
+        'TASK001',
       );
 
       expect(formatted.items).toHaveLength(3);
+      // TESTGUARD-APPROVED: TESTGUARD-20250911-c9ed4278
       formatted.items.forEach((item, index) => {
-        expect(item.preview).toContain(videos[index].title);
+        const video = videos[index];
+        if (!video) {
+          throw new Error(`Test integrity failure: No video found at index ${index}, but a formatted item exists. The arrays are out of sync.`);
+        }
+        expect(item.preview).toContain(video.title);
         expect(item.preview).toContain('PENDING');
       });
     });
@@ -344,8 +351,8 @@ describe('ChecklistFormatter', () => {
         priority: 'high',
         checklist: [
           'Agreement signed and finalized',
-          'All videos added and production types confirmed'
-        ]
+          'All videos added and production types confirmed',
+        ],
       };
 
       const projectData: ProjectData = {
@@ -355,7 +362,7 @@ describe('ChecklistFormatter', () => {
         newVids: 7,
         amendVids: 0,
         reuseVids: 0,
-        projectManager: '66fa7af64b11acf6780c4436'
+        projectManager: '66fa7af64b11acf6780c4436',
       };
 
 
@@ -367,7 +374,7 @@ describe('ChecklistFormatter', () => {
       expect(payload.projid1234).toEqual(['68abcd3975586ee1ff3e5b1f']);
       expect(payload.due_date).toEqual({
         from_date: '2025-06-02T00:00:00Z',
-        to_date: '2025-06-04T00:00:00Z'
+        to_date: '2025-06-04T00:00:00Z',
       });
       expect(payload.priority).toBe('high');
       expect(payload.checklist99).toBeDefined();
@@ -386,7 +393,7 @@ describe('MegaTaskFactory Integration', () => {
       bulkCreate: vi.fn(),
       bulkUpdate: vi.fn(),
     } as unknown as SmartSuiteClient;
-    
+
     factory = new MegaTaskFactory(mockClient);
   });
 
@@ -401,9 +408,9 @@ describe('MegaTaskFactory Integration', () => {
 //         ['09_voiceover', '68cd1234abcd5678ef901242'],
 //         ['11_processing', '68cd1234abcd5678ef901244']
 //       ]);
-// 
+//
 //       const dependencies = factory.buildDependencyChain(taskIdMap);
-// 
+//
 //       // Find 12_edit_prep dependency
 //       const editPrepDep = dependencies.find(d => d.id === '68cd1234abcd5678ef901246');
 //       expect(editPrepDep).toBeDefined();
@@ -416,16 +423,16 @@ describe('MegaTaskFactory Integration', () => {
 //         ])
 //       );
 //     });
-// 
+//
 //     it('should fail - RED phase: handle finish-to-start dependencies with no lag', () => {
 //       const taskIdMap = new Map([
 //         ['01_setup', '68cd1234abcd5678ef901234'],
 //         ['02_booking', '68cd1234abcd5678ef901235']
 //       ]);
-// 
+//
 //       const dependencies = factory.buildDependencyChain(taskIdMap);
 //       const bookingDep = dependencies.find(d => d.id === '68cd1234abcd5678ef901235');
-// 
+//
 //       expect(bookingDep!.dependency.predecessor[0]).toEqual(
 //         expect.objectContaining({
 //           type: 'fs',
@@ -443,7 +450,7 @@ describe('MegaTaskFactory Integration', () => {
 
       await expect(factory.createMegaTaskWorkflow({
         project_id: 'nonexistent',
-        mode: 'dry_run'
+        mode: 'dry_run',
       })).rejects.toThrow('Record not found');
     });
 
@@ -455,14 +462,14 @@ describe('MegaTaskFactory Integration', () => {
         newvidcount: 7,
         amendvidscount: 0,
         reusevidscount: 0,
-        assigned_to: ['66fa7af64b11acf6780c4436']
+        assigned_to: ['66fa7af64b11acf6780c4436'],
       });
 
       vi.mocked(mockClient.bulkCreate).mockRejectedValue(new Error('API Error'));
 
       const result = await factory.createMegaTaskWorkflow({
         project_id: '68abcd3975586ee1ff3e5b1f',
-        mode: 'execute'
+        mode: 'execute',
       });
 
       expect(result.success).toBe(false);
@@ -475,19 +482,19 @@ describe('MegaTaskFactory Integration', () => {
       const tasks = Array.from({ length: 35 }, (_, i) => ({
         title: `Task ${i + 1}`,
         task12code: `task_${String(i + 1).padStart(3, '0')}`,
-        assignedTo: ['66fa7af64b11acf6780c4436']
+        assignedTo: ['66fa7af64b11acf6780c4436'],
       }));
 
       // Mock successful batch creation responses
       vi.mocked(mockClient.bulkCreate)
         .mockResolvedValueOnce({
-          items: tasks.slice(0, 15).map((task, i) => ({ id: `created_${i}`, ...task }))
+          items: tasks.slice(0, 15).map((task, i) => ({ id: `created_${i}`, ...task })),
         })
         .mockResolvedValueOnce({
-          items: tasks.slice(15, 30).map((task, i) => ({ id: `created_${i + 15}`, ...task }))
+          items: tasks.slice(15, 30).map((task, i) => ({ id: `created_${i + 15}`, ...task })),
         })
         .mockResolvedValueOnce({
-          items: tasks.slice(30, 35).map((task, i) => ({ id: `created_${i + 30}`, ...task }))
+          items: tasks.slice(30, 35).map((task, i) => ({ id: `created_${i + 30}`, ...task })),
         });
 
       const result = await factory.createTasksInBatches(tasks, 15);
@@ -503,13 +510,13 @@ describe('MegaTaskFactory Integration', () => {
     it('should fail - RED phase: continue processing when one batch fails', async () => {
       const tasks = Array.from({ length: 25 }, (_, i) => ({
         title: `Task ${i + 1}`,
-        task12code: `task_${String(i + 1).padStart(3, '0')}`
+        task12code: `task_${String(i + 1).padStart(3, '0')}`,
       }));
 
       // First batch succeeds, second batch fails
       vi.mocked(mockClient.bulkCreate)
         .mockResolvedValueOnce({
-          items: tasks.slice(0, 15).map((task, i) => ({ id: `created_${i}`, ...task }))
+          items: tasks.slice(0, 15).map((task, i) => ({ id: `created_${i}`, ...task })),
         })
         .mockRejectedValueOnce(new Error('API rate limit exceeded'));
 
@@ -523,36 +530,36 @@ describe('MegaTaskFactory Integration', () => {
       expect(result.failed[0]).toEqual({
         batchNumber: 2,
         taskCount: 10,
-        error: 'API rate limit exceeded'
+        error: 'API rate limit exceeded',
       });
     });
 
     it('should fail - RED phase: use default batch size of 15', async () => {
       const tasks = Array.from({ length: 20 }, (_, i) => ({
         title: `Task ${i + 1}`,
-        task12code: `task_${String(i + 1).padStart(3, '0')}`
+        task12code: `task_${String(i + 1).padStart(3, '0')}`,
       }));
 
       vi.mocked(mockClient.bulkCreate)
         .mockResolvedValueOnce({
-          items: tasks.slice(0, 15).map((task, i) => ({ id: `created_${i}`, ...task }))
+          items: tasks.slice(0, 15).map((task, i) => ({ id: `created_${i}`, ...task })),
         })
         .mockResolvedValueOnce({
-          items: tasks.slice(15, 20).map((task, i) => ({ id: `created_${i + 15}`, ...task }))
+          items: tasks.slice(15, 20).map((task, i) => ({ id: `created_${i + 15}`, ...task })),
         });
 
       await factory.createTasksInBatches(tasks); // No batchSize parameter
 
       expect(mockClient.bulkCreate).toHaveBeenCalledTimes(2);
       expect(mockClient.bulkCreate).toHaveBeenCalledWith('68c24591b7d2aad485e8f781', {
-        items: tasks.slice(0, 15)
+        items: tasks.slice(0, 15),
       });
     });
 
     it('should fail - RED phase: include 300ms delay between batches', async () => {
       const tasks = Array.from({ length: 35 }, (_, i) => ({
         title: `Task ${i + 1}`,
-        task12code: `task_${String(i + 1).padStart(3, '0')}`
+        task12code: `task_${String(i + 1).padStart(3, '0')}`,
       }));
 
       const startTime = Date.now();

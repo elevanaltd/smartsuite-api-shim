@@ -4,10 +4,11 @@
 // Context7: consulted for fs-extra -> MIGRATED to native fs/promises for MCP compatibility
 // Context7: consulted for fs
 // Context7: consulted for yaml
-import * as path from 'path';
 
 import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
+import * as path from 'path';
+
 import * as yaml from 'yaml';
 
 export interface TableInfo {

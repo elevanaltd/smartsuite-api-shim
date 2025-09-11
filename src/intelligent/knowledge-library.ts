@@ -213,14 +213,14 @@ export class KnowledgeLibrary {
       const endpointPattern = pattern.endpoint
         .replace(/\{[^}]+\}/g, '[^/]+') // Replace {param} with [^/]+
         .replace(/\//g, '\\/'); // Escape forward slashes
-      
-      const safetyLevel: SafetyLevel = 
+
+      const safetyLevel: SafetyLevel =
         pattern.danger_level === 'RED' ? 'RED' :
         pattern.danger_level === 'YELLOW' ? 'YELLOW' : 'GREEN';
 
       // Build failure modes from common mistakes and warnings
       const failureModes: FailureMode[] = [];
-      
+
       if (pattern.common_mistakes && Array.isArray(pattern.common_mistakes)) {
         for (const mistake of pattern.common_mistakes) {
           failureModes.push({

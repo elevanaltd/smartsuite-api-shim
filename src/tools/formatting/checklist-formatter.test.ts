@@ -1,5 +1,6 @@
 // Context7: consulted for vitest
 import { describe, it, expect } from 'vitest';
+
 import { ChecklistFormatter } from './checklist-formatter.js';
 
 describe('ChecklistFormatter', () => {

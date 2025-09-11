@@ -1,5 +1,6 @@
 // Context7: consulted for vitest
 import { describe, it, expect } from 'vitest';
+
 import type { ScheduleResult, StandardTaskCode } from './mega-task-types.js';
 
 describe('MegaTask Type Definitions', () => {
@@ -30,9 +31,9 @@ describe('MegaTask Type Definitions', () => {
         '12_edit_prep': { start: new Date(), end: new Date(), duration: 1 },
         '13_video_edit': { start: new Date(), end: new Date(), duration: 1 },
         '14_delivery': { start: new Date(), end: new Date(), duration: 1 },
-      }
+      },
     };
-    
+
     // These should not cause type errors because the tasks are guaranteed to exist
     expect(mockSchedule.tasks['14_delivery']).toBeDefined();
     expect(mockSchedule.tasks['01_setup']).toBeDefined();

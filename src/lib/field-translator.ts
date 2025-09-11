@@ -3,9 +3,9 @@
 // Context7: consulted for fs
 // Context7: consulted for path
 // Critical-Engineer: consulted for API shim architecture and field translation strategy
+import { promises as fs } from 'fs';
 import * as path from 'path';
 
-import { promises as fs } from 'fs';
 import * as yaml from 'yaml';
 
 export interface FieldMapping {

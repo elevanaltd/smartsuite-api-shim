@@ -371,7 +371,7 @@ export class SmartSuiteShimServer {
                   description: 'Skip conditional tasks (reuse, pickup, mogrt)',
                 },
                 compress_schedule: {
-                  type: 'boolean', 
+                  type: 'boolean',
                   description: 'Allow task overlap for compressed timelines',
                 },
               },
@@ -1010,7 +1010,7 @@ export class SmartSuiteShimServer {
       // Dynamic import to avoid circular dependencies and allow for implementation
       const { MegaTaskFactory } = await import('./tools/mega-task-factory.js');
       const factory = new MegaTaskFactory(this.client!);
-      
+
       return await factory.createMegaTaskWorkflow({
         project_id: projectId,
         mode,
