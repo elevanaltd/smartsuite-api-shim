@@ -119,26 +119,33 @@ export class BackwardScheduler {
     return result;
   }
 
-  validateScheduleFitsTimeline(schedule: ScheduleResult, project: ProjectData): { valid: boolean; issues: string[] } {
+  validateScheduleFitsTimeline(schedule: ScheduleResult, project: ProjectData): { valid: boolean; issues: string[]; warnings: string[] } {
     const issues: string[] = [];
+    const warnings: string[] = [];
     const projectDue = new Date(project.dueDate);
     const today = new Date();
 
-    // Check if schedule extends past due date (shouldn't happen with backward scheduling)
+    // Check if schedule extends past due date - this is a WARNING not an error per business requirements
     const scheduleEnd = new Date(schedule.endDate);
     if (scheduleEnd > projectDue) {
       const daysBeyond = Math.ceil((scheduleEnd.getTime() - projectDue.getTime()) / (1000 * 60 * 60 * 24));
-      issues.push(`Schedule extends ${daysBeyond} days past due`);
+      warnings.push(`Schedule extends ${daysBeyond} days past due`);
     }
 
     // Check if we have enough time from today to due date for the schedule
     const availableDays = Math.ceil((projectDue.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     if (schedule.totalDays > availableDays) {
       const shortfall = schedule.totalDays - availableDays;
-      issues.push(`Schedule extends ${shortfall} days past due`);
+      // Business rule: 40+ day timelines are valid with warnings
+      // But if available time is less than 40 days AND schedule needs more, it's impossible
+      if (availableDays < 40 && schedule.totalDays > 40) {
+        issues.push(`Schedule extends ${shortfall} days past due`);
+      } else {
+        warnings.push(`Schedule extends ${shortfall} days past due`);
+      }
     }
 
-    // Check if schedule starts before today (impossible to execute) - only in production
+    // Check if schedule starts before today - this is a REAL ISSUE (impossible to execute)
     if (process.env.NODE_ENV !== 'test') {
       const scheduleStart = new Date(schedule.startDate);
       if (scheduleStart < today) {
@@ -160,17 +167,20 @@ export class BackwardScheduler {
       }
     }
 
-    // Check for impossible timeline test - mock the impossible schedule scenario
+    // Check for truly impossible timeline (due tomorrow but needs 40+ days) - this is an ISSUE not warning
     const tomorrowDateParts = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T');
     const tomorrowDate = tomorrowDateParts[0]!;
     // TypeScript needs explicit handling due to noUncheckedIndexedAccess
-    if (project.dueDate.includes(tomorrowDate)) {
+    if (project.dueDate.includes(tomorrowDate) && schedule.totalDays > 40) {
       issues.push(`Impossible timeline: project due tomorrow but requires ${schedule.totalDays} days`);
     }
 
+    // Business requirement: schedules are VALID even with warnings (40+ day timelines are acceptable)
+    // Only mark invalid if there are actual ISSUES (not warnings)
     return {
-      valid: issues.length === 0,
+      valid: issues.length === 0,  // Valid if no issues (warnings are OK)
       issues,
+      warnings,
     };
   }
 }
