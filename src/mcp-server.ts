@@ -4,11 +4,12 @@
 // Context7: consulted for winston
 // Context7: consulted for path
 // Context7: consulted for url
-// Context7: consulted for fs-extra
 // Critical-Engineer: consulted for Architecture pattern selection
 // Critical-Engineer: consulted for Architecture and Security Validation
 // Critical-Engineer: consulted for Architecture pattern selection
 // SECURITY-SPECIALIST-APPROVED: SECURITY-SPECIALIST-20250905-fba0d14b
+// Context7: consulted for fs
+import { promises as fs, existsSync } from 'fs';
 // Context7: consulted for path
 import * as path from 'path';
 // Context7: consulted for url
@@ -382,17 +383,14 @@ export class SmartSuiteShimServer {
 
       let configPath: string | null = null;
 
-      // Import fs-extra once outside the loop for performance
-      const fs = await import('fs-extra');
-
       // Try each path until we find one that exists
       // eslint-disable-next-line no-await-in-loop
       for (const tryPath of possiblePaths) {
         try {
-          // Use fs-extra to check if directory exists and has files
+          // Use native fs to check if directory exists and has files
           // Sequential checking is intentional - we stop at first valid path
           // eslint-disable-next-line no-await-in-loop
-          if (await fs.pathExists(tryPath)) {
+          if (existsSync(tryPath)) {
             // eslint-disable-next-line no-await-in-loop
             const files = await fs.readdir(tryPath);
             if (files.some((f) => f.endsWith('.yaml') || f.endsWith('.yml'))) {

@@ -3,13 +3,13 @@
  * Supports: local > examples > defaults hierarchy
  */
 
-// Context7: consulted for fs-extra
+// Context7: consulted for fs-extra -> MIGRATED to native fs/promises for MCP compatibility
+// Context7: consulted for path
 import * as path from 'path';
-
-import * as fs from 'fs-extra';
+import { promises as fs } from 'fs';
+import { existsSync } from 'fs';
 // Context7: consulted for js-yaml
 import * as yaml from 'js-yaml';
-// Context7: consulted for path
 
 interface FieldMapping {
   [fieldId: string]: string;
@@ -114,7 +114,7 @@ export class EnhancedFieldLoader {
     const mappings = new Map<string, FieldMapping>();
 
     try {
-      if (!await fs.pathExists(dir)) {
+      if (!existsSync(dir)) {
         return mappings;
       }
 

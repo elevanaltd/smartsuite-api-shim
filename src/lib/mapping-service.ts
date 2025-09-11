@@ -4,8 +4,9 @@
 // Context7: consulted for path
 import * as path from 'path';
 
-// Context7: consulted for fs-extra
-import * as fs from 'fs-extra';
+// Context7: consulted for fs-extra -> MIGRATED to native fs/promises for MCP compatibility
+import { promises as fs } from 'fs';
+import { existsSync } from 'fs';
 // Context7: consulted for yaml
 import * as yaml from 'yaml';
 
@@ -40,7 +41,7 @@ export class MappingService {
    */
   async loadAllMappings(mappingsDir: string): Promise<void> {
     try {
-      if (!await fs.pathExists(mappingsDir)) {
+      if (!existsSync(mappingsDir)) {
         throw new Error(`Directory does not exist: ${mappingsDir}`);
       }
 

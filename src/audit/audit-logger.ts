@@ -1,11 +1,14 @@
 // TRACED: Implementation after failing tests - GREEN state
-// Context7: consulted for fs-extra
+// Context7: consulted for fs-extra -> MIGRATED to native fs/promises for MCP compatibility
 // Context7: consulted for path
 // Context7: consulted for crypto
+// Critical-Engineer: consulted for concurrent file-system access, atomicity, and scaling patterns
+// NOTE: Current implementation fixes MCP compatibility but has O(n) performance issue with read-modify-write pattern
+// TODO: Migrate to NDJSON append-only architecture for O(1) performance and scalability
 import { createHash } from 'crypto';
+import { promises as fs } from 'fs';
+import { existsSync } from 'fs';
 import * as path from 'path';
-
-import * as fs from 'fs-extra';
 
 export interface AuditLogEntry {
   id: string;
@@ -98,11 +101,12 @@ export class AuditLogger {
   }
 
   async getEntries(): Promise<AuditLogEntry[]> {
-    if (!(await fs.pathExists(this.auditFilePath))) {
+    if (!existsSync(this.auditFilePath)) {
       return [];
     }
 
-    const entries = await fs.readJson(this.auditFilePath) as unknown[];
+    const data = await fs.readFile(this.auditFilePath, 'utf8');
+    const entries = JSON.parse(data) as unknown[];
     return entries.map((entry) => this.deserializeEntry(entry));
   }
 
@@ -225,13 +229,14 @@ export class AuditLogger {
   private async persistEntry(entry: AuditLogEntry): Promise<void> {
     await this.withFileLock(async () => {
       // Ensure directory exists
-      await fs.ensureDir(path.dirname(this.auditFilePath));
+      await fs.mkdir(path.dirname(this.auditFilePath), { recursive: true });
 
       let entries: AuditLogEntry[] = [];
 
       // Read existing entries if file exists
-      if (await fs.pathExists(this.auditFilePath)) {
-        const rawEntries = await fs.readJson(this.auditFilePath) as unknown[];
+      if (existsSync(this.auditFilePath)) {
+        const data = await fs.readFile(this.auditFilePath, 'utf8');
+        const rawEntries = JSON.parse(data) as unknown[];
         entries = rawEntries.map((entry) => this.deserializeEntry(entry));
       }
 
@@ -240,10 +245,10 @@ export class AuditLogger {
 
       // Write back to file (atomic operation via temp file)
       const tempFilePath = `${this.auditFilePath}.tmp.${Date.now()}.${Math.random().toString(36).substring(7)}`;
-      await fs.writeJson(tempFilePath, entries, { spaces: 2 });
+      await fs.writeFile(tempFilePath, JSON.stringify(entries, null, 2), 'utf8');
 
-      // Atomic move - fs-extra move with overwrite option
-      await fs.move(tempFilePath, this.auditFilePath, { overwrite: true });
+      // Atomic move - native fs rename for atomic operation
+      await fs.rename(tempFilePath, this.auditFilePath);
     });
   }
 
@@ -253,7 +258,7 @@ export class AuditLogger {
 
     // Wait for lock to be available
     // eslint-disable-next-line no-await-in-loop -- Intentional polling for lock availability
-    while (await fs.pathExists(this.lockFilePath)) {
+    while (existsSync(this.lockFilePath)) {
       if (Date.now() - startTime > this.MAX_LOCK_WAIT_MS) {
         throw new Error('File lock timeout exceeded');
       }
@@ -280,7 +285,7 @@ export class AuditLogger {
       try {
         const currentLockId = await fs.readFile(this.lockFilePath, 'utf8');
         if (currentLockId === lockId) {
-          await fs.remove(this.lockFilePath);
+          await fs.unlink(this.lockFilePath);
         }
       } catch {
         // Ignore errors when removing lock file
