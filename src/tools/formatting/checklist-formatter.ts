@@ -15,8 +15,9 @@ export interface SmartDocFormat {
 }
 
 export class ChecklistFormatter {
-  formatChecklistToSmartDocFormat(checklist: string[], taskCode: string): { items: SmartDocFormat[] } {
+  formatChecklistToSmartDocFormat(checklist: string[], _taskCode: string): { items: SmartDocFormat[] } {
     // Tests expect { items: [] } structure, not direct SmartDocFormat
+    // taskCode parameter preserved for future use, prefixed with _ to suppress unused warning
     const items: SmartDocFormat[] = checklist.map(item => ({
       data: {
         type: "doc",

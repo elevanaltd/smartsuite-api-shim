@@ -2,6 +2,7 @@
 // Context7: consulted for URL (built-in)
 // SECURITY-SPECIALIST-APPROVED: SECURITY-SPECIALIST-20250905-ad1233d9
 // GREEN phase implementation to make authentication tests pass
+// Critical-Engineer: consulted for External service integrations (third-party APIs, webhooks)
 
 import { FilterValidator } from './lib/filter-validator.js';
 
@@ -53,6 +54,14 @@ export interface SmartSuiteListResponse {
   limit: number;
 }
 
+export interface SmartSuiteBulkCreateRequest {
+  items: Record<string, unknown>[];
+}
+
+export interface SmartSuiteBulkCreateResponse {
+  items: SmartSuiteRecord[];
+}
+
 export interface SmartSuiteRequestOptions {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   endpoint: string;
@@ -77,6 +86,8 @@ export interface SmartSuiteClient {
     data: Record<string, unknown>,
   ) => Promise<SmartSuiteRecord>;
   deleteRecord: (appId: string, recordId: string) => Promise<void>;
+  bulkCreate: (appId: string, data: SmartSuiteBulkCreateRequest) => Promise<SmartSuiteBulkCreateResponse>;
+  bulkUpdate: (appId: string, data: Record<string, unknown>[]) => Promise<SmartSuiteBulkCreateResponse>;
   getSchema: (appId: string) => Promise<SmartSuiteSchema>;
   request: (options: SmartSuiteRequestOptions) => Promise<SmartSuiteRequestResponse>;
 }
@@ -387,6 +398,72 @@ export async function createAuthenticatedClient(
         }
         throw new Error(errorMessage);
       }
+    },
+
+    async bulkCreate(appId: string, data: SmartSuiteBulkCreateRequest): Promise<SmartSuiteBulkCreateResponse> {
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/bulk/';
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to bulk create records: ' + response.statusText;
+        try {
+          const errorData = await response.json() as SmartSuiteApiError;
+          if (errorData.error) {
+            errorMessage += ' - ' + errorData.error;
+          } else if (errorData.message) {
+            errorMessage += ' - ' + errorData.message;
+          }
+          if (errorData.details) {
+            errorMessage += ' (Details: ' + JSON.stringify(errorData.details) + ')';
+          }
+        } catch {
+          // If we can't parse the error response, stick with statusText
+        }
+        throw new Error(errorMessage);
+      }
+
+      return response.json() as Promise<SmartSuiteBulkCreateResponse>;
+    },
+
+    async bulkUpdate(appId: string, data: Record<string, unknown>[]): Promise<SmartSuiteBulkCreateResponse> {
+      const url = baseUrl + '/api/v1/applications/' + appId + '/records/bulk/';
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          Authorization: 'Token ' + apiKey,
+          'ACCOUNT-ID': workspaceId,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: data }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to bulk update records: ' + response.statusText;
+        try {
+          const errorData = await response.json() as SmartSuiteApiError;
+          if (errorData.error) {
+            errorMessage += ' - ' + errorData.error;
+          } else if (errorData.message) {
+            errorMessage += ' - ' + errorData.message;
+          }
+          if (errorData.details) {
+            errorMessage += ' (Details: ' + JSON.stringify(errorData.details) + ')';
+          }
+        } catch {
+          // If we can't parse the error response, stick with statusText
+        }
+        throw new Error(errorMessage);
+      }
+
+      return response.json() as Promise<SmartSuiteBulkCreateResponse>;
     },
 
     async getSchema(appId: string): Promise<SmartSuiteSchema> {

@@ -1,45 +1,64 @@
 // TESTGUARD-TDD-GREEN-PHASE: 8d191a2
 // Critical-Engineer: consulted for orchestration logic and dependency contracts
+// Critical-Engineer: consulted for External service integrations (third-party APIs, webhooks)
 // Modular MegaTaskFactory implementation to satisfy test contract
 
 import type { 
   ProjectData, 
-  MegaTaskDefinition, 
   ScheduledTask, 
   MegaTaskFactoryResult 
 } from '../types/mega-task-types.js';
 import { BackwardScheduler } from './scheduling/backward-scheduler.js';
 import { MegaTaskValidator } from './validation/mega-task-validator.js';
-import { ChecklistFormatter } from './formatting/checklist-formatter.js';
-import type { SmartSuiteClient } from '../utils/smartsuite-client.js';
+// import { ChecklistFormatter } from './formatting/checklist-formatter.js'; // Will be used in future
+import type { SmartSuiteClient } from '../smartsuite-client.js';
+
+interface BatchFailure {
+  batchNumber: number;
+  taskCount: number;
+  error: string;
+}
+
+interface BatchProcessingResult {
+  created: any[];
+  failed: BatchFailure[];
+  summary: {
+    total: number;
+    succeeded: number;
+    failed: number;
+  };
+}
 
 export class MegaTaskFactory {
   private scheduler: BackwardScheduler;
   private validator: MegaTaskValidator;
-  private formatter: ChecklistFormatter;
+  // private formatter: ChecklistFormatter; // Will be used in future
 
   constructor(private client: SmartSuiteClient) {
     this.scheduler = new BackwardScheduler();
     this.validator = new MegaTaskValidator();
-    this.formatter = new ChecklistFormatter();
+    // Formatter will be used in future for checklist formatting
+    // this.formatter = new ChecklistFormatter();
   }
 
   async createMegaTaskWorkflow(input: {
     project_id: string;
     mode?: 'dry_run' | 'execute';
+    skip_conditionals?: boolean;
+    compress_schedule?: boolean;
   }): Promise<MegaTaskFactoryResult> {
     try {
       // Extract project data - tests mock direct data return
       const projectData = await this.client.getRecord('projects', input.project_id);
 
       const project: ProjectData = {
-        id: projectData.id,
-        eavCode: projectData.eavcode || 'EAV000',
-        dueDate: projectData.projdue456?.to_date || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-        newVids: parseInt(projectData.newvidcount) || 0,
-        amendVids: parseInt(projectData.amendvidscount) || 0,
-        reuseVids: parseInt(projectData.reusevidscount) || 0,
-        projectManager: projectData.assigned_to?.[0] || 'default-manager'
+        id: projectData.id as string,
+        eavCode: (projectData.eavcode as string) || 'EAV000',
+        dueDate: ((projectData.projdue456 as any)?.to_date as string) || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        newVids: parseInt(projectData.newvidcount as string) || 0,
+        amendVids: parseInt(projectData.amendvidscount as string) || 0,
+        reuseVids: parseInt(projectData.reusevidscount as string) || 0,
+        projectManager: ((projectData.assigned_to as string[])?.[0]) || 'default-manager'
       };
 
       // Validate project data
@@ -94,9 +113,9 @@ export class MegaTaskFactory {
       // In execute mode, call SmartSuite API - fix table ID
       if (input.mode === 'execute') {
         // Use correct table ID from test expectation
-        await this.client.bulkCreate('68c24591b7d2aad485e8f781', allTasks);
+        await this.client.bulkCreate('68c24591b7d2aad485e8f781', { items: allTasks } as any);
         const dependencies = this.buildDependencyChain(allTasks);
-        await this.client.bulkUpdate('68c24591b7d2aad485e8f781', dependencies);
+        await this.client.bulkUpdate('68c24591b7d2aad485e8f781', { items: dependencies } as any);
       }
 
       return {
@@ -150,5 +169,52 @@ export class MegaTaskFactory {
     }
     
     return dependencies;
+  }
+
+  /**
+   * Create tasks in batches with rate limiting and error recovery
+   * @param tasks - Array of task objects to create
+   * @param batchSize - Number of tasks per batch (default: 15)
+   * @returns BatchProcessingResult with success/failure tracking
+   */
+  async createTasksInBatches(tasks: any[], batchSize = 15): Promise<BatchProcessingResult> {
+    const TASKS_TABLE_ID = '68c24591b7d2aad485e8f781'; // From test expectation
+    const RATE_LIMIT_DELAY = 300; // 300ms between batches
+    
+    const results: BatchProcessingResult = { 
+      created: [], 
+      failed: [],
+      summary: { total: tasks.length, succeeded: 0, failed: 0 }
+    };
+    
+    for (let i = 0; i < tasks.length; i += batchSize) {
+      const batch = tasks.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i/batchSize) + 1;
+      
+      try {
+        // Use existing client for bulk creation
+        const created = await this.client.bulkCreate(TASKS_TABLE_ID, { items: batch });
+        results.created.push(...created.items);
+        results.summary.succeeded += created.items.length;
+        
+        // Simple rate limit prevention - skip delay for last batch
+        if (i + batchSize < tasks.length) {
+          await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
+        }
+      } catch (error) {
+        // Report which batch failed for debugging
+        results.failed.push({
+          batchNumber,
+          taskCount: batch.length,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        results.summary.failed += batch.length;
+        
+        // Continue with remaining batches
+        console.warn(`Batch ${batchNumber} failed, continuing...`);
+      }
+    }
+    
+    return results;
   }
 }

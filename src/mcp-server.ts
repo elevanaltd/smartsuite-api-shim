@@ -1014,10 +1014,8 @@ export class SmartSuiteShimServer {
       return await factory.createMegaTaskWorkflow({
         project_id: projectId,
         mode,
-        options: options ? {
-          skip_conditionals: options.skip_conditionals as boolean,
-          compress_schedule: options.compress_schedule as boolean,
-        } : undefined,
+        ...(options?.skip_conditionals !== undefined && { skip_conditionals: options.skip_conditionals as boolean }),
+        ...(options?.compress_schedule !== undefined && { compress_schedule: options.compress_schedule as boolean }),
       });
     } catch (importError) {
       // Provide helpful error if implementation not yet available

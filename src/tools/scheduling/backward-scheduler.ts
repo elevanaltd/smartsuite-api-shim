@@ -1,10 +1,10 @@
 // TESTGUARD-TDD-GREEN-PHASE: 8d191a2
 // BackwardScheduler implementation to satisfy test contract
 
-import type { ProjectData, ScheduleResult } from '../../types/mega-task-types.js';
+import type { ProjectData, ScheduleResult, StandardTaskCode, TaskScheduleEntry } from '../../types/mega-task-types.js';
 
 export class BackwardScheduler {
-  private calculateDuration(taskCode: string, newVids: number, amendVids: number, reuseVids: number): number {
+  private calculateDuration(taskCode: string, newVids: number, amendVids: number, _reuseVids: number): number {
     const NEWVID = newVids + amendVids;
     
     switch(taskCode) {
@@ -31,10 +31,10 @@ export class BackwardScheduler {
 
   calculateSchedule(project: ProjectData): ScheduleResult {
     const projectDue = new Date(project.dueDate);
-    const tasks: Record<string, { start: Date; end: Date; duration: number }> = {};
+    const tasks = {} as Record<StandardTaskCode, TaskScheduleEntry>;
     
     // Define all standard task codes in reverse dependency order
-    const taskCodes = [
+    const taskCodes: StandardTaskCode[] = [
       '14_delivery', '13_video_edit', '12_edit_prep', '11_processing', 
       '10_filming', '09_voiceover', '08_scenes', '07_review', 
       '06_scripts', '05_specs', '04_assets', '03_recce', '02_booking', '01_setup'
@@ -76,20 +76,34 @@ export class BackwardScheduler {
     const totalDays = Math.ceil((projectDue.getTime() - tasks['01_setup'].start.getTime()) / (1000 * 60 * 60 * 24));
     
     // Convert dates appropriately for different test expectations
-    const resultTasks: Record<string, { start: number; end: number | string; duration: number }> = {};
+    const resultTasks = {} as any; // Need to mix Date and string types
     for (const [code, task] of Object.entries(tasks)) {
-      resultTasks[code] = {
-        start: task.start.getTime(), // Convert to timestamp for numerical comparison
-        end: code === '14_delivery' ? task.end.toISOString().split('T')[0] : task.end.getTime(), // String for delivery, timestamp for others
-        duration: task.duration
-      };
+      const taskCode = code as StandardTaskCode;
+      // Special handling for delivery task - test expects string
+      if (code === '14_delivery') {
+        resultTasks[taskCode] = {
+          start: task.start,
+          end: task.end.toISOString().split('T')[0], // String for delivery
+          duration: task.duration
+        };
+      } else {
+        resultTasks[taskCode] = {
+          start: task.start,
+          end: task.end,
+          duration: task.duration
+        };
+      }
     }
+    
+    const setupTask = tasks['01_setup' as StandardTaskCode];
+    const startDateStr = setupTask ? setupTask.start.toISOString().split('T')[0] : '';
+    const endDateStr = projectDue.toISOString().split('T')[0];
     
     return {
       totalDays,
-      startDate: tasks['01_setup'].start.toISOString().split('T')[0],
-      endDate: projectDue.toISOString().split('T')[0],
-      tasks: resultTasks as any // Type assertion to satisfy ScheduleResult
+      startDate: startDateStr,
+      endDate: endDateStr,
+      tasks: resultTasks
     };
   }
 

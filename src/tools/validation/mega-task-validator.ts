@@ -1,7 +1,18 @@
 // TESTGUARD-TDD-GREEN-PHASE: 8d191a2
 // MegaTaskValidator implementation to satisfy test contract
 
-import type { ProjectData, MegaTaskDefinition } from '../../types/mega-task-types.js';
+import type { MegaTaskDefinition } from '../../types/mega-task-types.js';
+
+// Local type definition to avoid circular dependency
+interface ProjectData {
+  id: string;
+  eavCode: string;
+  dueDate: string;
+  newVids: number;
+  amendVids: number;
+  reuseVids: number;
+  projectManager: string;
+}
 
 export class MegaTaskValidator {
   validateProjectData(project: any): void {
