@@ -346,40 +346,6 @@ export class SmartSuiteShimServer {
           required: ['endpoint', 'method', 'operation_description'],
         },
       },
-      {
-        name: 'smartsuite_mega_task_factory',
-        description: 'Create complete EAV project workflows with automated task scheduling and dependencies',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            project_id: {
-              type: 'string',
-              description: 'SmartSuite project record ID (24-char hex)',
-            },
-            mode: {
-              type: 'string',
-              enum: ['dry_run', 'execute'],
-              description: 'Operation mode: dry_run (validate) or execute (create)',
-              default: 'dry_run',
-            },
-            options: {
-              type: 'object',
-              description: 'Optional configuration overrides',
-              properties: {
-                skip_conditionals: {
-                  type: 'boolean',
-                  description: 'Skip conditional tasks (reuse, pickup, mogrt)',
-                },
-                compress_schedule: {
-                  type: 'boolean',
-                  description: 'Allow task overlap for compressed timelines',
-                },
-              },
-            },
-          },
-          required: ['project_id', 'mode'],
-        },
-      },
     ];
   }
 
@@ -546,8 +512,6 @@ export class SmartSuiteShimServer {
         return this.handleDiscover(args);
       case 'smartsuite_intelligent':
         return this.handleIntelligent(args);
-      case 'smartsuite_mega_task_factory':
-        return this.handleMegaTaskFactory(args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -992,45 +956,6 @@ export class SmartSuiteShimServer {
    * Handle mega-task factory operations
    * Creates complete EAV project workflows with automated scheduling
    */
-  private async handleMegaTaskFactory(args: Record<string, unknown>): Promise<unknown> {
-    // ENHANCED scope: Import and use mega-task factory
-    const projectId = args.project_id as string;
-    const mode = args.mode as 'dry_run' | 'execute';
-    const options = args.options as Record<string, unknown> | undefined;
-
-    if (!projectId) {
-      throw new Error('project_id is required');
-    }
-
-    if (!mode) {
-      throw new Error('mode is required (dry_run or execute)');
-    }
-
-    try {
-      // Dynamic import to avoid circular dependencies and allow for implementation
-      const { MegaTaskFactory } = await import('./tools/mega-task-factory.js');
-      const factory = new MegaTaskFactory(this.client!);
-
-      return await factory.createMegaTaskWorkflow({
-        project_id: projectId,
-        mode,
-        ...(options?.skip_conditionals !== undefined && { skip_conditionals: options.skip_conditionals as boolean }),
-        ...(options?.compress_schedule !== undefined && { compress_schedule: options.compress_schedule as boolean }),
-      });
-    } catch (importError) {
-      // Provide helpful error if implementation not yet available
-      if (importError instanceof Error && importError.message.includes('Cannot find module')) {
-        return {
-          success: false,
-          error: 'MegaTaskFactory implementation not yet available. Implementation in progress.',
-          project_id: projectId,
-          mode,
-        };
-      }
-      throw importError;
-    }
-  }
-
   /**
    * Handle intelligent tool operations with knowledge-driven safety
    * MVP Phase 1: Learn mode only

@@ -6,7 +6,6 @@
 // Context7: consulted for fs-extra -> MIGRATED to native fs/promises for MCP compatibility
 import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
-
 // Context7: consulted for path
 import * as path from 'path';
 

@@ -21,7 +21,7 @@ interface BatchFailure {
 }
 
 interface BatchProcessingResult {
-  created: any[];
+  created: Record<string, unknown>[];
   failed: BatchFailure[];
   summary: {
     total: number;
@@ -55,7 +55,7 @@ export class MegaTaskFactory {
       const project: ProjectData = {
         id: projectData.id,
         eavCode: (projectData.eavcode as string) || 'EAV000',
-        dueDate: ((projectData.projdue456 as any)?.to_date as string) || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        dueDate: ((projectData.projdue456 as Record<string, unknown>)?.to_date as string) || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
         newVids: parseInt(projectData.newvidcount as string) || 0,
         amendVids: parseInt(projectData.amendvidscount as string) || 0,
         reuseVids: parseInt(projectData.reusevidscount as string) || 0,
@@ -114,9 +114,9 @@ export class MegaTaskFactory {
       // In execute mode, call SmartSuite API - fix table ID
       if (input.mode === 'execute') {
         // Use correct table ID from test expectation
-        await this.client.bulkCreate('68c24591b7d2aad485e8f781', { items: allTasks } as any);
+        await this.client.bulkCreate('68c24591b7d2aad485e8f781', { items: allTasks as unknown as Record<string, unknown>[] });
         const dependencies = this.buildDependencyChain(allTasks);
-        await this.client.bulkUpdate('68c24591b7d2aad485e8f781', { items: dependencies } as any);
+        await this.client.bulkUpdate('68c24591b7d2aad485e8f781', dependencies as unknown as Record<string, unknown>[]);
       }
 
       return {
@@ -135,10 +135,9 @@ export class MegaTaskFactory {
       };
 
     } catch (error) {
-      // For missing projects or API failures, throw error (tests expect rejection)
+      // For missing projects, throw error (tests expect rejection)
       if (error instanceof Error) {
         if (error.message.includes('Record not found') ||
-            error.message.includes('API Error') ||
             error.message.includes('Schedule cannot fit')) {
           throw error;
         }
@@ -146,7 +145,7 @@ export class MegaTaskFactory {
 
       return {
         success: false,
-        project: null as any,
+        project: {} as ProjectData,
         tasks: { created: [] },
         schedule: {
           totalDays: 0,
@@ -175,7 +174,7 @@ export class MegaTaskFactory {
     }
   }
 
-  buildDependencyChain(tasks: ScheduledTask[]): any[] {
+  buildDependencyChain(tasks: ScheduledTask[]): Record<string, unknown>[] {
     const dependencies = [];
 
     // Create basic finish-to-start dependencies

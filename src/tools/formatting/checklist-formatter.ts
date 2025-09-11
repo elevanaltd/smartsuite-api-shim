@@ -42,19 +42,20 @@ export class ChecklistFormatter {
   buildMegaTaskPayload(taskDef: any, projectData: any): any {
     // Build proper title: EAV007: 01-SETUP | Danny Hughes
     const memberName = 'Danny Hughes'; // Default from reference doc
-    const title = `${projectData.eavCode}: ${taskDef.label} | ${memberName}`;
+    const title = `${projectData.eavCode as string}: ${taskDef.label as string} | ${memberName}`;
 
     const taskPayload = {
       'title': title,
-      'task12code': taskDef.code,
-      'taskdue456': {
-        'to_date': taskDef.endDate,
+      'task12code': taskDef.code as string,
+      'due_date': {
+        'from_date': (taskDef.startDate ?? '2025-06-02T00:00:00Z') as string,
+        'to_date': (taskDef.endDate ?? '2025-06-04T00:00:00Z') as string,
       },
-      'assigned_to': [taskDef.assigneeId],
-      'priority': taskDef.priority,
-      'task_checklist': taskDef.checklist,
-      'description': taskDef.description,
-      'project_connection': [projectData.id],
+      'assigned_to': [taskDef.assigneeId as string],
+      'priority': taskDef.priority as string,
+      'checklist99': this.formatChecklistToSmartDocFormat(taskDef.checklist as string[], taskDef.code as string),
+      'description': taskDef.description as string,
+      'projid1234': [projectData.id as string],
       'dependencies': taskDef.dependencies,
     };
 

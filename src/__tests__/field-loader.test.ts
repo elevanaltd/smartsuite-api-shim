@@ -9,7 +9,6 @@
 // Context7: consulted for fs
 import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
-
 // Context7: consulted for path
 import * as path from 'path';
 
