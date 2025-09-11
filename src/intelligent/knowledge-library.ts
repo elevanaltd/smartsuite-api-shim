@@ -21,6 +21,7 @@ import type {
   FailureMode,
   OperationExample,
   ValidationRule,
+  HttpMethod,
 } from './types.js';
 
 interface MemoryUsage {
@@ -172,11 +173,121 @@ export class KnowledgeLibrary {
     }
   }
 
-  private loadApiPatternsFromKnowledge(_knowledgeData: Record<string, unknown>): void {
-    // Extract critical patterns from the knowledge structure
-    // The api-patterns.json contains various sections, not just an array of patterns
-    // TODO: Parse the actual knowledge data structure when needed
+  private loadApiPatternsFromKnowledge(knowledgeData: Record<string, unknown>): void {
+    // Extract patterns from the structured api-patterns.json knowledge base
+    let patternsLoaded = 0;
 
+    // Process each pattern entry in the knowledge base
+    for (const [key, patternData] of Object.entries(knowledgeData)) {
+      // Skip metadata and non-pattern entries
+      if (key.startsWith('_') || !patternData || typeof patternData !== 'object') {
+        continue;
+      }
+
+      const pattern = patternData as {
+        endpoint?: string;
+        method?: string;
+        description?: string;
+        danger_level?: string;
+        validation_status?: string;
+        example_payload?: Record<string, unknown>;
+        common_mistakes?: string[];
+        working_examples?: string[];
+        critical_warning?: string;
+        prerequisites?: string[];
+        limits?: Record<string, unknown>;
+        critical_note?: string;
+        performance_note?: string;
+        recovery_note?: string;
+        business_day_calculations?: Record<string, unknown>;
+        user_discovery_pattern?: Record<string, unknown>;
+        workflow?: Record<string, unknown>;
+      };
+
+      // Skip entries without endpoint or method
+      if (!pattern.endpoint || !pattern.method) {
+        continue;
+      }
+
+      // Create regex pattern from endpoint
+      const endpointPattern = pattern.endpoint
+        .replace(/\{[^}]+\}/g, '[^/]+') // Replace {param} with [^/]+
+        .replace(/\//g, '\\/'); // Escape forward slashes
+      
+      const safetyLevel: SafetyLevel = 
+        pattern.danger_level === 'RED' ? 'RED' :
+        pattern.danger_level === 'YELLOW' ? 'YELLOW' : 'GREEN';
+
+      // Build failure modes from common mistakes and warnings
+      const failureModes: FailureMode[] = [];
+      
+      if (pattern.common_mistakes && Array.isArray(pattern.common_mistakes)) {
+        for (const mistake of pattern.common_mistakes) {
+          failureModes.push({
+            description: `Common mistake: ${mistake}`,
+            cause: mistake,
+            prevention: pattern.critical_note || pattern.performance_note || 'Follow documented patterns',
+          });
+        }
+      }
+
+      if (pattern.critical_warning) {
+        failureModes.push({
+          description: 'Critical warning',
+          cause: pattern.critical_warning,
+          prevention: pattern.recovery_note || 'Consult documentation before proceeding',
+        });
+      }
+
+      // Add validation rules for limits
+      const validationRules: ValidationRule[] = [];
+      if (pattern.limits) {
+        if (pattern.limits.max_records && typeof pattern.limits.max_records === 'number') {
+          validationRules.push({
+            type: 'recordLimit',
+            limit: pattern.limits.max_records,
+            message: `Maximum ${pattern.limits.max_records} records allowed`,
+          });
+        }
+      }
+
+      // Create knowledge entry
+      const entry: KnowledgeEntry = {
+        pattern: new RegExp(endpointPattern),
+        safetyLevel,
+      };
+
+      if (failureModes.length > 0) {
+        entry.failureModes = failureModes;
+      }
+
+      if (validationRules.length > 0) {
+        entry.validationRules = validationRules;
+      }
+
+      // Add working examples if available
+      if (pattern.working_examples && Array.isArray(pattern.working_examples)) {
+        entry.examples = pattern.working_examples.map(example => ({
+          method: pattern.method! as HttpMethod,
+          endpoint: pattern.endpoint!,
+          description: example,
+          timestamp: this.clock.now().toISOString(),
+          ...(pattern.example_payload && { payload: pattern.example_payload }),
+        }));
+      }
+
+      this.addEntry(pattern.method, entry);
+      patternsLoaded++;
+    }
+
+    // Load some critical default patterns that should always be present
+    this.loadCriticalDefaultPatterns();
+    patternsLoaded += 3;
+
+    this.version.patternCount += patternsLoaded;
+  }
+
+  private loadCriticalDefaultPatterns(): void {
     // Pattern 1: Records list endpoint - must use POST not GET
     this.addEntry('GET', {
       pattern: /\/records\/list/,
@@ -212,9 +323,6 @@ export class KnowledgeLibrary {
       safetyLevel: 'YELLOW',
       validationRules: [bulkValidationRule],
     });
-
-    // Count the patterns loaded from knowledge
-    this.version.patternCount += 3;
   }
 
 

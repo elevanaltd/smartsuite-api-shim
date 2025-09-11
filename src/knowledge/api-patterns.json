@@ -699,5 +699,335 @@
       "details": "Additional context (optional)",
       "field_errors": "Field-specific errors (optional)"
     }
+  },
+
+  "CREATE_RECORD_WITH_CHECKLIST": {
+    "endpoint": "/api/v1/applications/{appId}/records/",
+    "method": "POST",
+    "description": "PRODUCTION-TESTED: Create records with fully populated checklist items including rich text content and assignees",
+    "validation_status": "EAV-MEGA-TASK-20250911: Validated in bulk creation of 17 tasks",
+    "danger_level": "GREEN",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "Account-Id": "{workspace_id}",
+      "Content-Type": "application/json"
+    },
+    "example_payload": {
+      "title": "Record with checklist",
+      "checklist_field_slug": {
+        "items": [
+          {
+            "id": "item-unique_id_here",
+            "content": {
+              "data": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "attrs": {
+                      "textAlign": "left",
+                      "size": "medium"
+                    },
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Checklist item text here"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "html": "<div class=\"rendered\"><p class=\"align-left\">Checklist item text here</p></div>",
+              "preview": "Checklist item text here"
+            },
+            "assignee": "user_id_here",
+            "completed": false,
+            "completed_at": null,
+            "due_date": "2025-12-31"
+          }
+        ]
+      }
+    },
+    "common_mistakes": [
+      "Using simplified checklist format in bulk operations - will fail",
+      "Missing required rich text SmartDoc structure",
+      "Omitting content.data, content.html, or content.preview fields"
+    ],
+    "working_examples": [
+      "Bulk creation of 17 tasks with complex checklists - PRODUCTION VERIFIED",
+      "Individual record creation with checklist items",
+      "Mixed assignee assignments in single bulk operation"
+    ],
+    "critical_note": "Full SmartDoc structure is REQUIRED for bulk creation compatibility. Simplified formats may work for single records but fail in bulk operations."
+  },
+
+  "CREATE_TASK_DEPENDENCIES": {
+    "endpoint": "/api/v1/applications/{appId}/records/bulk/",
+    "method": "PATCH",
+    "description": "PRODUCTION-TESTED: Create predecessor/successor relationships between records using finish-to-start dependencies",
+    "validation_status": "EAV-MEGA-TASK-20250911: Validated in bulk dependency linking",
+    "danger_level": "YELLOW",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "Account-Id": "{workspace_id}",
+      "Content-Type": "application/json"
+    },
+    "example_payload": {
+      "items": [
+        {
+          "id": "record_id_here",
+          "dependency_field_slug": {
+            "predecessor": [
+              {
+                "type": "fs",
+                "lag": 0,
+                "application": "table_id_here",
+                "record": "predecessor_record_id"
+              }
+            ],
+            "successor": [
+              {
+                "type": "fs", 
+                "lag": 0,
+                "application": "table_id_here",
+                "record": "successor_record_id"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "dependency_types": {
+      "fs": "Finish-to-Start (most common)",
+      "ss": "Start-to-Start",
+      "ff": "Finish-to-Finish", 
+      "sf": "Start-to-Finish"
+    },
+    "common_mistakes": [
+      "Using CREATE instead of PATCH for dependencies",
+      "Missing application field in dependency objects",
+      "Using invalid dependency type codes"
+    ],
+    "working_examples": [
+      "Complex workflow chains with multiple dependencies",
+      "Bulk dependency creation across multiple records",
+      "Mixed dependency types in single operation"
+    ],
+    "performance_note": "Use bulk PATCH for creating multiple dependencies efficiently. Works excellently for complex workflow chains."
+  },
+
+  "ASSIGN_TO_TEAM_MEMBERS": {
+    "endpoint": "/api/v1/applications/{appId}/records/",
+    "method": "POST",
+    "description": "PRODUCTION-TESTED: Direct assignment to any workspace member during record creation",
+    "validation_status": "EAV-MEGA-TASK-20250911: Validated in bulk task assignment",
+    "danger_level": "GREEN",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "Account-Id": "{workspace_id}",
+      "Content-Type": "application/json"
+    },
+    "example_payload": {
+      "title": "Task for team member",
+      "assigned_to": ["user_id_here"],
+      "priority": "high",
+      "due_date": {
+        "from_date": "2025-01-01T00:00:00Z",
+        "to_date": "2025-01-03T00:00:00Z"
+      }
+    },
+    "user_discovery_pattern": {
+      "method": "GET",
+      "endpoint": "/api/v1/solutions/{solutionId}/members/",
+      "purpose": "Get all workspace members with their user IDs for assignment"
+    },
+    "common_mistakes": [
+      "Using string instead of array for assigned_to field",
+      "Expecting auto-assignment to current user when explicit user_id provided",
+      "Not verifying user_id exists in workspace"
+    ],
+    "working_examples": [
+      "Bulk assignment of different tasks to different team members",
+      "Single task assignment with priority and due dates",
+      "Mixed assignments in bulk record creation"
+    ],
+    "critical_note": "SmartSuite will NOT auto-assign to current user when user_id is explicitly provided. Always use arrays for user assignments."
+  },
+
+  "CREATE_DATE_RANGE_SCHEDULES": {
+    "endpoint": "/api/v1/applications/{appId}/records/",
+    "method": "POST", 
+    "description": "Create records with proper date range format for task scheduling and project timelines",
+    "danger_level": "GREEN",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "Account-Id": "{workspace_id}",
+      "Content-Type": "application/json"
+    },
+    "example_payload": {
+      "title": "Task with date range",
+      "due_date": {
+        "from_date": "2025-01-01T00:00:00Z",
+        "to_date": "2025-01-05T00:00:00Z"
+      }
+    },
+    "business_day_calculations": {
+      "javascript_example": "function subtractBusinessDays(dateStr, days) {\n  const date = new Date(dateStr);\n  let businessDaysSubtracted = 0;\n  while (businessDaysSubtracted < days) {\n    date.setDate(date.getDate() - 1);\n    if (date.getDay() !== 0 && date.getDay() !== 6) {\n      businessDaysSubtracted++;\n    }\n  }\n  return date.toISOString().split('T')[0];\n}"
+    },
+    "common_mistakes": [
+      "Using single date instead of date range object",
+      "Not using UTC timezone (Z suffix)",
+      "Incorrect from_date/to_date structure"
+    ],
+    "working_examples": [
+      "Backward scheduling from project deadlines",
+      "Business day calculations for task scheduling",
+      "Multi-task scheduling with proper date ranges"
+    ],
+    "timezone_note": "Always use UTC timezone (Z suffix) for consistency across users and time zones."
+  },
+
+  "SAFE_STATUS_UPDATE": {
+    "endpoint": "/api/v1/applications/{appId}/change_field/",
+    "method": "PUT",
+    "description": "Change status field display labels without losing UUID data - CRITICAL preservation pattern",
+    "danger_level": "RED",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "Account-Id": "{workspace_id}",
+      "Content-Type": "application/json"  
+    },
+    "prerequisites": [
+      "Fetch current field structure first",
+      "Preserve ALL existing choice UUIDs", 
+      "Only modify labels, never values"
+    ],
+    "example_payload": {
+      "slug": "status_field_slug",
+      "field_type": "singleselectfield",
+      "params": {
+        "choices": [
+          {
+            "value": "EXISTING_UUID_DO_NOT_CHANGE",
+            "label": "New Display Label",
+            "color": "#FF5733"
+          }
+        ]
+      }
+    },
+    "common_mistakes": [
+      "Using 'options' parameter instead of 'choices' - destroys all UUIDs",
+      "Generating new UUIDs instead of preserving existing ones",
+      "Not fetching current structure before update"
+    ],
+    "working_examples": [
+      "Updating status labels while preserving data integrity",
+      "Bulk status field updates across multiple tables",
+      "Color scheme updates for existing status options"
+    ],
+    "critical_warning": "NEVER use 'options' parameter - it destroys all UUIDs. Recovery requires manual restoration for all records.",
+    "recovery_note": "If UUIDs lost, manual restoration required for all affected records"
+  },
+
+  "RICH_TEXT_WITH_SMARTDOC": {
+    "endpoint": "/api/v1/applications/{appId}/records/{recordId}/",
+    "method": "PATCH",
+    "description": "Update rich text fields with proper SmartDoc structure - required for full compatibility",
+    "danger_level": "GREEN",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "Account-Id": "{workspace_id}",
+      "Content-Type": "application/json"
+    },
+    "example_payload": {
+      "description": {
+        "data": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Your rich text content here"
+                }
+              ]
+            }
+          ]
+        },
+        "html": "<p>Your rich text content here</p>",
+        "preview": "Your rich text content here"
+      }
+    },
+    "common_mistakes": [
+      "Providing only text instead of SmartDoc structure",
+      "Missing data, html, or preview fields",
+      "Incorrect SmartDoc content structure"
+    ],
+    "working_examples": [
+      "Complex rich text with formatting and links",
+      "Bulk updates with rich text content",
+      "Rich text in checklist items and descriptions"
+    ],
+    "structure_requirement": "All three fields (data, html, preview) are required for full compatibility"
+  },
+
+  "BATCH_CREATION_PATTERN": {
+    "endpoint": "/api/v1/applications/{appId}/records/bulk/",
+    "method": "POST",
+    "description": "Create multiple related records efficiently - parent and child pattern",
+    "danger_level": "YELLOW",
+    "required_headers": {
+      "Authorization": "Token {api_key}",
+      "Account-Id": "{workspace_id}",
+      "Content-Type": "application/json"
+    },
+    "workflow": {
+      "step1_parent": {
+        "method": "POST",
+        "endpoint": "/api/v1/applications/{parentTableId}/records/",
+        "purpose": "Create parent record and capture ID"
+      },
+      "step2_children": {
+        "method": "POST", 
+        "endpoint": "/api/v1/applications/{childTableId}/records/bulk/",
+        "body_structure": {
+          "items": [
+            {
+              "title": "Child 1",
+              "parent_id": ["captured_parent_id"]
+            }
+          ]
+        }
+      }
+    },
+    "example_payload": {
+      "items": [
+        {
+          "title": "Child Record 1",
+          "parent_id": ["parent_record_id_from_step1"],
+          "assigned_to": ["user_id"]
+        },
+        {
+          "title": "Child Record 2", 
+          "parent_id": ["parent_record_id_from_step1"],
+          "assigned_to": ["another_user_id"]
+        }
+      ]
+    },
+    "common_mistakes": [
+      "Creating children before parent exists",
+      "Exceeding 25 record limit per batch",
+      "Not using arrays for linked record fields"
+    ],
+    "working_examples": [
+      "Project with multiple tasks creation",
+      "Order with line items pattern",
+      "Campaign with deliverables structure"
+    ],
+    "limits": {
+      "max_records": 25,
+      "recommendation": "Batch in groups of 20 for safety"
+    }
   }
 }

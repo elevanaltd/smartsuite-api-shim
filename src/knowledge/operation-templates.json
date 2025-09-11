@@ -596,5 +596,150 @@
       },
       "python_example": "for field in schema['structure']:\n    if field['field_type'] == 'linkedrecordfield':\n        print(f\"Link: {field['slug']} -> {field['params']['application_id']}\")"
     }
+  },
+
+  "create_checklist_field": {
+    "name": "Create Records with Checklist Items",
+    "description": "PRODUCTION-TESTED: Create records with fully populated checklist items including rich text content and assignees",
+    "danger_level": "GREEN",
+    "validation": "EAV-MEGA-TASK-20250911: Validated in bulk creation of 17 tasks",
+    "template": {
+      "method": "POST",
+      "endpoint": "/api/v1/applications/{tableId}/records/",
+      "critical_requirement": "Checklist items MUST use full rich text SmartDoc structure for bulk creation compatibility",
+      "body": {
+        "title": "Record with checklist",
+        "checklist_field_slug": {
+          "items": [
+            {
+              "id": "item-{unique_id}",
+              "content": {
+                "data": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": "left",
+                        "size": "medium"
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Checklist item text here"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "html": "<div class=\"rendered\"><p class=\"align-left\">Checklist item text here</p></div>",
+                "preview": "Checklist item text here"
+              },
+              "assignee": "user_id_here",
+              "completed": false,
+              "completed_at": null,
+              "due_date": "2025-12-31"
+            }
+          ]
+        }
+      }
+    },
+    "helper_function": {
+      "purpose": "Generate properly formatted checklist items",
+      "javascript": "function generateChecklistItem(id, text, assignee, dueDate) {\n  return {\n    \"id\": id,\n    \"content\": {\n      \"data\": {\n        \"type\": \"doc\",\n        \"content\": [{\n          \"type\": \"paragraph\",\n          \"attrs\": {\"textAlign\": \"left\", \"size\": \"medium\"},\n          \"content\": [{\"type\": \"text\", \"text\": text}]\n        }]\n      },\n      \"html\": `<div class=\"rendered\"><p class=\"align-left\">${text}</p></div>`,\n      \"preview\": text\n    },\n    \"assignee\": assignee,\n    \"completed\": false,\n    \"completed_at\": null,\n    \"due_date\": dueDate\n  };\n}"
+    },
+    "bulk_creation_note": "CRITICAL: This full structure is required for bulk creation. Simplified formats may work for single record creation but will fail in bulk operations."
+  },
+
+  "create_dependency_field": {
+    "name": "Create Task Dependencies",
+    "description": "PRODUCTION-TESTED: Create predecessor/successor relationships between records",
+    "danger_level": "YELLOW",
+    "validation": "EAV-MEGA-TASK-20250911: Validated in bulk dependency linking",
+    "template": {
+      "method": "PATCH",
+      "endpoint": "/api/v1/applications/{tableId}/records/bulk/",
+      "purpose": "Create task dependencies using finish-to-start relationships",
+      "body": {
+        "items": [
+          {
+            "id": "record_id_here",
+            "dependency_field_slug": {
+              "predecessor": [
+                {
+                  "type": "fs",
+                  "lag": 0,
+                  "application": "table_id_here",
+                  "record": "predecessor_record_id"
+                }
+              ],
+              "successor": [
+                {
+                  "type": "fs", 
+                  "lag": 0,
+                  "application": "table_id_here",
+                  "record": "successor_record_id"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "dependency_types": {
+      "fs": "Finish-to-Start (most common)",
+      "ss": "Start-to-Start",
+      "ff": "Finish-to-Finish",
+      "sf": "Start-to-Finish"
+    },
+    "bulk_pattern": "Use bulk PATCH for creating multiple dependencies efficiently. Works excellently for complex workflow chains."
+  },
+
+  "assign_to_team_members": {
+    "name": "Assign Records to Team Members",
+    "description": "PRODUCTION-TESTED: Direct assignment to any workspace member during record creation",
+    "danger_level": "GREEN",
+    "validation": "EAV-MEGA-TASK-20250911: Validated in bulk task assignment",
+    "template": {
+      "method": "POST",
+      "endpoint": "/api/v1/applications/{tableId}/records/",
+      "body": {
+        "title": "Task for team member",
+        "assigned_to": ["user_id_here"],
+        "priority": "high",
+        "due_date": {
+          "from_date": "2025-01-01T00:00:00Z",
+          "to_date": "2025-01-03T00:00:00Z"
+        }
+      }
+    },
+    "user_discovery": {
+      "method": "GET",
+      "endpoint": "/api/v1/solutions/{solutionId}/members/",
+      "purpose": "Get all workspace members with their user IDs for assignment"
+    },
+    "bulk_assignment": "Works perfectly in bulk creation - assign different tasks to different team members in single API call",
+    "no_defaults": "CRITICAL: SmartSuite will NOT auto-assign to current user when user_id is explicitly provided"
+  },
+
+  "create_date_range_field": {
+    "name": "Create Records with Date Ranges",
+    "description": "Proper date range format for task scheduling and project timelines",
+    "danger_level": "GREEN",
+    "template": {
+      "method": "POST",
+      "endpoint": "/api/v1/applications/{tableId}/records/",
+      "body": {
+        "title": "Task with date range",
+        "due_date": {
+          "from_date": "2025-01-01T00:00:00Z",
+          "to_date": "2025-01-05T00:00:00Z"
+        }
+      }
+    },
+    "date_calculations": {
+      "javascript_example": "// Subtract business days for backward scheduling\nfunction subtractBusinessDays(dateStr, days) {\n  const date = new Date(dateStr);\n  let businessDaysSubtracted = 0;\n  while (businessDaysSubtracted < days) {\n    date.setDate(date.getDate() - 1);\n    if (date.getDay() !== 0 && date.getDay() !== 6) {\n      businessDaysSubtracted++;\n    }\n  }\n  return date.toISOString().split('T')[0];\n}"
+    },
+    "timezone_note": "Always use UTC timezone (Z suffix) for consistency across users"
   }
 }
