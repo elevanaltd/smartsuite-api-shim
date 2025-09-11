@@ -6,15 +6,19 @@
 
 // Context7: consulted for vitest
 
+// TESTGUARD-APPROVED: TESTGUARD-20250911-25250f49
 // Context7: consulted for fs
 import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
+import type { PathLike } from 'fs';
 // Context7: consulted for path
 import * as path from 'path';
 
 // Context7: consulted for js-yaml
 import * as yaml from 'js-yaml';
+// Context7: consulted for vitest - Mock type import
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { Mock } from 'vitest';
 
 import { EnhancedFieldLoader } from '../field-loader.js';
 
@@ -29,8 +33,11 @@ vi.mock('fs', () => ({
 
 vi.mock('js-yaml');
 
+// TESTGUARD-APPROVED: TESTGUARD-20250911-a66a62fa
 const mockExistsSync = vi.mocked(existsSync);
-const mockReaddir = vi.mocked(fs.readdir);
+// Critical-Engineer & TestGuard: Explicit typing to correct TypeScript's overload inference
+// Implementation expects string[] since it calls fs.readdir without options
+const mockReaddir = vi.mocked(fs.readdir) as Mock<[PathLike, ...any[]], Promise<string[]>>;
 const mockReadFile = vi.mocked(fs.readFile);
 const mockYamlLoad = vi.mocked(yaml.load);
 
@@ -64,7 +71,8 @@ describe('EnhancedFieldLoader', () => {
       const mockMapping = { field1: 'Field One', field2: 'Field Two' };
 
       mockExistsSync.mockReturnValue(true);
-      mockReaddir.mockResolvedValue(['table1.yaml', 'table2.json'] as any);
+      // Critical-Engineer: consulted for Filesystem interaction and mocking strategy
+      mockReaddir.mockResolvedValue(['table1.yaml', 'table2.json']);
       mockReadFile.mockResolvedValue('field1: Field One\nfield2: Field Two');
       mockYamlLoad.mockReturnValue(mockMapping);
 
@@ -92,7 +100,7 @@ describe('EnhancedFieldLoader', () => {
       // Local returns no YAML files, examples has files
       mockReaddir
         .mockResolvedValueOnce([])                                    // local: no .yaml files
-        .mockResolvedValueOnce(['table1.example.yaml'] as any);      // examples: has .example.yaml
+        .mockResolvedValueOnce(['table1.example.yaml']);             // examples: has .example.yaml
 
       mockReadFile.mockResolvedValue('field1: Example Field');
       mockYamlLoad.mockReturnValue(mockMapping);
@@ -111,7 +119,7 @@ describe('EnhancedFieldLoader', () => {
       const baseDir = '/test/mappings';
 
       mockExistsSync.mockReturnValue(true);
-      mockReaddir.mockResolvedValue(['corrupted.yaml'] as any);
+      mockReaddir.mockResolvedValue(['corrupted.yaml']);
       mockReadFile.mockRejectedValue(new Error('Permission denied'));
 
       // Act
