@@ -139,7 +139,7 @@ describe('MegaTaskFactory', () => {
         project_id: projectId,
         mode: 'execute',
       });
-      
+
       // Should succeed with warning, not throw error
       expect(result.success).toBe(true);
       expect(result.validation.scheduleValid).toBe(false);

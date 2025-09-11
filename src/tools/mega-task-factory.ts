@@ -78,7 +78,7 @@ export class MegaTaskFactory {
         console.warn(warningMessage);
         warnings = ['Timeline warning'];
       }
-      
+
       // Only log issues if schedule is actually invalid
       if (!scheduleValidation.valid && scheduleValidation.issues.length > 0) {
         console.error(`Schedule issues: ${scheduleValidation.issues.join(', ')}`);

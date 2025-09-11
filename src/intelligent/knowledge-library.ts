@@ -209,9 +209,10 @@ export class KnowledgeLibrary {
         continue;
       }
 
-      // Create regex pattern from endpoint
+      // Create regex pattern from endpoint with proper escaping
       const endpointPattern = pattern.endpoint
-        .replace(/\{[^}]+\}/g, '[^/]+') // Replace {param} with [^/]+
+        .replace(/[\\.*+?^${}()|[\]]/g, '\\$&') // Escape all regex special chars first
+        .replace(/\\{[^}]+\\}/g, '[^/]+') // Replace {param} with [^/]+
         .replace(/\//g, '\\/'); // Escape forward slashes
 
       const safetyLevel: SafetyLevel =
