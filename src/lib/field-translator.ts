@@ -1,10 +1,11 @@
 // Context7: consulted for yaml
-// Context7: consulted for fs-extra
+// Context7: consulted for fs-extra -> MIGRATED to native fs/promises for MCP compatibility
+// Context7: consulted for fs
 // Context7: consulted for path
 // Critical-Engineer: consulted for API shim architecture and field translation strategy
 import * as path from 'path';
 
-import * as fs from 'fs-extra';
+import { promises as fs } from 'fs';
 import * as yaml from 'yaml';
 
 export interface FieldMapping {
