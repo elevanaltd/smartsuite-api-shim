@@ -36,7 +36,17 @@ export class BackwardScheduler {
   }
 
   calculateSchedule(project: ProjectData): ScheduleResult {
-    const projectDue = new Date(project.dueDate);
+    // Handle both string and nested object formats for dueDate
+    const dueDateValue: string = typeof project.dueDate === 'string'
+      ? project.dueDate
+      : ((project.dueDate as Record<string, unknown>)?.to_date as string) || String(project.dueDate);
+    const projectDue = new Date(dueDateValue);
+
+    // Validate date parsing
+    if (isNaN(projectDue.getTime())) {
+      throw new Error(`Invalid date value for project due date: ${String(dueDateValue)}`);
+    }
+
     const tasks = {} as Record<StandardTaskCode, TaskScheduleEntry>;
 
     // Define all standard task codes in reverse dependency order
@@ -122,7 +132,19 @@ export class BackwardScheduler {
   validateScheduleFitsTimeline(schedule: ScheduleResult, project: ProjectData): { valid: boolean; issues: string[]; warnings: string[] } {
     const issues: string[] = [];
     const warnings: string[] = [];
-    const projectDue = new Date(project.dueDate);
+
+    // Handle both string and nested object formats for dueDate
+    const dueDateValue: string = typeof project.dueDate === 'string'
+      ? project.dueDate
+      : ((project.dueDate as Record<string, unknown>)?.to_date as string) || String(project.dueDate);
+    const projectDue = new Date(dueDateValue);
+
+    // Validate date parsing
+    if (isNaN(projectDue.getTime())) {
+      issues.push(`Invalid date value for project due date: ${String(dueDateValue)}`);
+      return { valid: false, issues, warnings };
+    }
+
     const today = new Date();
 
     // Check if schedule extends past due date - this is a WARNING not an error per business requirements
@@ -171,7 +193,8 @@ export class BackwardScheduler {
     const tomorrowDateParts = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T');
     const tomorrowDate = tomorrowDateParts[0]!;
     // TypeScript needs explicit handling due to noUncheckedIndexedAccess
-    if (project.dueDate.includes(tomorrowDate) && schedule.totalDays > 40) {
+    // Use the normalized dueDateValue for comparison
+    if (dueDateValue && typeof dueDateValue === 'string' && dueDateValue.includes(tomorrowDate) && schedule.totalDays > 40) {
       issues.push(`Impossible timeline: project due tomorrow but requires ${schedule.totalDays} days`);
     }
 
