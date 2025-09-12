@@ -38,10 +38,10 @@ describe('MegaTaskFactory', () => {
       // This test should fail because implementation doesn't exist yet
       const projectId = '68abcd3975586ee1ff3e5b1f';
 
-      // Mock project data response
+      // Mock project data response (using correct field names from YAML mapping)
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: projectId,
-        eavcode: 'EAV007',
+        autonumber: 'EAV007', // Correct field name from projects.yaml mapping
         projdue456: { to_date: '2025-11-15T00:00:00Z' }, // 2+ months from now
         newvidcount: 7,
         amendvidscount: 0,
@@ -68,7 +68,7 @@ describe('MegaTaskFactory', () => {
       // Mock project with reuse videos
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: projectId,
-        eavcode: 'EAV008',
+        autonumber: 'EAV008',
         projdue456: { to_date: '2025-09-01T00:00:00Z' },
         newvidcount: 5,
         amendvidscount: 2,
@@ -90,7 +90,7 @@ describe('MegaTaskFactory', () => {
 
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: projectId,
-        eavcode: 'EAV009',
+        autonumber: 'EAV009',
         projdue456: { to_date: '2025-07-30T00:00:00Z' },
         newvidcount: 3,
         amendvidscount: 0,
@@ -127,7 +127,7 @@ describe('MegaTaskFactory', () => {
       // Mock project with very tight timeline (due tomorrow)
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: projectId,
-        eavcode: 'EAV010',
+        autonumber: 'EAV010',
         projdue456: { to_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() }, // Tomorrow
         newvidcount: 10,
         amendvidscount: 0,
@@ -462,7 +462,7 @@ describe('MegaTaskFactory Integration', () => {
     it('should fail - RED phase: handle API failures gracefully', async () => {
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: '68abcd3975586ee1ff3e5b1f',
-        eavcode: 'EAV007',
+        autonumber: 'EAV007',
         projdue456: { to_date: '2025-11-15T00:00:00Z' }, // 2+ months from now
         newvidcount: 7,
         amendvidscount: 0,
