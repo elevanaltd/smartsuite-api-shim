@@ -2,6 +2,7 @@
 // TESTGUARD-APPROVED: TDD approach for schema optimization refactor
 // Context7: consulted for vitest
 import { describe, it, expect, beforeEach, vi, MockedFunction } from 'vitest';
+
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
 
 // Mock the SmartSuite client
@@ -25,7 +26,7 @@ const mockFullSchema = {
       slug: 'status',
       field_type: 'singleselectfield',
       label: 'Status',
-      params: { 
+      params: {
         required: false,
         choices: [
           { value: 'active', label: 'Active' },
@@ -48,21 +49,21 @@ describe('Schema Optimization', () => {
 
   beforeEach(async () => {
     server = new SmartSuiteShimServer();
-    
+
     // Create mock client with getSchema method
     mockClient = {
       getSchema: vi.fn(),
     };
-    
+
     // Set up server with mock client
     await server.authenticate({
       apiKey: 'test-key',
       workspaceId: 'test-workspace',
     });
-    
+
     // Replace client with mock - accessing private property for testing
     (server as any).client = mockClient;
-    
+
     // Mock successful schema response
     mockClient.getSchema.mockResolvedValue(mockFullSchema);
   });
@@ -167,7 +168,7 @@ describe('Schema Optimization', () => {
         server.callTool('smartsuite_schema', {
           appId: '68a8ff5237fde0bf797c05b3',
           output_mode: 'invalid',
-        })
+        }),
       ).rejects.toThrow('Invalid output_mode "invalid". Must be one of: summary, fields, detailed');
     });
 
@@ -220,7 +221,7 @@ describe('Schema Optimization', () => {
       const table2 = '68ab34b30b1e05e11a8ba87f'; // Another valid test table
 
       // Mock different response for second table
-      mockClient.getSchema.mockImplementation((appId: string) => {
+      mockClient.getSchema.mockImplementation((appId: unknown) => {
         if (appId === table2) {
           return Promise.resolve({
             id: table2,
@@ -279,7 +280,7 @@ describe('Schema Optimization', () => {
         server.callTool('smartsuite_schema', {
           appId: invalidTableId,
           output_mode: 'summary',
-        })
+        }),
       ).rejects.toThrow('Unknown table \'78b9gg6348edf1cg8a8c16c4\'. Available tables:');
     });
 
@@ -291,7 +292,7 @@ describe('Schema Optimization', () => {
         server.callTool('smartsuite_schema', {
           appId: '68a8ff5237fde0bf797c05b3',
           output_mode: 'summary',
-        })
+        }),
       ).rejects.toThrow('SmartSuite API unavailable');
     });
 
@@ -302,7 +303,7 @@ describe('Schema Optimization', () => {
         server.callTool('smartsuite_schema', {
           appId: '68a8ff5237fde0bf797c05b3',
           output_mode: 'summary',
-        })
+        }),
       ).rejects.toThrow('Invalid schema format');
     });
   });
@@ -311,7 +312,7 @@ describe('Schema Optimization', () => {
     it('should resolve table names to IDs before caching', async () => {
       // Assume table resolver can convert 'projects' -> '68a8ff5237fde0bf797c05b3'
       // This test ensures caching works with both raw IDs and resolved names
-      
+
       await server.callTool('smartsuite_schema', {
         appId: 'projects', // Human-readable name
         output_mode: 'summary',

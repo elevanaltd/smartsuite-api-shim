@@ -1,13 +1,13 @@
 // TEST-METHODOLOGY-GUARDIAN-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250909-cabb9383
 // Critical-Engineer: consulted for human-readable name resolution architecture
-// Context7: consulted for path
 // Context7: consulted for fs-extra -> MIGRATED to native fs/promises for MCP compatibility
 // Context7: consulted for fs
-// Context7: consulted for yaml
-import * as path from 'path';
-
 import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
+// Context7: consulted for path
+import * as path from 'path';
+
+// Context7: consulted for yaml
 import * as yaml from 'yaml';
 
 export interface TableInfo {

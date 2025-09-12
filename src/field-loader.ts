@@ -5,9 +5,10 @@
 
 // Context7: consulted for fs-extra -> MIGRATED to native fs/promises for MCP compatibility
 // Context7: consulted for path
-import * as path from 'path';
 import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
+import * as path from 'path';
+
 // Context7: consulted for js-yaml
 import * as yaml from 'js-yaml';
 

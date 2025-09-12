@@ -897,9 +897,13 @@ export class SmartSuiteShimServer {
 
     // Cache miss or expired - fetch from API
     const schema = await this.client!.getSchema(appId);
-    
-    // Validate schema format
+
+    // Validate schema format - must have at least id and name
     if (!schema || typeof schema !== 'object') {
+      throw new Error('Invalid schema format');
+    }
+    const schemaObj = schema as unknown as Record<string, unknown>;
+    if (!schemaObj.id || !schemaObj.name) {
       throw new Error('Invalid schema format');
     }
 
@@ -917,7 +921,7 @@ export class SmartSuiteShimServer {
    */
   private _transformSchemaOutput(appId: string, schema: unknown, output_mode: string): unknown {
     const schemaObj = schema as Record<string, unknown>;
-    
+
     // For detailed mode, return as-is (maintains backward compatibility)
     if (output_mode === 'detailed') {
       return this._generateSchemaDetailed(appId, schemaObj);
@@ -934,10 +938,10 @@ export class SmartSuiteShimServer {
     switch (output_mode) {
       case 'summary':
         return this._generateSchemaSummary(schemaObj, structure);
-      
+
       case 'fields':
         return this._generateSchemaFields(schemaObj, structure);
-      
+
       default:
         throw new Error(`Unsupported output_mode: ${output_mode}`);
     }

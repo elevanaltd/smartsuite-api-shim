@@ -191,10 +191,10 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         createRecord: vi.fn().mockResolvedValue({ id: '2', name: 'New' }),
         updateRecord: vi.fn().mockResolvedValue({ id: '1', name: 'Updated' }),
         deleteRecord: vi.fn().mockResolvedValue(undefined),
-        getSchema: vi.fn().mockResolvedValue({ 
+        getSchema: vi.fn().mockResolvedValue({
           id: '68b2437a8f1755b055e0a124',
           name: 'Videos Table',
-          structure: []
+          structure: [],
         }),
       } as any;
     });
@@ -231,11 +231,10 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       });
 
       expect(result).toEqual({
-        fields: [],
-        fieldMappings: {
-          hasCustomMappings: true,
-          message: 'This table supports human-readable field names. Use field names from the mappings below instead of API codes.',
-        },
+        id: '68b2437a8f1755b055e0a124',
+        name: 'Videos Table',
+        field_count: 0,
+        field_types: {},
       });
       // Updated to use correct videos table ID from field-mappings
       expect((server as any).client.getSchema).toHaveBeenCalledWith('68b2437a8f1755b055e0a124');
