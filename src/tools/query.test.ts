@@ -1,10 +1,11 @@
 // Context7: consulted for vitest
+// Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { handleQuery } from '../../tools/query';
-import type { ToolContext } from '../../tools/types';
-import type { SmartSuiteClient } from '../../smartsuite-client';
-import type { FieldTranslator } from '../../lib/field-translator';
-import type { TableResolver } from '../../lib/table-resolver';
+import { handleQuery } from './query';
+import type { ToolContext } from './types';
+import type { SmartSuiteClient } from '../smartsuite-client';
+import type { FieldTranslator } from '../lib/field-translator';
+import type { TableResolver } from '../lib/table-resolver';
 
 describe('handleQuery Tool Function', () => {
   let mockContext: ToolContext;
@@ -17,15 +18,21 @@ describe('handleQuery Tool Function', () => {
       listRecords: vi.fn(),
       getRecord: vi.fn(),
       searchRecords: vi.fn(),
+      countRecords: vi.fn(),
     } as any;
 
     mockFieldTranslator = {
       translateFieldNamesToIds: vi.fn(x => x),
       translateFieldIdsToNames: vi.fn(x => x),
+      hasMappings: vi.fn(() => false),
+      humanToApi: vi.fn((_appId, data) => data),
+      apiToHuman: vi.fn((_appId, data) => data),
     } as any;
 
     mockTableResolver = {
       resolveTableId: vi.fn(id => id),
+      getSuggestionsForUnknown: vi.fn(() => []),
+      getAllTableNames: vi.fn(() => []),
     } as any;
 
     mockContext = {
@@ -41,7 +48,9 @@ describe('handleQuery Tool Function', () => {
   it('should handle list operation with function module pattern', async () => {
     const mockResponse = {
       items: [{ id: '1', title: 'Test' }],
-      meta: { total: 1 }
+      total: 1,
+      offset: 0,
+      limit: 200
     };
     
     (mockClient.listRecords as any).mockResolvedValue(mockResponse);
@@ -77,11 +86,28 @@ describe('handleQuery Tool Function', () => {
     expect(result).toEqual(mockRecord);
   });
 
+  it('should handle count operation', async () => {
+    (mockClient.countRecords as any).mockResolvedValue(42);
+
+    const args = {
+      operation: 'count',
+      appId: 'test-app-id'
+    };
+
+    const result = await handleQuery(mockContext, args);
+
+    expect(mockTableResolver.resolveTableId).toHaveBeenCalledWith('test-app-id');
+    expect(mockClient.countRecords).toHaveBeenCalled();
+    expect(result).toEqual({ count: 42 });
+  });
+
   it('should use audit logger when provided', async () => {
     const args = {
       operation: 'list',
       appId: 'test-app-id'
     };
+
+    (mockClient.listRecords as any).mockResolvedValue({ items: [], total: 0 });
 
     await handleQuery(mockContext, args);
 

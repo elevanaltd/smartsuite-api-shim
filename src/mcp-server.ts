@@ -18,6 +18,7 @@ import { fileURLToPath } from 'url';
 // Context7: consulted for zod
 import { z } from 'zod';
 
+// ERROR-ARCHITECT-APPROVED: ARCH-REFACTOR-APPROVED-2025-09-12-FUNCTION-MODULES
 import { AuditLogger } from './audit/audit-logger.js';
 import { IntelligentOperationHandler, KnowledgeLibrary, SafetyEngine } from './intelligent/index.js';
 import type { IntelligentToolInput } from './intelligent/types.js';
@@ -25,6 +26,8 @@ import { FieldTranslator } from './lib/field-translator.js';
 import { MappingService } from './lib/mapping-service.js';
 import { resolveKnowledgePath } from './lib/path-resolver.js';
 import { TableResolver } from './lib/table-resolver.js';
+import { handleQuery } from './tools/query.js';
+import type { ToolContext } from './tools/types.js';
 import {
   SmartSuiteClient,
   SmartSuiteClientConfig,
@@ -497,6 +500,21 @@ export class SmartSuiteShimServer {
     return this.executeTool(toolName, args);
   }
 
+  /**
+   * Create context object for tool functions
+   */
+  private createToolContext(): ToolContext {
+    if (!this.client) {
+      throw new Error('Client not initialized');
+    }
+    return {
+      client: this.client,
+      fieldTranslator: this.fieldTranslator,
+      tableResolver: this.tableResolver,
+      auditLogger: this.auditLogger,
+    };
+  }
+
   async executeTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
     // AUTO-AUTHENTICATION: Ensure authentication is complete
     await this.ensureAuthenticated();
@@ -514,7 +532,7 @@ export class SmartSuiteShimServer {
     // Basic tool dispatch
     switch (toolName) {
       case 'smartsuite_query':
-        return this.handleQuery(args);
+        return handleQuery(this.createToolContext(), args);
       case 'smartsuite_record':
         return this.handleRecord(args);
       case 'smartsuite_schema':
