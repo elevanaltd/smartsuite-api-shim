@@ -82,10 +82,39 @@ export class MegaTaskFactory {
       const dueDateField = projectsMapping.fields.dueDate || 'projdue456';
       const projectManagerField = projectsMapping.fields.projectManager || 'assigned_to';
 
+      // Handle triple-nested date structure from SmartSuite
+      // SmartSuite returns: { to_date: { date: "2025-09-30T00:00:00Z" } }
+      const dueDateRaw = projectData[dueDateField];
+      let dueDateValue: string;
+
+      if (typeof dueDateRaw === 'string') {
+        // Direct string value
+        dueDateValue = dueDateRaw;
+      } else if (dueDateRaw && typeof dueDateRaw === 'object') {
+        // Nested object - extract from to_date.date
+        const dateObj = dueDateRaw as Record<string, unknown>;
+        const toDate = dateObj.to_date;
+
+        if (typeof toDate === 'string') {
+          // Two-level nesting: { to_date: "2025-09-30T00:00:00Z" }
+          dueDateValue = toDate;
+        } else if (toDate && typeof toDate === 'object') {
+          // Triple-level nesting: { to_date: { date: "2025-09-30T00:00:00Z" } }
+          const toDateObj = toDate as Record<string, unknown>;
+          dueDateValue = (toDateObj.date as string) || String(toDateObj.date) || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+        } else {
+          // Fallback
+          dueDateValue = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+        }
+      } else {
+        // Default fallback - 60 days from now
+        dueDateValue = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+      }
+
       const project: ProjectData = {
         id: projectData.id,
         eavCode: (projectData[eavCodeField] as string) || 'EAV000',
-        dueDate: ((projectData[dueDateField] as Record<string, unknown>)?.to_date as string) || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        dueDate: dueDateValue,
         newVids: parseInt(projectData.newvidcount as string) || 0,
         amendVids: parseInt(projectData.amendvidscount as string) || 0,
         reuseVids: parseInt(projectData.reusevidscount as string) || 0,
@@ -138,8 +167,13 @@ export class MegaTaskFactory {
           [checklistField]: [`Task ${code} checklist item`],
           [projectField]: input.project_id,
           [dueDateField]: {
-            from_date: taskSchedule.start instanceof Date ? taskSchedule.start.toISOString() : taskSchedule.start,
-            to_date: taskSchedule.end instanceof Date ? taskSchedule.end.toISOString() : taskSchedule.end,
+            // SmartSuite expects triple-nested structure for date ranges
+            from_date: {
+              date: taskSchedule.start instanceof Date ? taskSchedule.start.toISOString() : taskSchedule.start,
+            },
+            to_date: {
+              date: taskSchedule.end instanceof Date ? taskSchedule.end.toISOString() : taskSchedule.end,
+            },
           },
         };
 

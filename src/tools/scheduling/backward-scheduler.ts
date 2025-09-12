@@ -4,6 +4,50 @@
 import type { ProjectData, ScheduleResult, StandardTaskCode, TaskScheduleEntry } from '../../types/mega-task-types.js';
 
 export class BackwardScheduler {
+  /**
+   * Extract date string from various SmartSuite date formats
+   * Handles direct strings, double-nested, and triple-nested date structures
+   */
+  private extractDateString(dateValue: unknown): string {
+    // Direct string
+    if (typeof dateValue === 'string') {
+      return dateValue;
+    }
+
+    // Handle nested object structures
+    if (dateValue && typeof dateValue === 'object') {
+      const dateObj = dateValue as Record<string, unknown>;
+
+      // Check for to_date property (SmartSuite date range format)
+      if ('to_date' in dateObj) {
+        const toDate = dateObj.to_date;
+
+        // Two-level nesting: { to_date: "2025-09-30T00:00:00Z" }
+        if (typeof toDate === 'string') {
+          return toDate;
+        }
+
+        // Triple-level nesting: { to_date: { date: "2025-09-30T00:00:00Z" } }
+        if (toDate && typeof toDate === 'object') {
+          const toDateObj = toDate as Record<string, unknown>;
+          if ('date' in toDateObj && typeof toDateObj.date === 'string') {
+            return toDateObj.date;
+          }
+          // Try to coerce the nested object to string as fallback
+          return String(toDate);
+        }
+      }
+
+      // Check for direct date property
+      if ('date' in dateObj && typeof dateObj.date === 'string') {
+        return dateObj.date;
+      }
+    }
+
+    // Final fallback - convert to string
+    return String(dateValue);
+  }
+
   private calculateDuration(taskCode: string, newVids: number, amendVids: number, _reuseVids: number): number {
 
     switch(taskCode) {
@@ -36,15 +80,13 @@ export class BackwardScheduler {
   }
 
   calculateSchedule(project: ProjectData): ScheduleResult {
-    // Handle both string and nested object formats for dueDate
-    const dueDateValue: string = typeof project.dueDate === 'string'
-      ? project.dueDate
-      : ((project.dueDate as Record<string, unknown>)?.to_date as string) || String(project.dueDate);
-    const projectDue = new Date(dueDateValue);
+    // Extract date string from various possible formats
+    const dueDateString = this.extractDateString(project.dueDate);
+    const projectDue = new Date(dueDateString);
 
     // Validate date parsing
     if (isNaN(projectDue.getTime())) {
-      throw new Error(`Invalid date value for project due date: ${String(dueDateValue)}`);
+      throw new Error(`Invalid date value for project due date: ${String(dueDateString)}`);
     }
 
     const tasks = {} as Record<StandardTaskCode, TaskScheduleEntry>;
@@ -133,15 +175,13 @@ export class BackwardScheduler {
     const issues: string[] = [];
     const warnings: string[] = [];
 
-    // Handle both string and nested object formats for dueDate
-    const dueDateValue: string = typeof project.dueDate === 'string'
-      ? project.dueDate
-      : ((project.dueDate as Record<string, unknown>)?.to_date as string) || String(project.dueDate);
-    const projectDue = new Date(dueDateValue);
+    // Extract date string from various possible formats
+    const dueDateString = this.extractDateString(project.dueDate);
+    const projectDue = new Date(dueDateString);
 
     // Validate date parsing
     if (isNaN(projectDue.getTime())) {
-      issues.push(`Invalid date value for project due date: ${String(dueDateValue)}`);
+      issues.push(`Invalid date value for project due date: ${String(dueDateString)}`);
       return { valid: false, issues, warnings };
     }
 
@@ -193,8 +233,8 @@ export class BackwardScheduler {
     const tomorrowDateParts = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T');
     const tomorrowDate = tomorrowDateParts[0]!;
     // TypeScript needs explicit handling due to noUncheckedIndexedAccess
-    // Use the normalized dueDateValue for comparison
-    if (dueDateValue && typeof dueDateValue === 'string' && dueDateValue.includes(tomorrowDate) && schedule.totalDays > 40) {
+    // Use the normalized dueDateString for comparison
+    if (dueDateString && typeof dueDateString === 'string' && dueDateString.includes(tomorrowDate) && schedule.totalDays > 40) {
       issues.push(`Impossible timeline: project due tomorrow but requires ${schedule.totalDays} days`);
     }
 
