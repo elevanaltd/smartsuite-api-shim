@@ -183,6 +183,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
       // Mock the client methods by replacing the private client
       // This is testing the tool execution pipeline, not the client itself
+      // TEST-METHODOLOGY-GUARDIAN-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250912-94f6ff5e
       (server as any).client = {
         listRecords: vi.fn().mockResolvedValue([{ id: '1', name: 'Test' }]),
         countRecords: vi.fn().mockResolvedValue(1),
@@ -190,7 +191,11 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         createRecord: vi.fn().mockResolvedValue({ id: '2', name: 'New' }),
         updateRecord: vi.fn().mockResolvedValue({ id: '1', name: 'Updated' }),
         deleteRecord: vi.fn().mockResolvedValue(undefined),
-        getSchema: vi.fn().mockResolvedValue({ fields: [] }),
+        getSchema: vi.fn().mockResolvedValue({ 
+          id: '68b2437a8f1755b055e0a124',
+          name: 'Videos Table',
+          structure: []
+        }),
       } as any;
     });
 
