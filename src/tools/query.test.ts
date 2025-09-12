@@ -66,7 +66,9 @@ describe('handleQuery Tool Function', () => {
     expect(mockTableResolver.resolveTableId).toHaveBeenCalledWith('test-app-id');
     expect(mockClient.listRecords).toHaveBeenCalled();
     expect(result).toHaveProperty('items');
-    expect(result).toHaveProperty('pagination');
+    expect(result).toHaveProperty('limit');
+    expect(result).toHaveProperty('offset');
+    expect(result).toHaveProperty('total');
   });
 
   it('should handle get operation with function module pattern', async () => {
