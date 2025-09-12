@@ -32,6 +32,8 @@ import {
   SmartSuiteRecord,
   createAuthenticatedClient,
 } from './smartsuite-client.js';
+import { MegaTaskFactory } from './tools/mega-task-factory.js';
+import type { MegaTaskFactoryResult } from './types/mega-task-types.js';
 
 // Zod schema for SmartSuite list options validation
 // SECURITY-SPECIALIST-APPROVED: Input validation enhancement for defense-in-depth
@@ -346,6 +348,36 @@ export class SmartSuiteShimServer {
           required: ['endpoint', 'method', 'operation_description'],
         },
       },
+      {
+        name: 'smartsuite_mega_task',
+        description: 'Create complete EAV project workflows with automated scheduling',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            project_id: {
+              type: 'string',
+              description: 'SmartSuite project record ID (24-char hex)',
+            },
+            mode: {
+              type: 'string',
+              enum: ['dry_run', 'execute'],
+              description: 'Operation mode: dry_run (preview) or execute (create tasks)',
+              default: 'dry_run',
+            },
+            skip_conditionals: {
+              type: 'boolean',
+              description: 'Skip conditional tasks based on project parameters',
+              default: false,
+            },
+            compress_schedule: {
+              type: 'boolean',
+              description: 'Apply schedule compression for tight timelines',
+              default: false,
+            },
+          },
+          required: ['project_id'],
+        },
+      },
     ];
   }
 
@@ -512,6 +544,8 @@ export class SmartSuiteShimServer {
         return this.handleDiscover(args);
       case 'smartsuite_intelligent':
         return this.handleIntelligent(args);
+      case 'smartsuite_mega_task':
+        return this.handleMegaTask(args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -956,6 +990,48 @@ export class SmartSuiteShimServer {
    * Handle mega-task factory operations
    * Creates complete EAV project workflows with automated scheduling
    */
+  private async handleMegaTask(args: Record<string, unknown>): Promise<MegaTaskFactoryResult> {
+    const project_id = args.project_id as string;
+    const mode = (args.mode as 'dry_run' | 'execute') ?? 'dry_run';
+    const skip_conditionals = args.skip_conditionals as boolean ?? false;
+    const compress_schedule = args.compress_schedule as boolean ?? false;
+
+    if (!project_id) {
+      throw new Error('project_id is required for mega-task operations');
+    }
+
+    // Validate project_id format (24-char hex)
+    if (!/^[0-9a-fA-F]{24}$/.test(project_id)) {
+      throw new Error('project_id must be a 24-character hexadecimal string');
+    }
+
+    // Initialize MegaTaskFactory with authenticated client
+    const megaTaskFactory = new MegaTaskFactory(this.client!);
+
+    try {
+      // Call the factory with proper parameters
+      const result = await megaTaskFactory.createMegaTaskWorkflow({
+        project_id,
+        mode,
+        skip_conditionals,
+        compress_schedule,
+      });
+
+      return result;
+    } catch (error) {
+      // Enhance error handling for common scenarios
+      if (error instanceof Error) {
+        if (error.message.includes('Record not found')) {
+          throw new Error(`Project not found: No project exists with ID '${project_id}'. Please verify the project ID is correct.`);
+        }
+        if (error.message.includes('Schedule cannot fit')) {
+          throw new Error(`Schedule validation failed: ${error.message}. Consider using compress_schedule option or adjusting project timeline.`);
+        }
+      }
+      throw error;
+    }
+  }
+
   /**
    * Handle intelligent tool operations with knowledge-driven safety
    * MVP Phase 1: Learn mode only

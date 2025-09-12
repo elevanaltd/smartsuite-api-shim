@@ -28,12 +28,12 @@ describe('SmartSuiteShimServer', () => {
     expect(() => new SmartSuiteShimServer()).not.toThrow();
   });
 
-  // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250909-e6897600
-  it('should register exactly 6 tools including intelligent', async () => {
+  // TEST METHODOLOGY GUARDIAN-APPROVED: TEST METHODOLOGY GUARDIAN-20250912-17576546
+  it('should register exactly 7 tools including intelligent and mega_task', async () => {
     const server = new SmartSuiteShimServer();
     const tools = await server.getTools();
 
-    expect(tools).toHaveLength(6);
+    expect(tools).toHaveLength(7);
     expect(tools.map((t: any) => t.name)).toEqual([
       'smartsuite_query',
       'smartsuite_record',
@@ -41,6 +41,7 @@ describe('SmartSuiteShimServer', () => {
       'smartsuite_undo',
       'smartsuite_discover',
       'smartsuite_intelligent',
+      'smartsuite_mega_task',
     ]);
   });
 
