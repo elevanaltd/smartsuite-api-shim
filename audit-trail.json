@@ -1,0 +1,157 @@
+[
+  {
+    "id": "audit-1757661043924-a9407f6c",
+    "timestamp": "2025-09-12T07:10:43.924Z",
+    "operation": "create",
+    "tableId": "68c24591b7d2aad485e8f781",
+    "recordId": "68c3c7730c4906ac718332c1",
+    "payload": {
+      "task12code": "01_setup",
+      "title": "01_SETUP",
+      "description": "Task 01_setup description",
+      "assigned_to": [
+        "default-assignee"
+      ],
+      "priority": "normal",
+      "checklist99": [
+        "Task 01_setup checklist item"
+      ],
+      "projid1234": [
+        "68acaba290e713e96bb9b1a9"
+      ],
+      "due_date": {
+        "from_date": {
+          "date": "2025-09-13T09:00:00.000Z"
+        },
+        "to_date": {
+          "date": "2025-09-13T17:00:00.000Z"
+        }
+      }
+    },
+    "result": {
+      "title": "EAV011: 01-Setup |",
+      "description": {
+        "data": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Task 01_setup description"
+                }
+              ]
+            }
+          ]
+        },
+        "html": "<div class=\"rendered\"><p>Task 01_setup description</p></div>",
+        "preview": "Task 01_setup description",
+        "yjsData": null
+      },
+      "assigned_to": [],
+      "status": {
+        "value": "not_started",
+        "updated_on": "2025-09-12T07:10:43.694549Z"
+      },
+      "due_date": {
+        "from_date": {
+          "date": "2025-09-13T09:00:00Z",
+          "include_time": false
+        },
+        "to_date": {
+          "date": "2025-09-13T17:00:00Z",
+          "include_time": false
+        },
+        "status_is_completed": false,
+        "status_updated_on": "2025-09-12T07:10:43.694549Z"
+      },
+      "priority": "normal",
+      "first_created": {
+        "on": "2025-09-12T07:10:43.683241Z",
+        "by": "659beecfbbef5efee3a27544"
+      },
+      "last_updated": {
+        "on": "2025-09-12T07:10:43.683311Z",
+        "by": "659beecfbbef5efee3a27544"
+      },
+      "followed_by": [],
+      "comments_count": 0,
+      "autonumber": 126,
+      "task12code": "01_setup",
+      "taskvar890": [],
+      "estimhrs12": null,
+      "confhrs567": null,
+      "projid1234": [
+        "68acaba290e713e96bb9b1a9"
+      ],
+      "checklist99": {
+        "items": [],
+        "total_items": 0,
+        "completed_items": 0
+      },
+      "dependency": {
+        "predecessor": [],
+        "successor": []
+      },
+      "proj_due_dt": [
+        [
+          {
+            "from_date": {
+              "date": null,
+              "include_time": false
+            },
+            "to_date": {
+              "date": "2025-09-30T00:00:00Z",
+              "include_time": false
+            },
+            "status_is_completed": false,
+            "status_updated_on": "2025-09-03T08:37:28.296000Z"
+          }
+        ]
+      ],
+      "project_eav_code": [
+        [
+          "EAV011"
+        ]
+      ],
+      "sb4608abff": [],
+      "sd0cb2a7df": [],
+      "resdays123": "0.1",
+      "wkldstat99": "🟢 Normal",
+      "hourscalc8": "1",
+      "s43e3d4614": [
+        [
+          "6"
+        ]
+      ],
+      "sb8a857bda": [
+        [
+          "0"
+        ]
+      ],
+      "s8a9d77b9e": [
+        [
+          "0"
+        ]
+      ],
+      "id": "68c3c7730c4906ac718332c1",
+      "application_slug": "sqiwq37m",
+      "application_id": "68c24591b7d2aad485e8f781",
+      "ranking": {
+        "default": "aaaaacsoii"
+      },
+      "deleted_date": {
+        "date": null,
+        "include_time": false
+      },
+      "deleted_by": null
+    },
+    "reversalInstructions": {
+      "operation": "delete",
+      "tableId": "68c24591b7d2aad485e8f781",
+      "recordId": "68c3c7730c4906ac718332c1"
+    },
+    "hash": "4278a774e179baa32757e15a0f68e2d1765b0a43feb8418fc59a86de1450d2e4"
+  }
+]

@@ -165,7 +165,7 @@ export class MegaTaskFactory {
           [assignedToField]: ['default-assignee'],
           [priorityField]: 'normal',
           [checklistField]: [`Task ${code} checklist item`],
-          [projectField]: input.project_id,
+          [projectField]: [input.project_id], // Fix: Must be array of record IDs
           [dueDateField]: {
             // SmartSuite expects triple-nested structure for date ranges
             from_date: {
