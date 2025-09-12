@@ -1,206 +1,180 @@
 # SmartSuite Tasks Table Field Mappings
-# SOLUTION 2: EAV Operations (68a8eedc2271ce265ebdae8f)
-# TABLE: Tasks (68a8ffac490e5496953e5b1c)
-# Last Audit: 2025-09-07
+# SOLUTION: EAV Operations (68a8eedc2271ce265ebdae8f)
+# TABLE: Tasks (68c24591b7d2aad485e8f781) - UPDATED 2025-09-11
+# WARNING: This is the NEW Tasks table, NOT the old hidden table (68a8ffac490e5496953e5b1c)
+# Last Schema Update: 2025-09-11
 
 tableName: tasks
-tableId: 68a8ffac490e5496953e5b1c
+tableId: 68c24591b7d2aad485e8f781  # CORRECT: Active Tasks table
 solutionId: 68a8eedc2271ce265ebdae8f
+tableSlug: sqiwq37m
 
 # Field mappings (human name → actual API slug)
 fields:
-  # Core Task Fields
-  taskId: autonumber                     # Task ID - Autonumber (T0001, T0002...)
-  title: title                           # Task Description - Record Title
-  description: description               # Description - Rich Text Area
-  taskCode: task_code                    # Task Code - Single Select (22 consolidated tasks)
-  taskVariant: task_variant              # Task Variant - Multi Select (8 options)
+  # Core Fields
+  title: title                           # Title - Record Title (Auto-generated)
+  description: description                # Description - Rich Text
+  assignedTo: assigned_to                 # Assigned To - User Field (multiple)
+  status: status                          # Status - Status Field
+  dueDate: due_date                      # Due Date - Due Date Field
+  priority: priority                      # Priority - Single Select
   
-  # Workflow Organization (CRITICAL: Updated slugs!)
-  workflowStream: work1stream            # Workflow Stream - Single Select (BOOKING/ASSET/MAIN/VO)
-  taskLevel: task2level                  # Task Level - Single Select (Project Level/Video Level)
-  workflowStage: work3stage              # Workflow Stage - Single Select (22 stages)
+  # Task Identification
+  autonumber: autonumber                  # Auto Number - Autonumber with prefix #
+  taskCode: task12code                   # Task Code - Single Select (required)
+  taskVariant: taskvar890                # Task Variant - Multiple Select
   
-  # Assignment
-  assignedTo: assigned_to               # Assigned To - User Field
+  # Hours & Workload
+  estimatedHours: estimhrs12             # Estimated Hours - Number (suffix: h)
+  confirmedHours: confhrs567             # Confirmed Hours - Number (suffix: h)
+  hoursAuto: hourscalc8                  # Hours (Auto) - Formula (complex calculation)
+  resourceDays: resdays123               # Resource Days - Formula
+  workloadStatus: wkldstat99             # Workload Status - Formula (emoji indicators)
   
-  # Project Relationships
-  project: project_id                   # Project - Linked Record (Updated slug!)
-  eavCode: sb22aa25c1                   # EAV Code - Lookup from Project
-  contentItem: content_item_id          # Content Item - Linked Record
-  linkToSchedule: st7o97w2              # Link to Schedule - Linked Record
+  # Project Linkage
+  project: projid1234                    # Project - Linked Record (required)
+  projectEAVCode: project_eav_code       # EAV Code - Lookup from Project
+  projectDueDate: proj_due_dt            # Project Due Date - Lookup from Project
+  
+  # Video Linkage
+  videos: sb4608abff                     # Videos - Linked Record (filtered by project)
+  model: sd0cb2a7df                      # Model - Lookup from Videos
+  
+  # Video Counts (from Project)
+  newVids: s43e3d4614                    # New Vids - Lookup from Project
+  amendVids: sb8a857bda                  # Amend Vids - Lookup from Project
+  reuseVids: s8a9d77b9e                  # Reuse Vids - Lookup from Project
   
   # Task Management
-  status: taskstatus                    # Status - Status Field
-  priority: priority                    # Priority - Single Select
-  dueDate: due_date                     # Due Date - Due Date Field
-  duration: due_date                    # Duration - Due Date Field (duplicate purpose?)
-  
-  # Automation
-  autoCreatesNext: auto5creates         # Auto Creates Next - Text (Updated slug!)
-  
-  # Time Tracking
-  estimatedHours: estimated_hours       # Estimated Hours - Number
-  confirmedHours: confirmed_h           # Confirmed Hours - Number (Editor Quoting)
-  actualHours: actual_hours             # Actual Hours - Number
-  completionPercentage: completion_percentage # Completion % - Number
-  
-  # Dates
-  startDate: start_date                 # Start Date - Date
-  endDate: end_date                     # End Date - Date
-  
-  # Categorization
-  taskType: task_type                   # Task Type - Single Select
-  valueCategory: value_category         # Value Category - Single Select
-  roleCategory: role_category           # Role Category - Single Select
-  workContext: work_context             # Work Context - Single Select
-  delegationReadiness: delegation_readiness # Delegation Readiness - Single Select
-  valueCreated: value_created           # Value Created - Single Select
-  
-  # Dependencies
-  dependency: dependency                # Dependency - Dependency Field
-  parentTask: parent_task               # Parent Task - Linked Record
-  crossStreamDependencies: cross6deps   # Cross Stream Dependencies - Text Area (Updated slug!)
-  
-  # Content & Progress
-  tags: tags                           # Tags - Text Field
-  clientFacing: client_facing          # Client Facing - Text Field
-  blockingIssues: blocking_issues      # Blocking Issues - Text Area
-  deliverables: deliverables           # Deliverables - Text Area
-  reviewComments: review_comments      # Review Comments - Rich Text Area
-  fileAttachments: file_attachments    # File Attachments - Text Field
-  
-  # Budget
-  budgetAllocated: budget_allocated    # Budget Allocated - Currency
-  budgetSpent: budget_spent            # Budget Spent - Currency
+  checklist: checklist99                 # Checklist - Checklist Field
+  dependencies: dependency                # Dependencies - Dependency Field
   
   # System Fields
-  firstCreated: first_created          # First Created - Created Time
-  lastUpdated: last_updated            # Last Updated - Updated Time
-  followedBy: followed_by              # Followed by - User Field
-  openComments: comments_count         # Open Comments - Comments Count
+  firstCreated: first_created            # First Created - Created Time
+  lastUpdated: last_updated              # Last Updated - Updated Time
+  followedBy: followed_by                # Followed by - User Field (hidden)
+  openComments: comments_count           # Open Comments - Comments Count
 
-# Task Code Options (22 consolidated tasks with actual values)
+# Task Code Options (17 simplified from old 22)
 taskCodeOptions:
-  # BOOKING STREAM (3 tasks)
-  - value: p1_setup
-    label: P1-Project Setup
-  - value: p2_booking
-    label: P2-Booking
-  - value: p3_attendance
-    label: P3-Attendance
-  
-  # ASSET STREAM (4 tasks)
-  - value: p4_branding_collection
-    label: P4-Branding Collection
-  - value: p5_music_collection
-    label: P5-Music Collection
-  - value: p6_mogrt_check
-    label: P6-MOGRT Check
-  - value: p7_mogrt_creation
-    label: P7-MOGRT Creation
-  
-  # MAIN STREAM - Project Level (5 tasks)
-  - value: p8_spec_collection
-    label: P8-Spec Collection
-  - value: p9_filming
-    label: P9-Filming
-  - value: p10_media_ingestion
-    label: P10-Media Ingestion
-  - value: p11_client_delivery
-    label: P11-Client Delivery
-  - value: p12_completion_invoicing
-    label: P12-Completion & Invoicing
-  
-  # MAIN STREAM - Video Level (9 tasks)
-  - value: v1_manual_collection
-    label: V1-User Manual Collection
-  - value: v2_script_creation
-    label: V2-Script Creation
-  - value: v3_script_review
-    label: V3-Script Review
-  - value: v4_script_revision
-    label: V4-Script Revision
-  - value: v5_scene_planning
-    label: V5-Scene Planning
-  - value: v7_edit_prep
-    label: V7-Edit Prep
-  - value: v8_video_edit
-    label: V8-Video Edit
-  - value: v9_video_review
-    label: V9-Video Review
-  - value: v10_video_revision
-    label: V10-Video Revision
-  
-  # VO STREAM (1 task)
-  - value: v6_vo_generation
-    label: V6-VO Generation
+  - label: "01-Setup"
+    value: "01_setup"
+  - label: "02-Booking"
+    value: "02_booking"
+  - label: "03-Recce"
+    value: "03_recce"
+  - label: "04-Assets"
+    value: "04_assets"
+  - label: "05-Specs"
+    value: "05_specs"
+  - label: "06-Scripts"
+    value: "06_scripts"
+  - label: "07-Script Rev"
+    value: "07_review"
+  - label: "08-Scenes"
+    value: "08_scenes"
+  - label: "09-Voiceover"
+    value: "09_voiceover"
+  - label: "10-Filming"
+    value: "10_filming"
+  - label: "11-Processing"
+    value: "11_processing"
+  - label: "12-Edit Prep"
+    value: "12_edit_prep"
+  - label: "13-Video Edit"
+    value: "13_video_edit"
+  - label: "14-Delivery"
+    value: "14_delivery"
+  - label: "Reuse Review"
+    value: "reuse_review"
+  - label: "Pickup Filming"
+    value: "pickup_filming"
+  - label: "MOGRT Creation"
+    value: "mogrt_creation"
 
-# Task Variant Options (8 variants - Updated with Quoting)
+# Task Variant Options (12 options)
 taskVariantOptions:
-  - value: recce
-    label: (Recce)
-  - value: shoot
-    label: (Shoot)
-  - value: pickups
-    label: (Pickups)
-  - value: internal
-    label: (Internal)
-  - value: client
-    label: (Client)
-  - value: quoting
-    label: (Quoting)      # NEW - Added 2025-09-07
-  - value: editing
-    label: (Editing)
-  - value: grading
-    label: (Grading)
+  - label: "(Quoting)"
+    value: "quoting"
+  - label: "(Editing)"
+    value: "editing"
+  - label: "(Grading)"
+    value: "grading"
+  - label: "(Recce)"
+    value: "recce"
+  - label: "(Shoot)"
+    value: "shoot"
+  - label: "(Pickups)"
+    value: "pickups"
+  - label: "(Reuse)"
+    value: "reuse"
+  - label: "(Internal)"
+    value: "internal"
+  - label: "(Client)"
+    value: "client"
+  - label: "(Rush)"
+    value: "rush"
+  - label: "(Standard)"
+    value: "standard"
+  - label: "(Complex)"
+    value: "complex"
 
-# Workflow Stream Options
-workflowStreamOptions:
-  - BOOKING
-  - ASSET
-  - MAIN
-  - VO
-
-# Task Level Options
-taskLevelOptions:
-  - Project Level
-  - Video Level
-
-# Status Options
+# Status Options (7 statuses)
 statusOptions:
-  - To Do
-  - In Progress
-  - Internal Review
-  - Client Review
-  - Changes Needed
-  - Complete
+  - label: "Not Started"
+    value: "not_started"
+    isComplete: false
+  - label: "Quoting"
+    value: "quoting"
+    isComplete: false
+  - label: "In Progress"
+    value: "in_progress"
+    isComplete: false
+  - label: "Internal Review"
+    value: "internal_review"
+    isComplete: false
+  - label: "Client Review"
+    value: "client_review"
+    isComplete: false
+  - label: "Changes Needed"
+    value: "changes_needed"
+    isComplete: false
+  - label: "Complete"
+    value: "complete"
+    isComplete: true
 
 # Priority Options
 priorityOptions:
-  - 🔴 Critical
-  - 🟠 High
-  - 🟡 Normal
-  - 🟢 Low
+  - label: "Urgent"
+    value: "urgent"
+  - label: "High"
+    value: "high"
+  - label: "Normal"
+    value: "normal"
+  - label: "Low"
+    value: "low"
 
-# Value Category Options
-valueCategoryOptions:
-  - Strategic Direction
-  - Operational Excellence
-  - Quality Control
-  - Client Relationship
-  - Technical Execution
+# Workload Status Indicators (formula-generated)
+workloadStatusIndicators:
+  - "> 40 hours": "🔴 Overloaded"
+  - "> 30 hours": "🟡 Heavy"
+  - "> 20 hours": "🟠 Moderate"
+  - "> 0 hours": "🟢 Normal"
+  - "0 hours": "⚪ Not Set"
 
-# Delegation Readiness Options
-delegationReadinessOptions:
-  - Internal Only
-  - Ready to Delegate
-  - External Freelancer
-  - Client Dependent
+# CHANGES FROM OLD TASKS TABLE:
+# - Removed: task_level field (project_level/video_level)
+# - Removed: P-prefixed task codes (now numbered 01-14)
+# - Removed: Many V-prefixed video task codes
+# - Added: Automatic hours calculation based on video counts
+# - Added: Workload status with emoji indicators
+# - Added: Resource days calculation (hours/7.5)
+# - Changed: Task codes from 22 to 17 options
+# - Changed: Simplified variant options
 
 # NOTES:
-# - CRITICAL: Field slugs have cryptic names (work1stream, task2level, work3stage, etc.)
-# - Added many missing fields discovered in audit (44 total fields)
-# - Task variant labels now include parentheses: (Recce), (Shoot), etc.
-# - Added new Quoting variant for editor time estimation
-# - All slugs verified against actual SmartSuite API response 2025-09-07
+# - The old tasks table (68a8ffac490e5496953e5b1c) is now "Tasks-old" and hidden
+# - This new table has a cleaner, simplified structure
+# - Hours are auto-calculated based on task code and video counts
+# - Dependencies use the standard dependency field type
+# - Videos are filtered to only show those from the selected project

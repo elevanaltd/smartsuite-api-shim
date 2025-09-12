@@ -2,11 +2,12 @@
 // TECHNICAL-ARCHITECT-APPROVED: TECHNICAL-ARCHITECT-20250909-9a54fa8a
 // Critical-Engineer: consulted for collision detection architecture
 // Context7: consulted for path
-import * as path from 'path';
 
 // Context7: consulted for fs-extra -> MIGRATED to native fs/promises for MCP compatibility
 import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
+import * as path from 'path';
+
 // Context7: consulted for yaml
 import * as yaml from 'yaml';
 
