@@ -44,6 +44,34 @@ export class FilterValidator {
       // Detect lookup fields by pattern and convert values to arrays
       const isLookupField = field.includes('_link') || field.includes('_links');
 
+      // Check if value is a comparison object like {is: "EAV030"} or {contains: "text"}
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const valueObj = value as Record<string, unknown>;
+        const comparisonKeys = Object.keys(valueObj);
+
+        // If it has exactly one key that's a valid comparison operator, use it
+        if (comparisonKeys.length === 1) {
+          const comparisonOperator = comparisonKeys[0];
+
+          const validComparisons = [
+            'is', 'is_not', 'contains', 'not_contains',
+            'is_empty', 'is_not_empty', 'greater_than', 'less_than',
+            'greater_than_or_equal', 'less_than_or_equal',
+            'between', 'not_between',
+          ];
+
+          if (comparisonOperator && validComparisons.includes(comparisonOperator)) {
+            const comparisonValue = valueObj[comparisonOperator];
+            return {
+              field,
+              comparison: comparisonOperator,
+              value: isLookupField && typeof comparisonValue === 'string' ? [comparisonValue] : comparisonValue,
+            };
+          }
+        }
+      }
+
+      // Default case: simple field: value format
       return {
         field,
         comparison: 'is',

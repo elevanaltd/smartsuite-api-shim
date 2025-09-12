@@ -1,24 +1,24 @@
 # SmartSuite API Shim
 
 **Status:** ✅ Functional - B4+ Working Implementation  
-**Test Coverage:** 328 tests passing, 1 failing (99.4% success rate)  
-**Server Status:** Fully functional with auto-authentication and critical fixes applied  
+**Test Coverage:** 348+ tests passing with recent MongoDB filtering and schema optimization fixes  
+**Server Status:** Fully functional with auto-authentication, 6 MCP tools, and latest enhancements  
 
 ## Quick Start
 1. **Prerequisites:** Node.js 18+, npm, SmartSuite API credentials
 2. **Installation:** `npm install`
 3. **Build:** `npm run build` 
 4. **Configuration:** Set environment variables `SMARTSUITE_API_TOKEN` and `SMARTSUITE_WORKSPACE_ID`
-5. **Usage:** `npm start` - MCP server with 4 SmartSuite tools ready
+5. **Usage:** `npm start` - MCP server with 6 SmartSuite tools ready
 
 ## Features
 
 🎯 **Completed B4+ Achievements:**
 - ✅ **Auto-Authentication** - Environment variable authentication with fail-fast pattern
 - ✅ **Field Translation** - Human-readable field names for 10 SmartSuite tables 
-- ✅ **4 SmartSuite Tools** - `query`, `record`, `schema`, `undo` operations
+- ✅ **6 SmartSuite Tools** - `query`, `record`, `schema`, `undo`, `discover`, `intelligent` operations
 - ✅ **DRY-RUN Safety** - Mutation protection with explicit confirmation required
-- ✅ **Comprehensive Testing** - 328 tests passing with 99.4% success rate (1 minor failing test)
+- ✅ **Comprehensive Testing** - 348+ tests with recent MongoDB filtering and schema optimization fixes
 - ✅ **CI/CD Pipeline** - Fully resolved with CodeQL integration and quality gates
 - ✅ **Error Handling** - Graceful degradation and clear error messages
 - ✅ **Production Validation** - All critical API fixes applied and verified
@@ -27,10 +27,12 @@
 ### Available Tools
 | Tool | Description | Status |
 |------|-------------|---------|
-| `smartsuite_query` | List, search, get records with human-readable filtering | ✅ Ready |
+| `smartsuite_query` | List, search, get records with MongoDB-style filtering support | ✅ Ready |
 | `smartsuite_record` | Create, update, delete records with DRY-RUN safety | ✅ Ready |
-| `smartsuite_schema` | Get table schema with field mapping information | ✅ Ready |
+| `smartsuite_schema` | Get table schema with 3 output modes (summary/fields/detailed) + caching | ✅ Ready |
 | `smartsuite_undo` | Transaction rollback operations | ✅ Ready |
+| `smartsuite_discover` | Field mapping discovery and table structure exploration | ✅ Ready |
+| `smartsuite_intelligent` | AI-guided API operations with knowledge-driven safety | ✅ Ready |
 
 ### Supported Tables (10 Configured with Example Mappings)
 - **Projects** (47 mapped fields) - Core project management

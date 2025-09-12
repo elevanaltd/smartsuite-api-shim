@@ -110,6 +110,44 @@ describe('SmartSuite API Filtering', () => {
       expect(FilterValidator.transformFilter(undefined)).toBeUndefined();
     });
 
+    it('should handle MongoDB-style comparison objects', () => {
+      const mongoStyleFilter = {
+        eavcode: { is: 'EAV030' },
+        status: { contains: 'active' },
+        priority: { greater_than: 5 },
+      };
+
+      const transformed = FilterValidator.transformFilter(mongoStyleFilter);
+
+      expect(transformed).toEqual({
+        operator: 'and',
+        fields: [
+          { field: 'eavcode', comparison: 'is', value: 'EAV030' },
+          { field: 'status', comparison: 'contains', value: 'active' },
+          { field: 'priority', comparison: 'greater_than', value: 5 },
+        ],
+      });
+    });
+
+    it('should handle mixed simple and MongoDB-style filters', () => {
+      const mixedFilter = {
+        simple_field: 'simple_value',
+        comparison_field: { is_not: 'excluded_value' },
+        projects_link: { is: '68abcd3975586ee1ff3e5b1f' }, // Lookup field with comparison
+      };
+
+      const transformed = FilterValidator.transformFilter(mixedFilter);
+
+      expect(transformed).toEqual({
+        operator: 'and',
+        fields: [
+          { field: 'simple_field', comparison: 'is', value: 'simple_value' },
+          { field: 'comparison_field', comparison: 'is_not', value: 'excluded_value' },
+          { field: 'projects_link', comparison: 'is', value: ['68abcd3975586ee1ff3e5b1f'] }, // Array for lookup
+        ],
+      });
+    });
+
     it('should validate transformed filters', () => {
       const simpleFilter = { autonumber: 'EAV007' };
 

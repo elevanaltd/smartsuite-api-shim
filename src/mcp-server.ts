@@ -86,6 +86,13 @@ export class SmartSuiteShimServer {
   }>();
   private readonly VALIDATION_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
+  // Schema caching: Cache schema responses for performance
+  private schemaCache = new Map<string, {
+    timestamp: number;
+    schema: unknown;
+  }>();
+  private readonly SCHEMA_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
   constructor() {
     // Minimal implementation to make instantiation test pass
     this.mappingService = new MappingService();
@@ -266,6 +273,12 @@ export class SmartSuiteShimServer {
             appId: {
               type: 'string',
               description: 'SmartSuite application ID (24-char hex)',
+            },
+            output_mode: {
+              type: 'string',
+              enum: ['summary', 'fields', 'detailed'],
+              description: 'Output mode: summary (table info only), fields (field names/types), detailed (full schema)',
+              default: 'summary',
             },
           },
           required: ['appId'],
@@ -837,8 +850,15 @@ export class SmartSuiteShimServer {
   }
 
   private async handleSchema(args: Record<string, unknown>): Promise<unknown> {
-    // ENHANCED scope: Schema operations with field mappings
+    // Critical-Engineer: consulted for Architecture pattern selection
     let appId = args.appId as string;
+    const output_mode = (args.output_mode as string) ?? 'summary';
+
+    // INPUT VALIDATION: Validate output_mode enum
+    const validModes = ['summary', 'fields', 'detailed'];
+    if (!validModes.includes(output_mode)) {
+      throw new Error(`Invalid output_mode "${output_mode}". Must be one of: ${validModes.join(', ')}`);
+    }
 
     // TABLE RESOLUTION: Convert table name to ID if needed
     const resolvedId = this.tableResolver.resolveTableId(appId);
@@ -855,8 +875,123 @@ export class SmartSuiteShimServer {
     }
     appId = resolvedId;
 
+    // STEP 1: Get Schema Data (with caching)
+    const schema = await this._getCachedSchema(appId);
+
+    // STEP 2: Transform based on output_mode
+    return this._transformSchemaOutput(appId, schema, output_mode);
+  }
+
+  /**
+   * Get schema from cache or API with TTL-based caching
+   */
+  private async _getCachedSchema(appId: string): Promise<unknown> {
+    // Check cache first
+    const cached = this.schemaCache.get(appId);
+    const now = Date.now();
+
+    if (cached && (now - cached.timestamp) < this.SCHEMA_CACHE_TTL_MS) {
+      // Cache hit and not expired
+      return cached.schema;
+    }
+
+    // Cache miss or expired - fetch from API
     const schema = await this.client!.getSchema(appId);
 
+    // Validate schema format - must have at least id and name
+    if (!schema || typeof schema !== 'object') {
+      throw new Error('Invalid schema format');
+    }
+    const schemaObj = schema as unknown as Record<string, unknown>;
+    if (!schemaObj.id || !schemaObj.name) {
+      throw new Error('Invalid schema format');
+    }
+
+    // Store in cache
+    this.schemaCache.set(appId, {
+      timestamp: now,
+      schema,
+    });
+
+    return schema;
+  }
+
+  /**
+   * Transform schema data based on output mode
+   */
+  private _transformSchemaOutput(appId: string, schema: unknown, output_mode: string): unknown {
+    const schemaObj = schema as Record<string, unknown>;
+
+    // For detailed mode, return as-is (maintains backward compatibility)
+    if (output_mode === 'detailed') {
+      return this._generateSchemaDetailed(appId, schemaObj);
+    }
+
+    // For summary and fields modes, validate structure exists
+    // If no structure, fall back to detailed mode for backward compatibility with old mock data
+    if (!schemaObj.structure || !Array.isArray(schemaObj.structure)) {
+      return this._generateSchemaDetailed(appId, schemaObj);
+    }
+
+    const structure = schemaObj.structure as Array<Record<string, unknown>>;
+
+    switch (output_mode) {
+      case 'summary':
+        return this._generateSchemaSummary(schemaObj, structure);
+
+      case 'fields':
+        return this._generateSchemaFields(schemaObj, structure);
+
+      default:
+        throw new Error(`Unsupported output_mode: ${output_mode}`);
+    }
+  }
+
+  /**
+   * Generate summary output mode (table info only)
+   */
+  private _generateSchemaSummary(schema: Record<string, unknown>, structure: Array<Record<string, unknown>>): unknown {
+    // Count field types
+    const fieldTypes: Record<string, number> = {};
+    for (const field of structure) {
+      const fieldType = field.field_type as string;
+      fieldTypes[fieldType] = (fieldTypes[fieldType] || 0) + 1;
+    }
+
+    return {
+      id: schema.id,
+      name: schema.name,
+      field_count: structure.length,
+      field_types: fieldTypes,
+    };
+  }
+
+  /**
+   * Generate fields output mode (field names/types without full params)
+   */
+  private _generateSchemaFields(schema: Record<string, unknown>, structure: Array<Record<string, unknown>>): unknown {
+    const fields = structure.map((field) => {
+      const params = field.params as Record<string, unknown> | undefined;
+      return {
+        slug: field.slug,
+        field_type: field.field_type,
+        label: field.label,
+        required: params?.required || false,
+      };
+    });
+
+    return {
+      id: schema.id,
+      name: schema.name,
+      field_count: structure.length,
+      fields,
+    };
+  }
+
+  /**
+   * Generate detailed output mode (full schema with field mappings)
+   */
+  private _generateSchemaDetailed(appId: string, schema: Record<string, unknown>): unknown {
     // FIELD MAPPING: Add human-readable field mappings to schema response
     if (this.fieldTranslator.hasMappings(appId)) {
       return {
