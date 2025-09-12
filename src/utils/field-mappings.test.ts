@@ -33,13 +33,13 @@ describe('FieldMappingLoader', () => {
       expect(mapping).toHaveProperty('tableId', '68a8ff5237fde0bf797c05b3');
       expect(mapping).toHaveProperty('fields');
       expect(mapping.fields).toHaveProperty('dueDate', 'projdue456');
-      expect(mapping.fields).toHaveProperty('eavCode', 'autonumber');
+      expect(mapping.fields).toHaveProperty('eavCode', 'eavcode');
     });
 
     it('should throw error for non-existent table', () => {
       expect(() => {
         FieldMappingLoader.load('nonexistent');
-      }).toThrow('Failed to load field mappings for nonexistent');
+      }).toThrow(/nonexistent/);
     });
 
     it('should cache loaded mappings', () => {

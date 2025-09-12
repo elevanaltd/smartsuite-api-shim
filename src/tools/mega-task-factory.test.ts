@@ -41,12 +41,12 @@ describe('MegaTaskFactory', () => {
       // Mock project data response (using correct field names from YAML mapping)
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: projectId,
-        autonumber: 'EAV007', // Correct field name from projects.yaml mapping
+        eavcode: 'EAV007', // Correct field name from projects.yaml mapping
         projdue456: { to_date: '2025-11-15T00:00:00Z' }, // 2+ months from now
         newvidcount: 7,
         amendvidscount: 0,
         reusevidscount: 0,
-        assigned_to: ['66fa7af64b11acf6780c4436'],
+        project_manager: ['66fa7af64b11acf6780c4436'],
       });
 
       const result = await factory.createMegaTaskWorkflow({
@@ -68,12 +68,12 @@ describe('MegaTaskFactory', () => {
       // Mock project with reuse videos
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: projectId,
-        autonumber: 'EAV008',
+        eavcode: 'EAV008',
         projdue456: { to_date: '2025-09-01T00:00:00Z' },
         newvidcount: 5,
         amendvidscount: 2,
         reusevidscount: 3,
-        assigned_to: ['66fa7af64b11acf6780c4436'],
+        project_manager: ['66fa7af64b11acf6780c4436'],
       });
 
       const result = await factory.createMegaTaskWorkflow({
@@ -90,12 +90,12 @@ describe('MegaTaskFactory', () => {
 
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: projectId,
-        autonumber: 'EAV009',
+        eavcode: 'EAV009',
         projdue456: { to_date: '2025-07-30T00:00:00Z' },
         newvidcount: 3,
         amendvidscount: 0,
         reusevidscount: 0,
-        assigned_to: ['66fa7af64b11acf6780c4436'],
+        project_manager: ['66fa7af64b11acf6780c4436'],
       });
 
       // Mock successful bulk creation
@@ -127,12 +127,12 @@ describe('MegaTaskFactory', () => {
       // Mock project with very tight timeline (due tomorrow)
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: projectId,
-        autonumber: 'EAV010',
+        eavcode: 'EAV010',
         projdue456: { to_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() }, // Tomorrow
         newvidcount: 10,
         amendvidscount: 0,
         reusevidscount: 0,
-        assigned_to: ['66fa7af64b11acf6780c4436'],
+        project_manager: ['66fa7af64b11acf6780c4436'],
       });
 
       const result = await factory.createMegaTaskWorkflow({
@@ -462,12 +462,12 @@ describe('MegaTaskFactory Integration', () => {
     it('should fail - RED phase: handle API failures gracefully', async () => {
       vi.mocked(mockClient.getRecord).mockResolvedValue({
         id: '68abcd3975586ee1ff3e5b1f',
-        autonumber: 'EAV007',
+        eavcode: 'EAV007',
         projdue456: { to_date: '2025-11-15T00:00:00Z' }, // 2+ months from now
         newvidcount: 7,
         amendvidscount: 0,
         reusevidscount: 0,
-        assigned_to: ['66fa7af64b11acf6780c4436'],
+        project_manager: ['66fa7af64b11acf6780c4436'],
       });
 
       vi.mocked(mockClient.bulkCreate).mockRejectedValue(new Error('API Error'));
