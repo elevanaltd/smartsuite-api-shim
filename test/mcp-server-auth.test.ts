@@ -13,7 +13,11 @@ vi.mock('../src/smartsuite-client.js', () => ({
         apiKey: config.apiKey,
         workspaceId: config.workspaceId,
         // Add required methods for tests
-        getSchema: vi.fn().mockResolvedValue({ fields: [] }),
+        getSchema: vi.fn().mockResolvedValue({
+          id: 'test-app-id',
+          name: 'Test Application',
+          structure: [],
+        }),
         get: vi.fn().mockResolvedValue({ fields: [] }),
       };
     }

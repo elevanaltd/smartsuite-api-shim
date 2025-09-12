@@ -20,7 +20,11 @@ describe('Field Translation Integration - Manual Path Test', () => {
       createRecord: vi
         .fn()
         .mockImplementation((_appId, data) => Promise.resolve({ id: 'new-record', ...data })),
-      getSchema: vi.fn().mockResolvedValue({ fields: [], tableName: 'projects' }),
+      getSchema: vi.fn().mockResolvedValue({
+        id: 'projects-app-id',
+        name: 'Projects',
+        structure: [],
+      }),
     };
   });
 
@@ -48,6 +52,8 @@ describe('Field Translation Integration - Manual Path Test', () => {
 
     // Mock the client's getSchema to return a schema that includes the fields we're using
     (server as any).client.getSchema = vi.fn().mockResolvedValue({
+      id: 'projects-app-id',
+      name: 'Projects',
       structure: [
         { slug: 'projectName', field_type: 'textfield', params: {} },
         { slug: 'priority', field_type: 'textfield', params: {} },
@@ -78,11 +84,13 @@ describe('Field Translation Integration - Manual Path Test', () => {
 
     const result = await server.executeTool('smartsuite_schema', {
       appId: projectsAppId,
+      output_mode: 'detailed',
     });
 
     expect(result).toMatchObject({
-      fields: [],
-      tableName: 'projects',
+      id: 'projects-app-id',
+      name: 'Projects',
+      structure: [],
       fieldMappings: {
         hasCustomMappings: expect.any(Boolean),
         message: expect.stringContaining('field'),
@@ -114,12 +122,14 @@ describe('Field Translation Integration - Manual Path Test', () => {
 
     // Mock the underlying client call to prevent a real API call
     (server as any).client.getSchema = vi.fn().mockResolvedValue({
-      fields: [],
-      tableName: 'videos',
+      id: 'videos-app-id',
+      name: 'Videos',
+      structure: [],
     });
 
     const result = await server.executeTool('smartsuite_schema', {
       appId: videosAppId,
+      output_mode: 'detailed',
     });
 
     // Assert the ORIGINAL intended behavior - graceful handling with message
