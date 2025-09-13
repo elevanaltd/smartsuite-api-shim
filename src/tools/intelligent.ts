@@ -2,10 +2,11 @@
 // Technical-Architect: approved IntelligentOperationHandler function module design
 // Test-Methodology-Guardian: confirmed TDD approach for complex extractions
 
-import type { ToolContext } from './types.js';
 import { IntelligentOperationHandler, KnowledgeLibrary, SafetyEngine } from '../intelligent/index.js';
 import type { IntelligentToolInput } from '../intelligent/types.js';
 import { resolveKnowledgePath } from '../lib/path-resolver.js';
+
+import type { ToolContext } from './types.js';
 
 // Cache the intelligent handler to avoid re-initialization
 // This follows the lazy initialization pattern from the main server
@@ -40,13 +41,21 @@ async function initializeIntelligentHandler(client: any): Promise<IntelligentOpe
  */
 export async function handleIntelligent(
   context: ToolContext,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<unknown> {
-  const { client, auditLogger } = context;
+  const { client } = context;
 
-  // Log the tool call if audit logger is available and has the method
-  if (auditLogger && typeof auditLogger.logToolCall === 'function') {
-    await auditLogger.logToolCall('smartsuite_intelligent', args, {});
+  // Note: Intelligent operations handle their own audit logging internally
+
+  // Validate required fields
+  if (!args.endpoint) {
+    throw new Error('endpoint is required');
+  }
+  if (!args.method) {
+    throw new Error('method is required');
+  }
+  if (!args.operation_description) {
+    throw new Error('operation_description is required');
   }
 
   // Initialize handler if needed

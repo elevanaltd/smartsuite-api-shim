@@ -1,6 +1,7 @@
 // Context7: consulted for vitest
 import { describe, it, expect } from 'vitest';
-import type { ToolContext } from '../../tools/types';
+
+import type { ToolContext } from '../../tools/types.js';
 
 describe('ToolContext Type', () => {
   it('should have correct structure', () => {

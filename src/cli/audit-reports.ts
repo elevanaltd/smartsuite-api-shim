@@ -51,9 +51,9 @@ function printTextReport(report: ComplianceReport): void {
 
   if (report.standard === 'GDPR') {
     console.log('\nGDPR-Specific Analysis:');
-    console.log(`  Personal Data Operations: ${report.personalDataOperations?.length || 0}`);
-    console.log(`  Data Subjects: ${report.dataSubjects?.length || 0}`);
-    console.log(`  Right to Erasure Records: ${report.rightToErasure?.length || 0}`);
+    console.log(`  Personal Data Operations: ${report.personalDataOperations?.length ?? 0}`);
+    console.log(`  Data Subjects: ${report.dataSubjects?.length ?? 0}`);
+    console.log(`  Right to Erasure Records: ${report.rightToErasure?.length ?? 0}`);
   }
 }
 

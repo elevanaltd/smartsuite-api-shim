@@ -1,7 +1,7 @@
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 // Technical-Architect: function module pattern for tool extraction
 
-import type { ToolContext } from './types';
+import type { ToolContext } from './types.js';
 
 // Schema caching interface
 interface SchemaCacheEntry {
@@ -156,9 +156,9 @@ function transformSchemaOutput(context: ToolContext, appId: string, schema: unkn
  * Handle SmartSuite schema requests with caching and multiple output modes
  */
 export async function handleSchema(
-  context: ToolContext, 
-  args: Record<string, unknown>, 
-  cache: SchemaCache = defaultSchemaCache
+  context: ToolContext,
+  args: Record<string, unknown>,
+  cache: SchemaCache = defaultSchemaCache,
 ): Promise<unknown> {
   // Critical-Engineer: consulted for Architecture pattern selection
   let appId = args.appId as string;

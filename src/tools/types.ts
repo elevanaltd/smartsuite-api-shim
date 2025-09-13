@@ -2,10 +2,10 @@
 // Technical-Architect: synthesized third-way solution using function modules
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 
-import type { SmartSuiteClient } from '../smartsuite-client';
-import type { FieldTranslator } from '../lib/field-translator';
-import type { TableResolver } from '../lib/table-resolver';
-import type { AuditLogger } from '../lib/audit-logger';
+import type { AuditLogger } from '../audit/audit-logger.js';
+import type { FieldTranslator } from '../lib/field-translator.js';
+import type { TableResolver } from '../lib/table-resolver.js';
+import type { SmartSuiteClient } from '../smartsuite-client.js';
 
 /**
  * Minimal context object passed to tool functions

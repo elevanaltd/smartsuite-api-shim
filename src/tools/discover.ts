@@ -1,7 +1,7 @@
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 // Technical-Architect: function module pattern for tool extraction
 
-import type { ToolContext } from './types';
+import type { ToolContext } from './types.js';
 
 /**
  * Handle discovery of tables and fields
@@ -9,7 +9,7 @@ import type { ToolContext } from './types';
  */
 export async function handleDiscover(
   context: ToolContext,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<unknown> {
   const { tableResolver, fieldTranslator } = context;
   const scope = args.scope as string;
@@ -44,13 +44,12 @@ export async function handleDiscover(
 
     // Get table info
     const tableInfo = tableResolver.getTableByName(tableId) ??
-                     tableResolver.getAvailableTables().find(t => t.id === resolvedId);
+                     tableResolver.getAvailableTables().find((t: { id: string; name: string }) => t.id === resolvedId);
 
     // Get field mappings if available
     if (fieldTranslator.hasMappings(resolvedId)) {
       // Access internal mappings through proper interface
-      // @ts-expect-error: Accessing internal mappings for field discovery
-      const mapping = fieldTranslator.mappings.get(resolvedId) as { fields?: Record<string, unknown> } | undefined;
+      const mapping = (fieldTranslator as any).mappings.get(resolvedId) as { fields?: Record<string, unknown> } | undefined;
       if (mapping?.fields) {
         const fields = mapping.fields;
         return {

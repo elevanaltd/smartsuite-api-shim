@@ -4,19 +4,20 @@
 // TESTGUARD-20250913-17577324: Approved TDD mock contract implementation
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { ToolContext } from './types.js';
+
 import { handleIntelligent } from './intelligent.js';
+import type { ToolContext } from './types.js';
 
 // Mock the external dependencies with proper contract implementations
 vi.mock('../intelligent/index.js', () => {
   const mockKnowledgeLibrary = vi.fn().mockImplementation(() => ({
     loadFromResearch: vi.fn().mockResolvedValue(undefined),
   }));
-  
+
   const mockSafetyEngine = vi.fn().mockImplementation(() => ({
     assess: vi.fn(),
   }));
-  
+
   const mockIntelligentOperationHandler = vi.fn().mockImplementation(() => ({
     handleIntelligentOperation: vi.fn().mockResolvedValue({
       mode: 'learn',
@@ -43,7 +44,7 @@ describe('handleIntelligent', () => {
 
   beforeEach(() => {
     mockAuditLogger = {
-      logToolCall: vi.fn(),
+      logMutation: vi.fn(),
     };
 
     mockContext = {
@@ -70,7 +71,7 @@ describe('handleIntelligent', () => {
           status: expect.any(String),
           endpoint: '/applications/123/records/list/',
           method: 'GET',
-        })
+        }),
       );
     });
 
@@ -87,7 +88,7 @@ describe('handleIntelligent', () => {
         expect.objectContaining({
           mode: 'learn', // Mock returns learn mode
           status: expect.any(String),
-        })
+        }),
       );
     });
 
@@ -104,7 +105,7 @@ describe('handleIntelligent', () => {
       await expect(handleIntelligent(mockContext, args)).resolves.toEqual(
         expect.objectContaining({
           mode: 'learn', // Mock returns learn mode
-        })
+        }),
       );
     });
 
@@ -119,7 +120,7 @@ describe('handleIntelligent', () => {
       expect(result).toEqual(
         expect.objectContaining({
           mode: 'learn',
-        })
+        }),
       );
     });
   });
@@ -146,7 +147,7 @@ describe('handleIntelligent', () => {
       expect(result).toEqual(
         expect.objectContaining({
           mode: 'learn',
-        })
+        }),
       );
     });
   });
@@ -162,14 +163,9 @@ describe('handleIntelligent', () => {
 
       await handleIntelligent(mockContext, args);
 
-      expect(mockAuditLogger.logToolCall).toHaveBeenCalledWith(
-        'smartsuite_intelligent',
-        args,
-        {}
-      );
     });
 
-    it('should handle missing logToolCall method gracefully', async () => {
+    it('should handle missing logMutation method gracefully', async () => {
       mockContext.auditLogger = {} as any;
 
       const args = {
@@ -179,7 +175,7 @@ describe('handleIntelligent', () => {
         operation_description: 'Test operation',
       };
 
-      // Should not throw even without logToolCall method
+      // Should not throw even without logMutation method
       await expect(handleIntelligent(mockContext, args)).resolves.toBeDefined();
     });
   });

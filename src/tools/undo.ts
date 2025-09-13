@@ -1,9 +1,10 @@
 // GREEN PHASE: Implementation to make tests pass
-// Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle 
+// Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 // Technical-Architect: function module pattern for tool extraction
 
-import type { ToolContext } from './types';
-import type { AuditLogEntry } from '../audit/audit-logger';
+import type { AuditLogEntry } from '../audit/audit-logger.js';
+
+import type { ToolContext } from './types.js';
 
 /**
  * Response format for undo operations
@@ -43,7 +44,7 @@ function checkTransactionExpiry(entry: AuditLogEntry): void {
   const now = new Date();
   const transactionDate = entry.timestamp;
   const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-  
+
   if (transactionDate < thirtyDaysAgo) {
     throw new Error(`Transaction ${entry.id} has expired (older than 30 days)`);
   }
@@ -63,7 +64,7 @@ function validateReversalInstructions(entry: AuditLogEntry): void {
  */
 async function executeUndoOperation(
   context: ToolContext,
-  entry: AuditLogEntry
+  entry: AuditLogEntry,
 ): Promise<unknown> {
   const { client } = context;
   const { reversalInstructions } = entry;
@@ -74,7 +75,7 @@ async function executeUndoOperation(
         // Undo a delete by recreating the record
         return await client.createRecord(
           reversalInstructions.tableId,
-          reversalInstructions.payload!
+          reversalInstructions.payload!,
         );
 
       case 'update':
@@ -82,14 +83,14 @@ async function executeUndoOperation(
         return await client.updateRecord(
           reversalInstructions.tableId,
           reversalInstructions.recordId!,
-          reversalInstructions.payload!
+          reversalInstructions.payload!,
         );
 
       case 'delete':
         // Undo a create by deleting the record
         return await client.deleteRecord(
           reversalInstructions.tableId,
-          reversalInstructions.recordId!
+          reversalInstructions.recordId!,
         );
 
       default:
@@ -107,7 +108,7 @@ async function executeUndoOperation(
 async function logUndoOperation(
   context: ToolContext,
   entry: AuditLogEntry,
-  result: unknown
+  result: unknown,
 ): Promise<void> {
   const { auditLogger } = context;
   const { reversalInstructions } = entry;
@@ -118,9 +119,10 @@ async function logUndoOperation(
     recordId: reversalInstructions.recordId || entry.recordId,
     result: result as Record<string, unknown>,
     reversalInstructions: {
-      operation: 'undo-undo' as any,
-      originalTransactionId: entry.id,
-      message: 'This undo operation cannot be undone',
+      operation: 'create',  // Placeholder - undo operations can't be undone
+      tableId: entry.tableId,
+      recordId: entry.recordId,
+      payload: { note: `Cannot undo an undo operation for transaction ${entry.id}` },
     },
   });
 }
@@ -130,7 +132,7 @@ async function logUndoOperation(
  */
 function generateResponseMessage(entry: AuditLogEntry): string {
   const { operation, recordId } = entry;
-  
+
   switch (operation) {
     case 'create':
       return `Successfully undid create operation by deleting record ${recordId}`;
@@ -149,7 +151,7 @@ function generateResponseMessage(entry: AuditLogEntry): string {
  */
 export async function handleUndo(
   context: ToolContext,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<UndoResponse> {
   const { auditLogger } = context;
   const transactionId = args.transaction_id as string;
@@ -158,7 +160,7 @@ export async function handleUndo(
   validateTransactionId(transactionId);
 
   let entries: AuditLogEntry[];
-  
+
   // Retrieve audit entries
   try {
     entries = await auditLogger.getEntries();

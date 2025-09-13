@@ -298,7 +298,12 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
           data: [],
           dry_run: true,
         }),
-      ).rejects.toThrow('Bulk operations not yet implemented');
+      ).resolves.toMatchObject({
+        dry_run: true,
+        operation: 'bulk_update',
+        validated: false,
+        errors: expect.arrayContaining(['Bulk operation requires at least one record']),
+      });
     });
   });
 });

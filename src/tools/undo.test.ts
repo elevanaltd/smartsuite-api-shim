@@ -4,8 +4,10 @@
 // Context7: consulted for vitest
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { ToolContext } from './types';
-import type { AuditLogEntry } from '../audit/audit-logger';
+
+import type { AuditLogEntry } from '../audit/audit-logger.js';
+
+import type { ToolContext } from './types.js';
 
 // Import the function we're about to create
 import { handleUndo } from './undo.js';
@@ -41,14 +43,14 @@ describe('handleUndo Function Module', () => {
   describe('Transaction ID Validation', () => {
     it('should reject invalid transaction ID format', async () => {
       // FAILING TEST: Function doesn't exist yet
-      await expect(handleUndo(mockContext, { 
-        transaction_id: 'invalid-format' 
+      await expect(handleUndo(mockContext, {
+        transaction_id: 'invalid-format',
       })).rejects.toThrow('Invalid transaction ID format');
     });
 
     it('should reject empty transaction ID', async () => {
-      await expect(handleUndo(mockContext, { 
-        transaction_id: '' 
+      await expect(handleUndo(mockContext, {
+        transaction_id: '',
       })).rejects.toThrow('Transaction ID is required');
     });
 
@@ -62,8 +64,8 @@ describe('handleUndo Function Module', () => {
       // Mock empty audit entries
       mockAuditLogger.getEntries.mockResolvedValue([]);
 
-      await expect(handleUndo(mockContext, { 
-        transaction_id: 'audit-1234567890123-abcd1234' 
+      await expect(handleUndo(mockContext, {
+        transaction_id: 'audit-1234567890123-abcd1234',
       })).rejects.toThrow('Transaction audit-1234567890123-abcd1234 not found');
     });
 
@@ -84,14 +86,14 @@ describe('handleUndo Function Module', () => {
             recordId: 'rec123',
           },
           hash: 'test-hash',
-        }
+        },
       ];
-      
+
       mockAuditLogger.getEntries.mockResolvedValue(mockEntries);
       mockClient.deleteRecord.mockResolvedValue({ deleted: 'rec123' });
 
-      const result = await handleUndo(mockContext, { 
-        transaction_id: 'audit-1234567890123-abcd1234' 
+      const result = await handleUndo(mockContext, {
+        transaction_id: 'audit-1234567890123-abcd1234',
       });
 
       expect(result).toBeDefined();
@@ -116,14 +118,14 @@ describe('handleUndo Function Module', () => {
             recordId: 'rec123',
           },
           hash: 'test-hash',
-        }
+        },
       ];
 
       mockAuditLogger.getEntries.mockResolvedValue(mockEntries);
       mockClient.deleteRecord.mockResolvedValue({ deleted: 'rec123' });
 
-      const result = await handleUndo(mockContext, { 
-        transaction_id: 'audit-1234567890123-abcd1234' 
+      const result = await handleUndo(mockContext, {
+        transaction_id: 'audit-1234567890123-abcd1234',
       });
 
       expect(result).toEqual({
@@ -158,14 +160,14 @@ describe('handleUndo Function Module', () => {
             payload: { id: 'rec123', name: 'Original Name' },
           },
           hash: 'test-hash',
-        }
+        },
       ];
 
       mockAuditLogger.getEntries.mockResolvedValue(mockEntries);
       mockClient.updateRecord.mockResolvedValue({ id: 'rec123', name: 'Original Name' });
 
-      const result = await handleUndo(mockContext, { 
-        transaction_id: 'audit-1234567890123-abcd1234' 
+      const result = await handleUndo(mockContext, {
+        transaction_id: 'audit-1234567890123-abcd1234',
       });
 
       expect(result).toEqual({
@@ -178,9 +180,9 @@ describe('handleUndo Function Module', () => {
       });
 
       expect(mockClient.updateRecord).toHaveBeenCalledWith(
-        'table123', 
-        'rec123', 
-        { id: 'rec123', name: 'Original Name' }
+        'table123',
+        'rec123',
+        { id: 'rec123', name: 'Original Name' },
       );
     });
   });
@@ -202,14 +204,14 @@ describe('handleUndo Function Module', () => {
             payload: { id: 'rec123', name: 'Deleted Record', value: 42 },
           },
           hash: 'test-hash',
-        }
+        },
       ];
 
       mockAuditLogger.getEntries.mockResolvedValue(mockEntries);
       mockClient.createRecord.mockResolvedValue({ id: 'rec123', name: 'Deleted Record', value: 42 });
 
-      const result = await handleUndo(mockContext, { 
-        transaction_id: 'audit-1234567890123-abcd1234' 
+      const result = await handleUndo(mockContext, {
+        transaction_id: 'audit-1234567890123-abcd1234',
       });
 
       expect(result).toEqual({
@@ -223,7 +225,7 @@ describe('handleUndo Function Module', () => {
 
       expect(mockClient.createRecord).toHaveBeenCalledWith(
         'table123',
-        { id: 'rec123', name: 'Deleted Record', value: 42 }
+        { id: 'rec123', name: 'Deleted Record', value: 42 },
       );
     });
   });
@@ -245,14 +247,14 @@ describe('handleUndo Function Module', () => {
             recordId: 'rec123',
           },
           hash: 'test-hash',
-        }
+        },
       ];
 
       mockAuditLogger.getEntries.mockResolvedValue(mockEntries);
       mockClient.deleteRecord.mockRejectedValue(new Error('Record not found'));
 
-      await expect(handleUndo(mockContext, { 
-        transaction_id: 'audit-1234567890123-abcd1234' 
+      await expect(handleUndo(mockContext, {
+        transaction_id: 'audit-1234567890123-abcd1234',
       })).rejects.toThrow('Failed to undo transaction: Record not found');
     });
 
@@ -268,21 +270,21 @@ describe('handleUndo Function Module', () => {
           result: { id: 'rec123', name: 'Test Record' },
           reversalInstructions: null as any, // Invalid reversal instructions
           hash: 'test-hash',
-        }
+        },
       ];
 
       mockAuditLogger.getEntries.mockResolvedValue(mockEntries);
 
-      await expect(handleUndo(mockContext, { 
-        transaction_id: 'audit-1234567890123-abcd1234' 
+      await expect(handleUndo(mockContext, {
+        transaction_id: 'audit-1234567890123-abcd1234',
       })).rejects.toThrow('Transaction audit-1234567890123-abcd1234 has invalid reversal instructions');
     });
 
     it('should handle audit logger errors', async () => {
       mockAuditLogger.getEntries.mockRejectedValue(new Error('Audit file corrupted'));
 
-      await expect(handleUndo(mockContext, { 
-        transaction_id: 'audit-1234567890123-abcd1234' 
+      await expect(handleUndo(mockContext, {
+        transaction_id: 'audit-1234567890123-abcd1234',
       })).rejects.toThrow('Failed to retrieve audit entries: Audit file corrupted');
     });
   });
@@ -307,13 +309,13 @@ describe('handleUndo Function Module', () => {
             recordId: 'rec123',
           },
           hash: 'test-hash',
-        }
+        },
       ];
 
       mockAuditLogger.getEntries.mockResolvedValue(mockEntries);
 
-      await expect(handleUndo(mockContext, { 
-        transaction_id: 'audit-1234567890123-abcd1234' 
+      await expect(handleUndo(mockContext, {
+        transaction_id: 'audit-1234567890123-abcd1234',
       })).rejects.toThrow('Transaction audit-1234567890123-abcd1234 has expired (older than 30 days)');
     });
   });
@@ -335,14 +337,14 @@ describe('handleUndo Function Module', () => {
             recordId: 'rec123',
           },
           hash: 'test-hash',
-        }
+        },
       ];
 
       mockAuditLogger.getEntries.mockResolvedValue(mockEntries);
       mockClient.deleteRecord.mockResolvedValue({ deleted: 'rec123' });
 
-      await handleUndo(mockContext, { 
-        transaction_id: 'audit-1234567890123-abcd1234' 
+      await handleUndo(mockContext, {
+        transaction_id: 'audit-1234567890123-abcd1234',
       });
 
       // Verify that the undo operation itself was logged

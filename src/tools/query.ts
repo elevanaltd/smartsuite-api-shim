@@ -1,19 +1,20 @@
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 // Technical-Architect: function module pattern for tool extraction
 
-import type { ToolContext } from './types';
-import type { SmartSuiteListResponse, SmartSuiteRecord } from '../smartsuite-client';
+import type { SmartSuiteListResponse, SmartSuiteRecord } from '../smartsuite-client.js';
+
+import type { ToolContext } from './types.js';
 
 /**
  * Convert API options to list options format
  */
 function toListOptions(options: Record<string, unknown>): Record<string, unknown> {
-  return {
-    ...(options.filter && { filter: options.filter }),
-    ...(options.sort && { sort: options.sort }),
-    ...(options.limit && { limit: options.limit }),
-    ...(options.offset !== undefined && { offset: options.offset }),
-  };
+  const result: Record<string, unknown> = {};
+  if (options.filter) result.filter = options.filter;
+  if (options.sort) result.sort = options.sort;
+  if (options.limit) result.limit = options.limit;
+  if (options.offset !== undefined) result.offset = options.offset;
+  return result;
 }
 
 /**
@@ -22,7 +23,7 @@ function toListOptions(options: Record<string, unknown>): Record<string, unknown
 function handleListResponse(
   appId: string,
   response: unknown,
-  fieldTranslator: ToolContext['fieldTranslator']
+  fieldTranslator: ToolContext['fieldTranslator'],
 ): Record<string, unknown> {
   // Check if it's an array (legacy test mock format)
   if (Array.isArray(response)) {
@@ -46,7 +47,7 @@ function handleListResponse(
 function formatMcpPaginationResponse(
   appId: string,
   response: SmartSuiteListResponse,
-  fieldTranslator: ToolContext['fieldTranslator']
+  fieldTranslator: ToolContext['fieldTranslator'],
 ): Record<string, unknown> {
   // Handle undefined response items (for test compatibility)
   const items = response.items ?? [];
@@ -89,14 +90,11 @@ function formatMcpPaginationResponse(
  */
 export async function handleQuery(
   context: ToolContext,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<unknown> {
-  const { client, fieldTranslator, tableResolver, auditLogger } = context;
+  const { client, fieldTranslator, tableResolver } = context;
 
-  // Log the tool call if audit logger is available and has the method
-  if (auditLogger && typeof auditLogger.logToolCall === 'function') {
-    await auditLogger.logToolCall('smartsuite_query', args, {});
-  }
+  // Note: Query operations are not mutations and don't need audit logging
 
   // FIELD TRANSLATION: Convert human-readable field names to API codes
   const operation = args.operation as string;

@@ -3,8 +3,9 @@
 // Technical-Architect: function module pattern for tool extraction
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { handleDiscover } from './discover';
-import type { ToolContext } from './types';
+
+import { handleDiscover } from './discover.js';
+import type { ToolContext } from './types.js';
 
 describe('handleDiscover', () => {
   let mockContext: ToolContext;
@@ -15,7 +16,7 @@ describe('handleDiscover', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockClient = {};
     mockAuditLogger = {};
 
@@ -100,9 +101,9 @@ describe('handleDiscover', () => {
       const tableId = 'projects';
       const resolvedId = 'table123';
       const mockTableInfo = { id: resolvedId, name: 'Projects' };
-      const mockFields = { 
+      const mockFields = {
         title: { apiCode: 'field_abc', type: 'text' },
-        status: { apiCode: 'field_def', type: 'select' }
+        status: { apiCode: 'field_def', type: 'select' },
       };
 
       mockTableResolver.resolveTableId.mockReturnValue(resolvedId);

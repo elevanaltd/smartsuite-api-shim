@@ -4,8 +4,9 @@
 
 // Context7: consulted for vitest
 import { describe, it, expect, vi } from 'vitest';
-import { handleSchema, type SchemaCache } from './schema';
-import type { ToolContext } from './types';
+
+import { handleSchema } from './schema.js';
+import type { ToolContext } from './types.js';
 
 // Mock ToolContext
 const createMockContext = (): ToolContext => ({
@@ -190,7 +191,7 @@ describe('handleSchema', () => {
         handleSchema(context, {
           appId: 'test-app-id',
           output_mode: 'invalid',
-        }, new Map())
+        }, new Map()),
       ).rejects.toThrow('Invalid output_mode');
     });
 
@@ -202,7 +203,7 @@ describe('handleSchema', () => {
         handleSchema(context, {
           appId: 'invalid-id',
           output_mode: 'summary',
-        }, new Map())
+        }, new Map()),
       ).rejects.toThrow('Unknown table');
     });
 

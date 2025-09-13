@@ -54,7 +54,7 @@ export class KnowledgeLibrary {
       max: 100,                    // Maximum 100 cached queries
       ttl: 5 * 60 * 1000,         // 5 minute TTL
       maxSize: 50 * 1024 * 1024,  // 50MB max cache size
-      sizeCalculation: (value, key) => {
+      sizeCalculation: (value, key): number => {
         // Estimate memory usage: key size + value size
         const keySize = new Blob([key]).size;
         const valueSize = JSON.stringify(value).length * 2; // ~2 bytes per char
