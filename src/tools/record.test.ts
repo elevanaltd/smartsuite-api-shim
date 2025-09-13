@@ -24,8 +24,13 @@ describe('handleRecord Tool Function', () => {
       updateRecord: vi.fn(),
       deleteRecord: vi.fn(),
       getRecord: vi.fn(),
+      listRecords: vi.fn().mockResolvedValue({ items: [] }),
       request: vi.fn(),
-      getSchema: vi.fn().mockResolvedValue({ structure: [] }),
+      getSchema: vi.fn().mockResolvedValue({ 
+        structure: [
+          { slug: 'title', label: 'Title', field_type: 'text' }
+        ] 
+      }),
     } as any;
 
     mockFieldTranslator = {
@@ -187,7 +192,7 @@ describe('handleRecord Tool Function', () => {
             );
 
     });
-    it('should handle bulk_update operations with proper endpoint', async () => {
+    it('should validate bulk_update operations in dry-run mode', async () => {
       const args = {
         operation: 'bulk_update',
         appId: 'test-app-id',
@@ -202,13 +207,10 @@ describe('handleRecord Tool Function', () => {
         operation: 'bulk_update',
         validated: true,
       });
-      expect(mockContext.client.request).toHaveBeenCalledWith({
-        method: 'PATCH',
-        endpoint: '/applications/test-app-id/records/bulk/',
-        data: { items: args.data },
-      });
+      // In dry-run mode, we should NOT call the actual API endpoint
+      expect(mockContext.client.request).not.toHaveBeenCalled();
     });
-    it('should handle bulk_delete operations with proper endpoint', async () => {
+    it('should validate bulk_delete operations in dry-run mode', async () => {
       const args = {
         operation: 'bulk_delete',
         appId: 'test-app-id',
@@ -223,11 +225,8 @@ describe('handleRecord Tool Function', () => {
         operation: 'bulk_delete',
         validated: true,
       });
-      expect(mockContext.client.request).toHaveBeenCalledWith({
-        method: 'PATCH',
-        endpoint: '/applications/test-app-id/records/bulk_delete/',
-        data: { ids: args.data },
-      });
+      // In dry-run mode, we should NOT call the actual API endpoint
+      expect(mockContext.client.request).not.toHaveBeenCalled();
     });
     it('should require dry_run parameter', async () => {
       const args = {

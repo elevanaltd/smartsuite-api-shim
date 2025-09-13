@@ -209,13 +209,9 @@ async function performDryRunValidation(
   // Phase 1: Connectivity/Auth probe
   try {
     // Use a minimal list query to test connectivity, auth, and permissions
-    if (typeof context.client.listRecords === 'function') {
-      await context.client.listRecords(appId, { limit: 1 });
-      connectivityPassed = true;
-    } else {
-      // For test environments where listRecords might not be mocked
-      connectivityPassed = true;
-    }
+    // The client contract guarantees listRecords exists. Tests MUST mock it.
+    await context.client.listRecords(appId, { limit: 1 });
+    connectivityPassed = true;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     validationErrors.push(`API connectivity check failed: ${errorMessage}`);
@@ -253,7 +249,9 @@ async function performDryRunValidation(
       } else {
         schemaValidationPassed = true;
       }
-    } else if (typeof context.client.getSchema === 'function') {
+    } else {
+      // Schema validation for non-bulk operations
+      // The client contract guarantees getSchema exists. Tests MUST mock it.
       const schema = await context.client.getSchema(appId);
       const schemaErrors = validateDataAgainstSchema(
         operation,
@@ -266,9 +264,6 @@ async function performDryRunValidation(
       } else {
         schemaValidationPassed = true;
       }
-    } else {
-      // For test environments where getSchema might not be mocked, assume schema validation passes
-      schemaValidationPassed = true;
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
