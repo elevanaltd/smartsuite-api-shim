@@ -27,6 +27,7 @@ import { MappingService } from './lib/mapping-service.js';
 import { resolveKnowledgePath } from './lib/path-resolver.js';
 import { TableResolver } from './lib/table-resolver.js';
 import { handleQuery } from './tools/query.js';
+import { handleRecord } from './tools/record.js';
 import type { ToolContext } from './tools/types.js';
 import {
   SmartSuiteClient,
@@ -534,7 +535,7 @@ export class SmartSuiteShimServer {
       case 'smartsuite_query':
         return handleQuery(this.createToolContext(), args);
       case 'smartsuite_record':
-        return this.handleRecord(args);
+        return handleRecord(this.createToolContext(), args);
       case 'smartsuite_schema':
         return this.handleSchema(args);
       case 'smartsuite_undo':
@@ -695,177 +696,6 @@ export class SmartSuiteShimServer {
     };
   }
 
-  private async handleRecord(args: Record<string, unknown>): Promise<unknown> {
-    // FIELD TRANSLATION: Convert human-readable field names to API codes
-    const operation = args.operation as string;
-    let appId = args.appId as string;
-    const recordId = args.recordId as string;
-    const inputData = args.data as Record<string, unknown>;
-    const dry_run = args.dry_run as boolean;
-
-    // TABLE RESOLUTION: Convert table name to ID if needed
-    const resolvedId = this.tableResolver.resolveTableId(appId);
-    if (!resolvedId) {
-      const suggestions = this.tableResolver.getSuggestionsForUnknown(appId);
-      const availableTables = this.tableResolver.getAllTableNames();
-      throw new Error(
-        `Unknown table '${appId}'. ` +
-        (suggestions.length > 0
-          ? `Did you mean: ${suggestions.join(', ')}?`
-          : `Available tables: ${availableTables.join(', ')}`
-        ),
-      );
-    }
-    appId = resolvedId;
-
-    // Check for unimplemented operations FIRST (before dry-run)
-    // This ensures we don't claim we can preview operations that don't exist
-    if (operation === 'bulk_update' || operation === 'bulk_delete') {
-      throw new Error(`Bulk operations not yet implemented: ${operation}`);
-    }
-
-    // Translate field names if mappings exist and data is provided
-    const translatedData =
-      inputData && this.fieldTranslator.hasMappings(appId)
-        ? this.fieldTranslator.humanToApi(appId, inputData, true) // Strict mode for data
-        : inputData;
-
-    if (dry_run) {
-      // Perform proper validation with actual API checks
-      return this.performDryRunValidation(operation, appId, recordId, inputData ?? {}, translatedData ?? {});
-    }
-
-    // ENFORCEMENT: Check if a successful dry-run was performed for this operation
-    const operationKey = this.generateOperationKey(operation, appId, recordId);
-    // Ensure consistent data hash for delete operations (no data)
-    const dataHash = this.generateDataHash(translatedData ?? {});
-
-    // Clean expired validations
-    this.cleanExpiredValidations();
-
-    // Check for valid prior validation
-    const priorValidation = this.validationCache.get(operationKey);
-
-    if (!priorValidation) {
-      throw new Error(
-        'Validation required: No dry-run found for this operation. ' +
-        'You must perform a dry-run (dry_run: true) before executing. ' +
-        'This ensures the operation is validated before execution.',
-      );
-    }
-
-    // Check if validation is expired
-    if (Date.now() - priorValidation.timestamp > this.VALIDATION_EXPIRY_MS) {
-      this.validationCache.delete(operationKey);
-      throw new Error(
-        'Validation expired: The dry-run for this operation has expired (>5 minutes old). ' +
-        'Please perform a new dry-run before executing.',
-      );
-    }
-
-    // Check if data has changed
-    if (priorValidation.dataHash !== dataHash) {
-      this.validationCache.delete(operationKey);
-      throw new Error(
-        'Data mismatch: The data has changed since the dry-run validation. ' +
-        'The data must be identical between dry-run and execution. ' +
-        'Please perform a new dry-run with the current data.',
-      );
-    }
-
-    // Check if prior validation failed
-    if (!priorValidation.validated) {
-      this.validationCache.delete(operationKey);
-      const errors = priorValidation.errors?.join(', ') ?? 'Validation failed';
-      throw new Error(
-        `Cannot execute: The dry-run validation failed with errors: ${errors}. ` +
-        'Please fix the issues and perform a new dry-run.',
-      );
-    }
-
-    // Validation passed - clear it from cache (single use)
-    this.validationCache.delete(operationKey);
-
-    // For update/delete operations, capture beforeData for audit trail
-    let beforeData: unknown;
-    if (operation === 'update' || operation === 'delete') {
-      try {
-        beforeData = await this.client!.getRecord(appId, recordId);
-      } catch (error) {
-        // If we can't get beforeData, continue but log without it
-        console.warn(`Failed to fetch beforeData for ${operation} audit: ${String(error)}`);
-      }
-    }
-
-    let result: unknown;
-    switch (operation) {
-      case 'create':
-        result = await this.client!.createRecord(appId, translatedData);
-        // AUDIT LOGGING: Create operation
-        await this.auditLogger.logMutation({
-          operation: 'create',
-          tableId: appId,
-          recordId: (result as any)?.id || recordId,
-          payload: translatedData,
-          result: result as Record<string, unknown>,
-          reversalInstructions: {
-            operation: 'delete',
-            tableId: appId,
-            recordId: (result as any)?.id || recordId,
-          },
-        });
-        break;
-      case 'update':
-        result = await this.client!.updateRecord(appId, recordId, translatedData);
-        // AUDIT LOGGING: Update operation
-        await this.auditLogger.logMutation({
-          operation: 'update',
-          tableId: appId,
-          recordId,
-          payload: translatedData,
-          result: result as Record<string, unknown>,
-          beforeData: beforeData as Record<string, unknown>,
-          reversalInstructions: {
-            operation: 'update',
-            tableId: appId,
-            recordId,
-            payload: beforeData as Record<string, unknown>,
-          },
-        });
-        break;
-      case 'delete':
-        await this.client!.deleteRecord(appId, recordId);
-        result = { deleted: recordId };
-        // AUDIT LOGGING: Delete operation
-        await this.auditLogger.logMutation({
-          operation: 'delete',
-          tableId: appId,
-          recordId,
-          result: result as Record<string, unknown>,
-          beforeData: beforeData as Record<string, unknown>,
-          reversalInstructions: {
-            operation: 'create',
-            tableId: appId,
-            payload: beforeData as Record<string, unknown>,
-          },
-        });
-        break;
-      default:
-        throw new Error(`Unknown record operation: ${String(operation)}`);
-    }
-
-    // FIELD TRANSLATION: Convert API response back to human-readable names
-    if (
-      this.fieldTranslator.hasMappings(appId) &&
-      result &&
-      typeof result === 'object' &&
-      !('deleted' in (result as Record<string, unknown>))
-    ) {
-      return this.fieldTranslator.apiToHuman(appId, result as Record<string, unknown>);
-    }
-
-    return result;
-  }
 
   private async handleSchema(args: Record<string, unknown>): Promise<unknown> {
     // Critical-Engineer: consulted for Architecture pattern selection
@@ -1142,40 +972,8 @@ export class SmartSuiteShimServer {
     return result;
   }
 
-  /**
-   * Generate a unique key for tracking operations
-   */
-  private generateOperationKey(
-    operation: string,
-    appId: string,
-    recordId?: string,
-  ): string {
-    return `${operation}:${appId}:${recordId ?? 'new'}`;
-  }
 
-  /**
-   * Generate a hash of the data for comparison
-   */
-  private generateDataHash(data: Record<string, unknown> | undefined): string {
-    // Simple JSON stringify for hashing - in production, use crypto hash
-    if (!data || Object.keys(data).length === 0) {
-      // Treat undefined and empty object the same for consistency
-      return JSON.stringify({});
-    }
-    return JSON.stringify(data, Object.keys(data).sort());
-  }
 
-  /**
-   * Clean expired validations from cache
-   */
-  private cleanExpiredValidations(): void {
-    const now = Date.now();
-    for (const [key, validation] of this.validationCache.entries()) {
-      if (now - validation.timestamp > this.VALIDATION_EXPIRY_MS) {
-        this.validationCache.delete(key);
-      }
-    }
-  }
 
   /**
    * Perform proper dry-run validation with actual API connectivity and schema checks
