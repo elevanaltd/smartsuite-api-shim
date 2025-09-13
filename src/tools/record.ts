@@ -198,8 +198,8 @@ async function performDryRunValidation(
   operation: string,
   appId: string,
   recordId: string | undefined,
-  originalData: Record<string, unknown> | unknown[] | unknown,
-  translatedData: Record<string, unknown> | unknown[] | unknown,
+  originalData: Record<string, unknown> | unknown[],
+  translatedData: Record<string, unknown> | unknown[],
 ): Promise<Record<string, unknown>> {
   const validationErrors: string[] = [];
   const validationWarnings: string[] = [];

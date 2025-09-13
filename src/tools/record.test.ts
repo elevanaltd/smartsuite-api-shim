@@ -26,10 +26,10 @@ describe('handleRecord Tool Function', () => {
       getRecord: vi.fn(),
       listRecords: vi.fn().mockResolvedValue({ items: [] }),
       request: vi.fn(),
-      getSchema: vi.fn().mockResolvedValue({ 
+      getSchema: vi.fn().mockResolvedValue({
         structure: [
-          { slug: 'title', label: 'Title', field_type: 'text' }
-        ] 
+          { slug: 'title', label: 'Title', field_type: 'text' },
+        ],
       }),
     } as any;
 

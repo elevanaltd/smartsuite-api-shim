@@ -93,8 +93,10 @@ async function executeUndoOperation(
           reversalInstructions.recordId!,
         );
 
-      default:
-        throw new Error(`Unsupported undo operation: ${reversalInstructions.operation}`);
+      default: {
+        const op = reversalInstructions.operation as string;
+        throw new Error(`Unsupported undo operation: ${op}`);
+      }
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -119,11 +121,10 @@ async function logUndoOperation(
     recordId: reversalInstructions.recordId || entry.recordId,
     result: result as Record<string, unknown>,
     reversalInstructions: {
-      operation: 'create',  // Placeholder - undo operations can't be undone
-      tableId: entry.tableId,
-      recordId: entry.recordId,
-      payload: { note: `Cannot undo an undo operation for transaction ${entry.id}` },
-    },
+      operation: 'undo-undo' as any,  // Special non-executable operation type
+      originalTransactionId: entry.id,
+      message: 'This undo operation cannot be undone',
+    } as any,
   });
 }
 
@@ -140,8 +141,10 @@ function generateResponseMessage(entry: AuditLogEntry): string {
       return `Successfully undid update operation by restoring previous values for record ${recordId}`;
     case 'delete':
       return `Successfully undid delete operation by recreating record ${recordId}`;
-    default:
-      return `Successfully undid ${operation} operation for record ${recordId}`;
+    default: {
+      const op = operation as string;
+      return `Successfully undid ${op} operation for record ${recordId}`;
+    }
   }
 }
 

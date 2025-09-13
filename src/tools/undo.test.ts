@@ -8,8 +8,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { AuditLogEntry } from '../audit/audit-logger.js';
 
 import type { ToolContext } from './types.js';
-
-// Import the function we're about to create
 import { handleUndo } from './undo.js';
 
 describe('handleUndo Function Module', () => {
