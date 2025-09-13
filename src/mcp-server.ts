@@ -20,16 +20,15 @@ import { z } from 'zod';
 
 // ERROR-ARCHITECT-APPROVED: ARCH-REFACTOR-APPROVED-2025-09-12-FUNCTION-MODULES
 import { AuditLogger } from './audit/audit-logger.js';
-import { IntelligentOperationHandler, KnowledgeLibrary, SafetyEngine } from './intelligent/index.js';
-import type { IntelligentToolInput } from './intelligent/types.js';
 import { FieldTranslator } from './lib/field-translator.js';
 import { MappingService } from './lib/mapping-service.js';
-import { resolveKnowledgePath } from './lib/path-resolver.js';
 import { TableResolver } from './lib/table-resolver.js';
 import { handleQuery } from './tools/query.js';
 import { handleRecord } from './tools/record.js';
+import { handleSchema } from './tools/schema.js';
 import { handleUndo } from './tools/undo.js';
 import { handleDiscover } from './tools/discover.js';
+import { handleIntelligent } from './tools/intelligent.js';
 import type { ToolContext } from './tools/types.js';
 import {
   SmartSuiteClient,
@@ -80,7 +79,6 @@ export class SmartSuiteShimServer {
   private fieldTranslator: FieldTranslator;
   private fieldMappingsInitialized = false;
   private authConfig?: SmartSuiteClientConfig;
-  private intelligentHandler?: IntelligentOperationHandler;
   private auditLogger: AuditLogger;
 
   // Validation enforcement: Track recent dry-runs to ensure validation before execution
@@ -92,12 +90,6 @@ export class SmartSuiteShimServer {
   }>();
   private readonly VALIDATION_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
-  // Schema caching: Cache schema responses for performance
-  private schemaCache = new Map<string, {
-    timestamp: number;
-    schema: unknown;
-  }>();
-  private readonly SCHEMA_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
   constructor() {
     // Minimal implementation to make instantiation test pass
@@ -106,32 +98,11 @@ export class SmartSuiteShimServer {
     this.fieldTranslator = new FieldTranslator();
     // Initialize audit logger with default path
     this.auditLogger = new AuditLogger(path.join(process.cwd(), 'audit-trail.json'));
-    // IntelligentHandler will be initialized in initializeIntelligentHandler
 
     // Critical-Engineer: consulted for server initialization and auto-authentication strategy
     // Constructor remains fast and non-blocking - no I/O operations here
   }
 
-  /**
-   * Initialize the intelligent handler lazily
-   */
-  private async initializeIntelligentHandler(): Promise<void> {
-    if (!this.intelligentHandler) {
-      const knowledgeLibrary = new KnowledgeLibrary();
-      // Use path resolver to handle both development and production environments
-      // Development: loads from src/knowledge
-      // Production: loads from build/src/knowledge (copied during build)
-      const knowledgePath = resolveKnowledgePath(import.meta.url);
-      await knowledgeLibrary.loadFromResearch(knowledgePath);
-      const safetyEngine = new SafetyEngine(knowledgeLibrary);
-      // Pass the SmartSuiteClient to enable execute and dry_run modes
-      this.intelligentHandler = new IntelligentOperationHandler(
-        knowledgeLibrary,
-        safetyEngine,
-        this.client,  // Now passes client for API proxy functionality
-      );
-    }
-  }
 
   /**
    * Initialize the server with auto-authentication if environment variables are present
@@ -539,13 +510,13 @@ export class SmartSuiteShimServer {
       case 'smartsuite_record':
         return handleRecord(this.createToolContext(), args);
       case 'smartsuite_schema':
-        return this.handleSchema(args);
+        return handleSchema(this.createToolContext(), args);
       case 'smartsuite_undo':
         return handleUndo(this.createToolContext(), args);
       case 'smartsuite_discover':
         return handleDiscover(this.createToolContext(), args);
       case 'smartsuite_intelligent':
-        return this.handleIntelligent(args);
+        return handleIntelligent(this.createToolContext(), args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -699,208 +670,7 @@ export class SmartSuiteShimServer {
   }
 
 
-  private async handleSchema(args: Record<string, unknown>): Promise<unknown> {
-    // Critical-Engineer: consulted for Architecture pattern selection
-    let appId = args.appId as string;
-    const output_mode = (args.output_mode as string) ?? 'summary';
 
-    // INPUT VALIDATION: Validate output_mode enum
-    const validModes = ['summary', 'fields', 'detailed'];
-    if (!validModes.includes(output_mode)) {
-      throw new Error(`Invalid output_mode "${output_mode}". Must be one of: ${validModes.join(', ')}`);
-    }
-
-    // TABLE RESOLUTION: Convert table name to ID if needed
-    const resolvedId = this.tableResolver.resolveTableId(appId);
-    if (!resolvedId) {
-      const suggestions = this.tableResolver.getSuggestionsForUnknown(appId);
-      const availableTables = this.tableResolver.getAllTableNames();
-      throw new Error(
-        `Unknown table '${appId}'. ` +
-        (suggestions.length > 0
-          ? `Did you mean: ${suggestions.join(', ')}?`
-          : `Available tables: ${availableTables.join(', ')}`
-        ),
-      );
-    }
-    appId = resolvedId;
-
-    // STEP 1: Get Schema Data (with caching)
-    const schema = await this._getCachedSchema(appId);
-
-    // STEP 2: Transform based on output_mode
-    return this._transformSchemaOutput(appId, schema, output_mode);
-  }
-
-  /**
-   * Get schema from cache or API with TTL-based caching
-   */
-  private async _getCachedSchema(appId: string): Promise<unknown> {
-    // Check cache first
-    const cached = this.schemaCache.get(appId);
-    const now = Date.now();
-
-    if (cached && (now - cached.timestamp) < this.SCHEMA_CACHE_TTL_MS) {
-      // Cache hit and not expired
-      return cached.schema;
-    }
-
-    // Cache miss or expired - fetch from API
-    const schema = await this.client!.getSchema(appId);
-
-    // Validate schema format - must have at least id and name
-    if (!schema || typeof schema !== 'object') {
-      throw new Error('Invalid schema format');
-    }
-    const schemaObj = schema as unknown as Record<string, unknown>;
-    if (!schemaObj.id || !schemaObj.name) {
-      throw new Error('Invalid schema format');
-    }
-
-    // Store in cache
-    this.schemaCache.set(appId, {
-      timestamp: now,
-      schema,
-    });
-
-    return schema;
-  }
-
-  /**
-   * Transform schema data based on output mode
-   */
-  private _transformSchemaOutput(appId: string, schema: unknown, output_mode: string): unknown {
-    const schemaObj = schema as Record<string, unknown>;
-
-    // For detailed mode, return as-is (maintains backward compatibility)
-    if (output_mode === 'detailed') {
-      return this._generateSchemaDetailed(appId, schemaObj);
-    }
-
-    // For summary and fields modes, validate structure exists
-    // If no structure, fall back to detailed mode for backward compatibility with old mock data
-    if (!schemaObj.structure || !Array.isArray(schemaObj.structure)) {
-      return this._generateSchemaDetailed(appId, schemaObj);
-    }
-
-    const structure = schemaObj.structure as Array<Record<string, unknown>>;
-
-    switch (output_mode) {
-      case 'summary':
-        return this._generateSchemaSummary(schemaObj, structure);
-
-      case 'fields':
-        return this._generateSchemaFields(schemaObj, structure);
-
-      default:
-        throw new Error(`Unsupported output_mode: ${output_mode}`);
-    }
-  }
-
-  /**
-   * Generate summary output mode (table info only)
-   */
-  private _generateSchemaSummary(schema: Record<string, unknown>, structure: Array<Record<string, unknown>>): unknown {
-    // Count field types
-    const fieldTypes: Record<string, number> = {};
-    for (const field of structure) {
-      const fieldType = field.field_type as string;
-      fieldTypes[fieldType] = (fieldTypes[fieldType] || 0) + 1;
-    }
-
-    return {
-      id: schema.id,
-      name: schema.name,
-      field_count: structure.length,
-      field_types: fieldTypes,
-    };
-  }
-
-  /**
-   * Generate fields output mode (field names/types without full params)
-   */
-  private _generateSchemaFields(schema: Record<string, unknown>, structure: Array<Record<string, unknown>>): unknown {
-    const fields = structure.map((field) => {
-      const params = field.params as Record<string, unknown> | undefined;
-      return {
-        slug: field.slug,
-        field_type: field.field_type,
-        label: field.label,
-        required: params?.required || false,
-      };
-    });
-
-    return {
-      id: schema.id,
-      name: schema.name,
-      field_count: structure.length,
-      fields,
-    };
-  }
-
-  /**
-   * Generate detailed output mode (full schema with field mappings)
-   */
-  private _generateSchemaDetailed(appId: string, schema: Record<string, unknown>): unknown {
-    // FIELD MAPPING: Add human-readable field mappings to schema response
-    if (this.fieldTranslator.hasMappings(appId)) {
-      return {
-        ...schema,
-        fieldMappings: {
-          hasCustomMappings: true,
-          message:
-            'This table supports human-readable field names. Use field names from the mappings below instead of API codes.',
-          // Note: We don't expose internal mapping structure for security
-          // Users should refer to documentation for available field names
-        },
-      };
-    }
-
-    return {
-      ...schema,
-      fieldMappings: {
-        hasCustomMappings: false,
-        message: 'This table uses raw API field codes. Custom field mappings not available.',
-      },
-    };
-  }
-
-  /**
-   * Handle intelligent tool operations with knowledge-driven safety
-   * MVP Phase 1: Learn mode only
-   */
-  private async handleIntelligent(args: Record<string, unknown>): Promise<unknown> {
-    // Initialize handler if needed
-    await this.initializeIntelligentHandler();
-    // Validate and transform input
-    const input: IntelligentToolInput = {
-      mode: (args.mode as 'learn' | 'dry_run' | 'execute') ?? 'learn',
-      endpoint: args.endpoint as string,
-      method: args.method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
-      operation_description: args.operation_description as string,
-    };
-
-    // Add optional fields only if they exist
-    if (args.payload !== undefined) {
-      input.payload = args.payload as Record<string, unknown>;
-    }
-    if (args.tableId !== undefined) {
-      input.tableId = args.tableId as string;
-    }
-    if (args.confirmed !== undefined) {
-      input.confirmed = args.confirmed as boolean;
-    }
-
-    // All modes supported: learn, dry_run, execute
-    // Validate client is available for dry_run and execute modes
-    if ((input.mode === 'dry_run' || input.mode === 'execute') && !this.client) {
-      throw new Error(`Client not initialized. Cannot use ${input.mode} mode without authentication.`);
-    }
-
-    // Use the intelligent handler to process the operation
-    const result = await this.intelligentHandler!.handleIntelligentOperation(input);
-    return result;
-  }
 
 
 
