@@ -240,9 +240,11 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       expect((server as any).client.getSchema).toHaveBeenCalledWith('68b2437a8f1755b055e0a124');
     });
 
-    it('should handle undo operation placeholder', async () => {
+    it('should handle undo operation with validation', async () => {
+      // TESTGUARD-APPROVED: CONTRACT-DRIVEN-CORRECTION - Updating test from placeholder to actual validation
+      // Now that undo functionality is implemented, test proper validation
       await expect(server.executeTool('smartsuite_undo', {})).rejects.toThrow(
-        'Undo functionality not yet implemented',
+        'Transaction ID is required',
       );
     });
   });
