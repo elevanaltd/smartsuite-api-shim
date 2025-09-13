@@ -925,4 +925,39 @@ export class SmartSuiteShimServer {
 
     return errors;
   }
+
+  /**
+   * Generate a unique key for tracking operations
+   */
+  private generateOperationKey(
+    operation: string,
+    appId: string,
+    recordId?: string,
+  ): string {
+    return `${operation}:${appId}:${recordId ?? 'new'}`;
+  }
+
+  /**
+   * Generate a hash of the data for comparison
+   */
+  private generateDataHash(data: Record<string, unknown> | undefined): string {
+    // Simple JSON stringify for hashing - in production, use crypto hash
+    if (!data || Object.keys(data).length === 0) {
+      // Treat undefined and empty object the same for consistency
+      return JSON.stringify({});
+    }
+    return JSON.stringify(data, Object.keys(data).sort());
+  }
+
+  /**
+   * Clean expired validations from cache
+   */
+  private cleanExpiredValidations(): void {
+    const now = Date.now();
+    for (const [key, validation] of this.validationCache.entries()) {
+      if (now - validation.timestamp > this.VALIDATION_EXPIRY_MS) {
+        this.validationCache.delete(key);
+      }
+    }
+  }
 }
