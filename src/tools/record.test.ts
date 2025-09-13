@@ -208,16 +208,41 @@ describe('handleRecord Tool Function', () => {
       );
     });
 
-    it('should throw error for bulk operations not yet implemented', async () => {
+    it('should handle bulk_update operations with proper endpoint', async () => {
       const args = {
         operation: 'bulk_update',
         appId: 'test-app-id',
-        data: [{ id: '1', title: 'Test' }],
+        data: [{ id: '1', title: 'Test' }, { id: '2', title: 'Test 2' }],
         dry_run: true,
       };
 
-      await expect(handleRecord(mockContext, args)).rejects.toThrow(
-        'Bulk operations not yet implemented: bulk_update'
+      const result = await handleRecord(mockContext, args);
+      
+      expect(result).toContain('DRY-RUN');
+      expect(result).toContain('bulk_update');
+      expect(result).toContain('2 records');
+      expect(mockContext.client.patch).toHaveBeenCalledWith(
+        '/applications/test-app-id/records/bulk/',
+        { items: args.data }
+      );
+    });
+
+    it('should handle bulk_delete operations with proper endpoint', async () => {
+      const args = {
+        operation: 'bulk_delete',
+        appId: 'test-app-id',
+        data: ['id1', 'id2', 'id3'],
+        dry_run: true,
+      };
+
+      const result = await handleRecord(mockContext, args);
+      
+      expect(result).toContain('DRY-RUN');
+      expect(result).toContain('bulk_delete');
+      expect(result).toContain('3 records');
+      expect(mockContext.client.patch).toHaveBeenCalledWith(
+        '/applications/test-app-id/records/bulk_delete/',
+        { ids: args.data }
       );
     });
 
