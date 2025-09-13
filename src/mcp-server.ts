@@ -28,6 +28,8 @@ import { resolveKnowledgePath } from './lib/path-resolver.js';
 import { TableResolver } from './lib/table-resolver.js';
 import { handleQuery } from './tools/query.js';
 import { handleRecord } from './tools/record.js';
+import { handleUndo } from './tools/undo.js';
+import { handleDiscover } from './tools/discover.js';
 import type { ToolContext } from './tools/types.js';
 import {
   SmartSuiteClient,
@@ -539,9 +541,9 @@ export class SmartSuiteShimServer {
       case 'smartsuite_schema':
         return this.handleSchema(args);
       case 'smartsuite_undo':
-        return this.handleUndo(args);
+        return handleUndo(this.createToolContext(), args);
       case 'smartsuite_discover':
-        return this.handleDiscover(args);
+        return handleDiscover(this.createToolContext(), args);
       case 'smartsuite_intelligent':
         return this.handleIntelligent(args);
       default:
@@ -861,78 +863,6 @@ export class SmartSuiteShimServer {
         message: 'This table uses raw API field codes. Custom field mappings not available.',
       },
     };
-  }
-
-  private handleUndo(_args: Record<string, unknown>): Promise<unknown> {
-    // SIMPLE scope: Undo placeholder
-    throw new Error('Undo functionality not yet implemented');
-  }
-
-  /**
-   * Handle discovery of tables and fields
-   * Enables exploration of available tables and their human-readable field names
-   */
-  private handleDiscover(args: Record<string, unknown>): unknown {
-    const scope = args.scope as string;
-    const tableId = args.tableId as string | undefined;
-
-    if (scope === 'tables') {
-      // Return all available tables
-      const tables = this.tableResolver.getAvailableTables();
-      return {
-        tables,
-        count: tables.length,
-        message: `Found ${tables.length} available table${tables.length === 1 ? '' : 's'}. Use table names directly in queries.`,
-      };
-    } else if (scope === 'fields') {
-      if (!tableId) {
-        throw new Error('tableId is required when scope is "fields"');
-      }
-
-      // Resolve table name if needed
-      const resolvedId = this.tableResolver.resolveTableId(tableId);
-      if (!resolvedId) {
-        const suggestions = this.tableResolver.getSuggestionsForUnknown(tableId);
-        const availableTables = this.tableResolver.getAllTableNames();
-        throw new Error(
-          `Unknown table '${tableId}'. ` +
-          (suggestions.length > 0
-            ? `Did you mean: ${suggestions.join(', ')}?`
-            : `Available tables: ${availableTables.join(', ')}`
-          ),
-        );
-      }
-
-      // Get table info
-      const tableInfo = this.tableResolver.getTableByName(tableId) ??
-                       this.tableResolver.getAvailableTables().find(t => t.id === resolvedId);
-
-      // Get field mappings if available
-      if (this.fieldTranslator.hasMappings(resolvedId)) {
-        // Access internal mappings through proper interface
-        // @ts-expect-error: Accessing internal mappings for field discovery
-        const mapping = this.fieldTranslator.mappings.get(resolvedId) as { fields?: Record<string, unknown> } | undefined;
-        if (mapping?.fields) {
-          const fields = mapping.fields;
-          return {
-            table: tableInfo,
-            fields: fields,
-            fieldCount: Object.keys(fields).length,
-            message: `Table '${tableInfo?.name ?? tableId}' has ${Object.keys(fields).length} mapped fields. Use these human-readable names in your queries.`,
-          };
-        }
-      }
-
-      // No mappings available
-      return {
-        table: tableInfo,
-        fields: {},
-        fieldCount: 0,
-        message: `Table '${tableInfo?.name ?? tableId}' has no field mappings configured. Use raw API field codes or configure mappings.`,
-      };
-    } else {
-      throw new Error(`Invalid scope: ${scope}. Must be 'tables' or 'fields'`);
-    }
   }
 
   /**
