@@ -5,6 +5,7 @@
 import { IntelligentOperationHandler, KnowledgeLibrary, SafetyEngine } from '../intelligent/index.js';
 import type { IntelligentToolInput } from '../intelligent/types.js';
 import { resolveKnowledgePath } from '../lib/path-resolver.js';
+import type { SmartSuiteClient } from '../smartsuite-client.js';
 
 import type { ToolContext } from './types.js';
 
@@ -16,7 +17,7 @@ let intelligentHandlerCache: IntelligentOperationHandler | null = null;
  * Initialize the intelligent handler lazily
  * Creates KnowledgeLibrary, SafetyEngine, and IntelligentOperationHandler
  */
-async function initializeIntelligentHandler(client: any): Promise<IntelligentOperationHandler> {
+async function initializeIntelligentHandler(client: SmartSuiteClient | undefined): Promise<IntelligentOperationHandler> {
   if (!intelligentHandlerCache) {
     const knowledgeLibrary = new KnowledgeLibrary();
     // Use path resolver to handle both development and production environments
