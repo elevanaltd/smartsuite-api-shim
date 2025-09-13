@@ -7,6 +7,7 @@ import type { IntelligentToolInput } from '../intelligent/types.js';
 import { resolveKnowledgePath } from '../lib/path-resolver.js';
 import type { SmartSuiteClient } from '../smartsuite-client.js';
 
+
 import type { ToolContext } from './types.js';
 
 // Cache the intelligent handler to avoid re-initialization

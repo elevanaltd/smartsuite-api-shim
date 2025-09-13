@@ -369,6 +369,7 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
   if (inputData && context.fieldTranslator.hasMappings(appId)) {
     if (operation === 'bulk_update' && Array.isArray(inputData)) {
       translatedData = inputData.map((item: Record<string, unknown>) =>
+
         context.fieldTranslator.humanToApi(appId, item, true),
       ) as unknown as Record<string, unknown>;
     } else if (operation !== 'bulk_delete') {
