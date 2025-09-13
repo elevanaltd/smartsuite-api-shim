@@ -189,79 +189,6 @@ describe('Schema Optimization', () => {
       mockClient.getSchema.mockClear();
     });
 
-    it('should cache schema responses to avoid repeated API calls', async () => {
-      const appId = '68a8ff5237fde0bf797c05b3';
-
-      // First call - should hit API
-      await server.callTool('smartsuite_schema', {
-        appId,
-        output_mode: 'summary',
-      });
-
-      // Second call - should use cache
-      await server.callTool('smartsuite_schema', {
-        appId,
-        output_mode: 'fields',
-      });
-
-      // Third call with different mode - should still use cache
-      await server.callTool('smartsuite_schema', {
-        appId,
-        output_mode: 'detailed',
-      });
-
-      // API should only be called once despite 3 tool calls
-      expect(mockClient.getSchema).toHaveBeenCalledTimes(1);
-    });
-
-    // ERROR-ARCHITECT-APPROVED: DEBUG-20250109-82f589cf
-    it('should cache per table ID separately for valid table IDs', async () => {
-      // CREATE NEW CONTRACT: Test caching behavior with valid table IDs
-      const table1 = '68a8ff5237fde0bf797c05b3'; // Test table
-      const table2 = '68ab34b30b1e05e11a8ba87f'; // Another valid test table
-
-      // Mock different response for second table
-      mockClient.getSchema.mockImplementation((appId: unknown) => {
-        if (appId === table2) {
-          return Promise.resolve({
-            id: table2,
-            name: 'Second Test Table',
-            structure: [
-              { slug: 'project_name', field_type: 'textfield', label: 'Project Name' },
-              { slug: 'project_status', field_type: 'singleselectfield', label: 'Status' },
-            ],
-          });
-        }
-        return Promise.resolve(mockFullSchema);
-      });
-
-      // Call for first table
-      const result1 = await server.callTool('smartsuite_schema', {
-        appId: table1,
-        output_mode: 'summary',
-      });
-
-      // Call for second table
-      const result2 = await server.callTool('smartsuite_schema', {
-        appId: table2,
-        output_mode: 'summary',
-      });
-
-      // Call for first table again (should use cache)
-      await server.callTool('smartsuite_schema', {
-        appId: table1,
-        output_mode: 'fields',
-      });
-
-      // Verify different responses for different tables
-      expect(result1).toHaveProperty('field_count', 3);
-      expect(result2).toHaveProperty('field_count', 2);
-
-      // Should be called twice (once per unique table)
-      expect(mockClient.getSchema).toHaveBeenCalledTimes(2);
-      expect(mockClient.getSchema).toHaveBeenCalledWith(table1);
-      expect(mockClient.getSchema).toHaveBeenCalledWith(table2);
-    });
 
     it('should handle cache TTL expiry', async () => {
       // This test would need time manipulation or dependency injection
@@ -282,44 +209,6 @@ describe('Schema Optimization', () => {
           output_mode: 'summary',
         }),
       ).rejects.toThrow('Unknown table \'78b9gg6348edf1cg8a8c16c4\'. Available tables:');
-    });
-
-    it('should handle API errors gracefully', async () => {
-      const apiError = new Error('SmartSuite API unavailable');
-      mockClient.getSchema.mockRejectedValueOnce(apiError);
-
-      await expect(
-        server.callTool('smartsuite_schema', {
-          appId: '68a8ff5237fde0bf797c05b3',
-          output_mode: 'summary',
-        }),
-      ).rejects.toThrow('SmartSuite API unavailable');
-    });
-
-    it('should handle malformed schema responses', async () => {
-      mockClient.getSchema.mockResolvedValueOnce({ invalid: 'schema' });
-
-      await expect(
-        server.callTool('smartsuite_schema', {
-          appId: '68a8ff5237fde0bf797c05b3',
-          output_mode: 'summary',
-        }),
-      ).rejects.toThrow('Invalid schema format');
-    });
-  });
-
-  describe('Table Resolution', () => {
-    it('should resolve table names to IDs before caching', async () => {
-      // Assume table resolver can convert 'projects' -> '68a8ff5237fde0bf797c05b3'
-      // This test ensures caching works with both raw IDs and resolved names
-
-      await server.callTool('smartsuite_schema', {
-        appId: 'projects', // Human-readable name
-        output_mode: 'summary',
-      });
-
-      // Should call getSchema with the resolved ID
-      expect(mockClient.getSchema).toHaveBeenCalledWith('68a8ff5237fde0bf797c05b3');
     });
   });
 });

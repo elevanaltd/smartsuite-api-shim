@@ -5,6 +5,9 @@
 **Server Status:** Fully functional with auto-authentication, 6 MCP tools, and latest enhancements  
 
 ## Quick Start
+
+> **⚠️ IMPORTANT**: Read [`docs/001-ARCHITECTURE.md`](./docs/001-ARCHITECTURE.md) before making changes to understand system constraints and common failure modes.
+
 1. **Prerequisites:** Node.js 18+, npm, SmartSuite API credentials
 2. **Installation:** `npm install`
 3. **Build:** `npm run build` 
@@ -122,11 +125,15 @@ Add to your Claude Desktop MCP configuration:
 }
 ```
 
-## Documentation
+## Critical Documentation - READ FIRST
 
-### User Guide
+### 🚨 System Context (Required Reading)
+- **🎯 NORTH STAR**: [`docs/000-NORTH-STAR.md`](./docs/000-NORTH-STAR.md) - Project vision and goals  
+- **🏗️ ARCHITECTURE**: [`docs/001-ARCHITECTURE.md`](./docs/001-ARCHITECTURE.md) - System design, failure modes, what will break
+
+### User & Technical Guides
 - **Complete User Guide**: [`docs/guides/001-DOC-GUIDE-USER-GUIDE.md`](./docs/guides/001-DOC-GUIDE-USER-GUIDE.md) - Detailed usage instructions with examples
-- **Technical Handoff**: [`docs/delivery/001-DOC-DELIVERY-B4-HANDOFF.md`](./docs/delivery/001-DOC-DELIVERY-B4-HANDOFF.md) - Implementation details and architecture
+- **Technical Handoff**: [`docs/delivery/202-PROJECT-SMARTSUITE-API-SHIM-B4-HANDOFF.md`](./docs/delivery/202-PROJECT-SMARTSUITE-API-SHIM-B4-HANDOFF.md) - Implementation details and architecture
 
 ### Example Usage
 ```javascript
