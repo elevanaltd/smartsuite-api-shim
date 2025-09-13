@@ -96,7 +96,7 @@ CREATE INDEX idx_audit_entity ON knowledge_audit_log(entity_type, entity_id);
 CREATE INDEX idx_audit_tenant_id ON knowledge_audit_log(tenant_id);
 
 -- Materialized view for field mappings (NO TRIGGER!)
-CREATE MATERIALIZED VIEW field_mappings AS
+CREATE MATERIALIZED VIEW knowledge_platform.field_mappings AS
 SELECT
   aggregate_id as table_id,
   (state->>'fields')::jsonb as fields,
