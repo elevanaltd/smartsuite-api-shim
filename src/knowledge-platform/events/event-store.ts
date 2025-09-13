@@ -1,9 +1,17 @@
-// Event Store implementation for Knowledge Platform
-// TEST COMMIT: 9617b92 - implementing to satisfy failing tests
+// Event Store implementation with pluggable backends
+// TECHNICAL-ARCHITECT: Supports both in-memory (testing) and Supabase (production)
 
 import { DomainEvent, Snapshot } from './types';
+import { EventStoreSupabase } from './event-store-supabase';
 
-export class EventStore {
+export interface IEventStore {
+  append(event: DomainEvent): Promise<string>;
+  getEvents(aggregateId: string, fromVersion?: number): Promise<DomainEvent[]>;
+  getSnapshot(aggregateId: string): Promise<Snapshot | null>;
+}
+
+// In-memory implementation for testing
+export class EventStoreMemory implements IEventStore {
   private events: Map<string, DomainEvent[]> = new Map();
   private snapshots: Map<string, Snapshot> = new Map();
   private versions: Map<string, number> = new Map();
@@ -12,12 +20,10 @@ export class EventStore {
     const currentVersion = this.versions.get(event.aggregateId) || 0;
     const expectedVersion = currentVersion + 1;
 
-    // Validate version for optimistic concurrency control
     if (event.version !== expectedVersion) {
       throw new Error(`Version conflict: expected ${expectedVersion}, got ${event.version}`);
     }
 
-    // Store the event
     if (!this.events.has(event.aggregateId)) {
       this.events.set(event.aggregateId, []);
     }
@@ -40,4 +46,42 @@ export class EventStore {
   async getSnapshot(aggregateId: string): Promise<Snapshot | null> {
     return this.snapshots.get(aggregateId) || null;
   }
+}
+
+// Main EventStore class that delegates to appropriate backend
+export class EventStore implements IEventStore {
+  private backend: IEventStore;
+
+  constructor(backend?: IEventStore | string) {
+    if (typeof backend === 'string') {
+      // Tenant ID provided - use Supabase
+      this.backend = new EventStoreSupabase(backend);
+    } else if (backend) {
+      // Custom backend provided
+      this.backend = backend;
+    } else {
+      // Default to in-memory for testing
+      this.backend = new EventStoreMemory();
+    }
+  }
+
+  async append(event: DomainEvent): Promise<string> {
+    return this.backend.append(event);
+  }
+
+  async getEvents(aggregateId: string, fromVersion?: number): Promise<DomainEvent[]> {
+    return this.backend.getEvents(aggregateId, fromVersion);
+  }
+
+  async getSnapshot(aggregateId: string): Promise<Snapshot | null> {
+    return this.backend.getSnapshot(aggregateId);
+  }
+}
+
+// Export factory function for convenience
+export function createEventStore(tenantId?: string): EventStore {
+  if (tenantId) {
+    return new EventStore(tenantId);
+  }
+  return new EventStore(new EventStoreMemory());
 }
