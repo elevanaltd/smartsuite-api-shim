@@ -3,17 +3,10 @@
 // Following TRACED methodology - GREEN phase: minimal implementation to pass tests
 
 import type { ToolContext } from './types.js';
+import type { DomainEvent } from '../knowledge-platform/events/types.js';
 import { EventStoreMemory, type IEventStore } from '../knowledge-platform/events/event-store.js';
 import { EventStoreSupabase } from '../knowledge-platform/events/event-store-supabase.js';
-import { createSupabaseClient } from '../knowledge-platform/infrastructure/supabase-client.js';
-import type { DomainEvent } from '../knowledge-platform/events/types.js';
-// Context7: consulted for path
-import * as path from 'path';
-// Context7: consulted for url
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { supabase } from '../knowledge-platform/infrastructure/supabase-client.js';
 
 interface KnowledgeEventsArgs {
   operation: 'append' | 'get';
@@ -68,10 +61,14 @@ export async function handleKnowledgeEvents(
         id: `evt-${Date.now()}`,
         aggregateId: args.aggregateId!,
         type: args.type!,
-        data: args.data!,
         version: 1, // In real implementation, would track versions
-        timestamp: new Date().toISOString(),
-        metadata: args.metadata,
+        timestamp: new Date(),
+        userId: args.metadata?.userId || 'system',
+        payload: (args.data as Record<string, unknown>) || {},
+        metadata: {
+          correlationId: `corr-${Date.now()}`,
+          causationId: `cause-${Date.now()}`,
+        },
       };
 
       const eventId = await eventStore.append(event);
@@ -164,7 +161,7 @@ export async function handleKnowledgeRefreshViews(
     const views = args.views || ['field_mappings'];
 
     // Get Supabase client
-    const supabaseClient = context.supabaseClient || createSupabaseClient();
+    const supabaseClient = context.supabaseClient || supabase;
 
     // Attempt to refresh each view
     const errors: string[] = [];
@@ -219,8 +216,8 @@ export async function handleKnowledgeRefreshViews(
  */
 async function createEventStore(): Promise<IEventStore> {
   try {
-    const supabaseClient = createSupabaseClient();
-    return new EventStoreSupabase(supabaseClient);
+    // EventStoreSupabase expects a tenantId, not a client
+    return new EventStoreSupabase('default-tenant');
   } catch {
     // Fall back to in-memory store for testing
     return new EventStoreMemory();
