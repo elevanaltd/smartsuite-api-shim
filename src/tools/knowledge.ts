@@ -2,13 +2,14 @@
 // Implements event sourcing operations for the Knowledge Platform
 // Following TRACED methodology - GREEN phase: minimal implementation to pass tests
 
-import type { ToolContext } from './types.js';
-import type { DomainEvent } from '../knowledge-platform/events/types.js';
-import { EventStoreMemory, type IEventStore } from '../knowledge-platform/events/event-store.js';
 import { EventStoreSupabase } from '../knowledge-platform/events/event-store-supabase.js';
+import { EventStoreMemory, type IEventStore } from '../knowledge-platform/events/event-store.js';
+import type { DomainEvent } from '../knowledge-platform/events/types.js';
 import { supabase } from '../knowledge-platform/infrastructure/supabase-client.js';
 
-interface KnowledgeEventsArgs {
+import type { ToolContext } from './types.js';
+
+export interface KnowledgeEventsArgs {
   operation: 'append' | 'get';
   aggregateId?: string;
   type?: string;
@@ -19,11 +20,11 @@ interface KnowledgeEventsArgs {
   };
 }
 
-interface KnowledgeFieldMappingsArgs {
+export interface KnowledgeFieldMappingsArgs {
   tableId: string;
 }
 
-interface KnowledgeRefreshViewsArgs {
+export interface KnowledgeRefreshViewsArgs {
   views?: string[];
 }
 
@@ -33,7 +34,7 @@ interface KnowledgeRefreshViewsArgs {
  */
 export async function handleKnowledgeEvents(
   args: KnowledgeEventsArgs,
-  context: ToolContext
+  context: ToolContext,
 ): Promise<unknown> {
   try {
     // Validate required fields based on operation
@@ -106,7 +107,7 @@ export async function handleKnowledgeEvents(
  */
 export async function handleKnowledgeFieldMappings(
   args: KnowledgeFieldMappingsArgs,
-  context: ToolContext
+  context: ToolContext,
 ): Promise<unknown> {
   try {
     const { tableId } = args;
@@ -155,7 +156,7 @@ export async function handleKnowledgeFieldMappings(
  */
 export async function handleKnowledgeRefreshViews(
   args: KnowledgeRefreshViewsArgs,
-  context: ToolContext
+  context: ToolContext,
 ): Promise<unknown> {
   try {
     const views = args.views || ['field_mappings'];
@@ -230,7 +231,7 @@ async function createEventStore(): Promise<IEventStore> {
  */
 async function loadFieldMappingsFromYaml(
   tableId: string,
-  fallbackReason?: string
+  fallbackReason?: string,
 ): Promise<unknown> {
   try {
     // For testing, return mock data

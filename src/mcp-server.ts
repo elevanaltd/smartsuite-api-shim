@@ -31,6 +31,9 @@ import {
   handleKnowledgeEvents,
   handleKnowledgeFieldMappings,
   handleKnowledgeRefreshViews,
+  type KnowledgeEventsArgs,
+  type KnowledgeFieldMappingsArgs,
+  type KnowledgeRefreshViewsArgs,
 } from './tools/knowledge.js';
 import { handleQuery } from './tools/query.js';
 import { handleRecord } from './tools/record.js';
@@ -529,11 +532,11 @@ export class SmartSuiteShimServer {
       case 'smartsuite_intelligent':
         return handleIntelligent(this.createToolContext(), args);
       case 'smartsuite_knowledge_events':
-        return handleKnowledgeEvents(args as any, this.createToolContext());
+        return handleKnowledgeEvents(args as unknown as KnowledgeEventsArgs, this.createToolContext());
       case 'smartsuite_knowledge_field_mappings':
-        return handleKnowledgeFieldMappings(args as any, this.createToolContext());
+        return handleKnowledgeFieldMappings(args as unknown as KnowledgeFieldMappingsArgs, this.createToolContext());
       case 'smartsuite_knowledge_refresh_views':
-        return handleKnowledgeRefreshViews(args as any, this.createToolContext());
+        return handleKnowledgeRefreshViews(args as unknown as KnowledgeRefreshViewsArgs, this.createToolContext());
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }

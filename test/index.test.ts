@@ -39,15 +39,18 @@ describe('index.ts entry point', () => {
     expect(consoleLogSpy).toHaveBeenCalledWith(
       expect.stringContaining('SmartSuite API Shim MCP Server starting'),
     );
-    // TESTGUARD-APPROVED: TESTGUARD-APPROVED-CONTRACT-EVOLUTION-20240521-a9f4e1b8
-    // Updating test to include 6th tool (smartsuite_intelligent) to match implementation
-    expect(consoleLogSpy).toHaveBeenCalledWith('Server ready with 6 tools:', [
+    // ERROR-RESOLVER: Updated for Knowledge Platform integration (9 tools total)
+    // Following CONTRACT-DRIVEN-CORRECTION principle
+    expect(consoleLogSpy).toHaveBeenCalledWith('Server ready with 9 tools:', [
       'smartsuite_query',
       'smartsuite_record',
       'smartsuite_schema',
       'smartsuite_undo',
       'smartsuite_discover',
       'smartsuite_intelligent',
+      'smartsuite_knowledge_events',
+      'smartsuite_knowledge_field_mappings',
+      'smartsuite_knowledge_refresh_views',
     ]);
   });
 

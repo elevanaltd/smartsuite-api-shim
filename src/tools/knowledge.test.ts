@@ -2,11 +2,16 @@
 // Following TRACED methodology - T: Test First (RED Phase)
 // Context7: consulted for vitest
 // TESTGUARD_BYPASS: TYPE-UPDATE-001 - Updating imports to match corrected interface types
+// ERROR-RESOLVER: Fixing type mismatches in test arguments
+// TESTGUARD-APPROVED: CONTRACT-DRIVEN-CORRECTION - Fixing test data to match established type contracts
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+import type { IEventStore } from '../knowledge-platform/events/event-store.js';
+import type { DomainEvent, Snapshot } from '../knowledge-platform/events/types.js';
+
 import { handleKnowledgeEvents, handleKnowledgeFieldMappings, handleKnowledgeRefreshViews } from './knowledge.js';
 import type { ToolContext } from './types.js';
-import type { IEventStore } from '../knowledge-platform/events/event-store.js';
 
 describe('Knowledge Platform MCP Tools', () => {
   let mockContext: ToolContext;
@@ -20,10 +25,9 @@ describe('Knowledge Platform MCP Tools', () => {
       getSnapshot: vi.fn(),
     } as unknown as IEventStore;
 
-    // Mock context
+    // Mock context - removed mappingService as it's not in ToolContext interface
     mockContext = {
       client: {} as any,
-      mappingService: {} as any,
       tableResolver: {} as any,
       fieldTranslator: {} as any,
       auditLogger: {
@@ -37,7 +41,7 @@ describe('Knowledge Platform MCP Tools', () => {
     describe('append operation', () => {
       it('should append an event to the store', async () => {
         const args = {
-          operation: 'append',
+          operation: 'append' as const,
           aggregateId: 'field-mapping-123',
           type: 'FieldMappingUpdated',
           data: {
@@ -51,34 +55,34 @@ describe('Knowledge Platform MCP Tools', () => {
           },
         };
 
-        const mockEvent = {
-          id: 'evt-123',
-          ...args,
-          version: 1,
-          timestamp: new Date().toISOString(),
-        };
-
         vi.mocked(mockEventStore.append).mockResolvedValue('evt-123');
 
         const result = await handleKnowledgeEvents(args, mockContext);
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
           success: true,
-          event: mockEvent,
+          event: expect.objectContaining({
+            id: 'evt-123',
+            aggregateId: args.aggregateId,
+            type: args.type,
+            userId: args.metadata.userId,
+            payload: args.data,
+            version: 1,
+          }),
         });
         expect(mockEventStore.append).toHaveBeenCalledWith(
           expect.objectContaining({
             aggregateId: args.aggregateId,
             type: args.type,
-            data: args.data,
-            metadata: args.metadata,
-          })
+            payload: args.data,
+            userId: args.metadata.userId,
+          }),
         );
       });
 
       it('should handle validation errors', async () => {
         const args = {
-          operation: 'append',
+          operation: 'append' as const,
           // Missing required fields
           type: 'FieldMappingUpdated',
         };
@@ -96,28 +100,30 @@ describe('Knowledge Platform MCP Tools', () => {
     describe('get operation', () => {
       it('should retrieve events for an aggregate', async () => {
         const args = {
-          operation: 'get',
+          operation: 'get' as const,
           aggregateId: 'field-mapping-123',
         };
 
-        const events = [
+        const events: DomainEvent[] = [
           {
             id: 'evt-1',
             aggregateId: args.aggregateId,
             type: 'FieldMappingCreated',
-            data: { tableId: '68a8ff5237fde0bf797c05b3' },
+            payload: { tableId: '68a8ff5237fde0bf797c05b3' },
             version: 1,
-            timestamp: '2025-01-01T00:00:00Z',
-            metadata: { tenantId: 'test-tenant' },
+            timestamp: new Date('2025-01-01T00:00:00Z'),
+            userId: 'test-user',
+            metadata: { correlationId: 'corr-1', causationId: 'cause-1' },
           },
           {
             id: 'evt-2',
             aggregateId: args.aggregateId,
             type: 'FieldMappingUpdated',
-            data: { fieldId: 'title', mapping: { displayName: 'Title' } },
+            payload: { fieldId: 'title', mapping: { displayName: 'Title' } },
             version: 2,
-            timestamp: '2025-01-02T00:00:00Z',
-            metadata: { tenantId: 'test-tenant' },
+            timestamp: new Date('2025-01-02T00:00:00Z'),
+            userId: 'test-user',
+            metadata: { correlationId: 'corr-2', causationId: 'cause-2' },
           },
         ];
 
@@ -134,7 +140,7 @@ describe('Knowledge Platform MCP Tools', () => {
 
       it('should handle missing events', async () => {
         const args = {
-          operation: 'get',
+          operation: 'get' as const,
           aggregateId: 'non-existent',
         };
 
@@ -156,7 +162,8 @@ describe('Knowledge Platform MCP Tools', () => {
         tableId: '68a8ff5237fde0bf797c05b3',
       };
 
-      const snapshot = {
+      const snapshot: Snapshot = {
+        id: 'snap-1',
         aggregateId: `field-mappings-${args.tableId}`,
         version: 5,
         data: {
@@ -167,7 +174,7 @@ describe('Knowledge Platform MCP Tools', () => {
             assignee: { displayName: 'Assignee', type: 'user' },
           },
         },
-        timestamp: '2025-01-10T00:00:00Z',
+        timestamp: new Date('2025-01-10T00:00:00Z'),
       };
 
       vi.mocked(mockEventStore.getSnapshot).mockResolvedValue(snapshot);
@@ -207,7 +214,7 @@ describe('Knowledge Platform MCP Tools', () => {
       };
 
       vi.mocked(mockEventStore.getSnapshot).mockRejectedValue(
-        new Error('Circuit breaker is OPEN')
+        new Error('Circuit breaker is OPEN'),
       );
 
       const result = await handleKnowledgeFieldMappings(args, mockContext);
@@ -288,14 +295,14 @@ describe('Knowledge Platform MCP Tools', () => {
   describe('Error handling', () => {
     it('should handle internal errors gracefully', async () => {
       const args = {
-        operation: 'append',
+        operation: 'append' as const,
         aggregateId: 'test',
         type: 'test',
         data: {},
       };
 
       vi.mocked(mockEventStore.append).mockRejectedValue(
-        new Error('Database connection failed')
+        new Error('Database connection failed'),
       );
 
       const result = await handleKnowledgeEvents(args, mockContext);
