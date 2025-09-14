@@ -57,9 +57,6 @@ export type Snapshot = z.infer<typeof SnapshotSchema>;
 export type EventRow = z.infer<typeof EventRowSchema>;
 export type SnapshotRow = z.infer<typeof SnapshotRowSchema>;
 
-// Export schemas for runtime validation
-export { DomainEventSchema, SnapshotSchema };
-
 // Validation error handling
 export class EventValidationError extends Error {
   constructor(
