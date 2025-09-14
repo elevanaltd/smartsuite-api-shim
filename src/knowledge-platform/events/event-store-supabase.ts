@@ -1,7 +1,8 @@
 // Supabase-backed Event Store with UUID support
 // TECHNICAL-ARCHITECT: Production-ready with proper ID generation
 // CONTEXT7_BYPASS: CI-FIX-001 - ESM import extension fixes for TypeScript compilation
-// Context7: consulted for uuid
+// Context7: consulted for uuid - uuidv5 for deterministic UUID generation
+// Critical-Engineer: consulted for Event Store architecture (validation, UUIDs, performance)
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 
 import { dbCircuitBreaker } from '../infrastructure/circuit-breaker.js';
@@ -9,11 +10,16 @@ import { supabase, knowledgeConfig } from '../infrastructure/supabase-client.js'
 
 import {
   DomainEvent,
+  DomainEventSchema,
   Snapshot,
   parseEventRow,
   parseSnapshotRow,
   EventValidationError,
 } from './types.js';
+
+// Application-specific namespace for UUIDv5 generation
+// Generated once with uuidv4() and hardcoded for consistency
+const TENANT_ID_NAMESPACE = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
 
 export class EventStoreSupabase {
   private tenantId: string;
@@ -29,10 +35,8 @@ export class EventStoreSupabase {
   }
 
   private stringToUuid(str: string): string {
-    // Use standard UUIDv5 with namespace for deterministic UUID generation
-    // Using DNS namespace as a reasonable default for tenant IDs
-    const DNS_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
-    return uuidv5(str, DNS_NAMESPACE);
+    // Use standard UUIDv5 with application-specific namespace for deterministic UUID generation
+    return uuidv5(str, TENANT_ID_NAMESPACE);
   }
 
   private ensureUuid(id: string): string {
@@ -43,10 +47,10 @@ export class EventStoreSupabase {
   }
 
   async append(event: DomainEvent): Promise<string> {
-    return dbCircuitBreaker.execute(async () => {
-      // Validate input event against schema for extra runtime safety
-      const validatedEvent = { ...event };
+    // Validate input event against schema for runtime safety (at ingress)
+    const validatedEvent = DomainEventSchema.parse(event);
 
+    return dbCircuitBreaker.execute(async () => {
       const aggregateId = this.ensureUuid(validatedEvent.aggregateId);
 
       // Check current version for optimistic concurrency
@@ -142,12 +146,14 @@ export class EventStoreSupabase {
         throw new Error(`Failed to get events: ${error.message}`);
       }
 
-      return (data || []).map((rawRow: unknown, index: number) => {
+      // Resilient event loading - skip corrupted events rather than failing entirely
+      const events: DomainEvent[] = [];
+      for (const [index, rawRow] of (data || []).entries()) {
         try {
           // Validate raw database row against schema
           const validatedRow = parseEventRow(rawRow);
 
-          return {
+          events.push({
             id: validatedRow.id,
             aggregateId: validatedRow.aggregate_id,
             type: validatedRow.event_type,
@@ -156,16 +162,22 @@ export class EventStoreSupabase {
             userId: validatedRow.created_by,
             payload: validatedRow.event_data,
             metadata: validatedRow.metadata,
-          } as DomainEvent;
+          } as DomainEvent);
         } catch (validationError) {
           if (validationError instanceof EventValidationError) {
-            throw new Error(
-              `Invalid event data from database at row ${index}: ${validationError.getValidationDetails()}`,
+            // Log the error but continue processing other events
+            console.error(
+              `Skipping corrupted event at row ${index} for aggregate ${aggregateUuid}: ${validationError.getValidationDetails()}`,
             );
+            // In production, you might want to send this to a monitoring service
+          } else {
+            // Re-throw unexpected errors
+            throw validationError;
           }
-          throw validationError;
         }
-      });
+      }
+
+      return events;
     });
   }
 
@@ -230,9 +242,9 @@ export class EventStoreSupabase {
 
     if (error) {
       // Failed to create snapshot - logged by circuit breaker
+      console.error(`Failed to create snapshot for ${aggregateId} at version ${version}:`, error);
     }
   }
-
 }
 
 export function createEventStore(tenantId: string): EventStoreSupabase {

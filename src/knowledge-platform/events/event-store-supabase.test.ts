@@ -201,8 +201,8 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
             timestamp: Date.now(),
           },
           metadata: {
-            correlationId: `corr_${i}`,
-            causationId: `cause_${i}`,
+            correlationId: uuidv4(),
+            causationId: uuidv4(),
           },
         };
 
@@ -239,8 +239,8 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
             value: `value_${i}`,
           },
           metadata: {
-            correlationId: `corr_${i}`,
-            causationId: `cause_${i}`,
+            correlationId: uuidv4(),
+            causationId: uuidv4(),
           },
         };
 
@@ -266,8 +266,8 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
             value: `updated_value_${i}`,
           },
           metadata: {
-            correlationId: `corr_${i}`,
-            causationId: `cause_${i}`,
+            correlationId: uuidv4(),
+            causationId: uuidv4(),
           },
         };
 
@@ -298,9 +298,9 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
         type: 'TestEvent',
         version: 1,
         timestamp: new Date(),
-        userId: 'user-123',
+        userId: uuidv4(),
         payload: { test: 'uuid consistency' },
-        metadata: { correlationId: 'corr_uuid_test', causationId: 'cause_uuid_test' },
+        metadata: { correlationId: uuidv4(), causationId: uuidv4() },
       };
 
       const event2: DomainEvent = {
@@ -309,9 +309,9 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
         type: 'TestEvent',
         version: 2,
         timestamp: new Date(),
-        userId: 'user-123',
+        userId: uuidv4(),
         payload: { test: 'uuid consistency 2' },
-        metadata: { correlationId: 'corr_uuid_test_2', causationId: 'cause_uuid_test_2' },
+        metadata: { correlationId: uuidv4(), causationId: uuidv4() },
       };
 
       await eventStore1.append(event1);
