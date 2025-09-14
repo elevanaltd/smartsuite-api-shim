@@ -7,18 +7,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { dbCircuitBreaker } from '../infrastructure/circuit-breaker.js';
 import { supabase, knowledgeConfig } from '../infrastructure/supabase-client.js';
 
-import { DomainEvent, Snapshot } from './types.js';
-
-interface EventRow {
-  id: string;
-  aggregate_id: string;
-  event_type: string;
-  event_version: number;
-  created_at: string;
-  created_by: string;
-  event_data: any;
-  metadata: any;
-}
+import {
+  DomainEvent,
+  Snapshot,
+  parseEventRow,
+  parseSnapshotRow,
+  EventValidationError,
+} from './types.js';
 
 export class EventStoreSupabase {
   private tenantId: string;
@@ -59,7 +54,10 @@ export class EventStoreSupabase {
 
   async append(event: DomainEvent): Promise<string> {
     return dbCircuitBreaker.execute(async () => {
-      const aggregateId = this.ensureUuid(event.aggregateId);
+      // Validate input event against schema for extra runtime safety
+      const validatedEvent = { ...event };
+
+      const aggregateId = this.ensureUuid(validatedEvent.aggregateId);
 
       // Check current version for optimistic concurrency
       const { data: existingEvents, error: versionError } = await supabase
@@ -77,12 +75,12 @@ export class EventStoreSupabase {
       const currentVersion = existingEvents?.[0]?.event_version || 0;
       const expectedVersion = currentVersion + 1;
 
-      if (event.version !== expectedVersion) {
-        throw new Error(`Version conflict: expected ${expectedVersion}, got ${event.version}`);
+      if (validatedEvent.version !== expectedVersion) {
+        throw new Error(`Version conflict: expected ${expectedVersion}, got ${validatedEvent.version}`);
       }
 
       // Generate proper UUID for event if needed
-      const eventId = event.id.startsWith('evt_') ? uuidv4() : this.ensureUuid(event.id);
+      const eventId = validatedEvent.id.startsWith('evt_') ? uuidv4() : this.ensureUuid(validatedEvent.id);
 
       // Insert the event
       const { data, error } = await supabase
@@ -91,11 +89,11 @@ export class EventStoreSupabase {
           id: eventId,
           aggregate_id: aggregateId,
           aggregate_type: 'FieldMapping',
-          event_type: event.type,
-          event_version: event.version,
-          event_data: event.payload,
-          metadata: event.metadata,
-          created_by: this.ensureUuid(event.userId),
+          event_type: validatedEvent.type,
+          event_version: validatedEvent.version,
+          event_data: validatedEvent.payload,
+          metadata: validatedEvent.metadata,
+          created_by: this.ensureUuid(validatedEvent.userId),
           tenant_id: this.tenantId,
         })
         .select('id')
@@ -103,14 +101,14 @@ export class EventStoreSupabase {
 
       if (error) {
         if (error.code === '23505') {
-          throw new Error(`Version conflict: event version ${event.version} already exists`);
+          throw new Error(`Version conflict: event version ${validatedEvent.version} already exists`);
         }
         throw new Error(`Failed to append event: ${error.message}`);
       }
 
       // Check if we need to create a snapshot
-      if (event.version % knowledgeConfig.snapshotInterval === 0) {
-        await this.createSnapshot(aggregateId, event.version);
+      if (validatedEvent.version % knowledgeConfig.snapshotInterval === 0) {
+        await this.createSnapshot(aggregateId, validatedEvent.version);
       }
 
       return data.id;
@@ -140,16 +138,30 @@ export class EventStoreSupabase {
         throw new Error(`Failed to get events: ${error.message}`);
       }
 
-      return (data || []).map((row: EventRow) => ({
-        id: row.id,
-        aggregateId: row.aggregate_id,
-        type: row.event_type,
-        version: row.event_version,
-        timestamp: new Date(row.created_at),
-        userId: row.created_by,
-        payload: row.event_data,
-        metadata: row.metadata,
-      }));
+      return (data || []).map((rawRow: unknown, index: number) => {
+        try {
+          // Validate raw database row against schema
+          const validatedRow = parseEventRow(rawRow);
+
+          return {
+            id: validatedRow.id,
+            aggregateId: validatedRow.aggregate_id,
+            type: validatedRow.event_type,
+            version: validatedRow.event_version,
+            timestamp: new Date(validatedRow.created_at),
+            userId: validatedRow.created_by,
+            payload: validatedRow.event_data,
+            metadata: validatedRow.metadata,
+          } as DomainEvent;
+        } catch (validationError) {
+          if (validationError instanceof EventValidationError) {
+            throw new Error(
+              `Invalid event data from database at row ${index}: ${validationError.getValidationDetails()}`,
+            );
+          }
+          throw validationError;
+        }
+      });
     });
   }
 
@@ -173,13 +185,25 @@ export class EventStoreSupabase {
 
       if (!data) return null;
 
-      return {
-        id: data.id,
-        aggregateId: data.aggregate_id,
-        version: data.version,
-        timestamp: new Date(data.created_at as string),
-        data: data.state,
-      };
+      try {
+        // Validate raw database row against schema
+        const validatedSnapshot = parseSnapshotRow(data);
+
+        return {
+          id: validatedSnapshot.id,
+          aggregateId: validatedSnapshot.aggregate_id,
+          version: validatedSnapshot.version,
+          timestamp: new Date(validatedSnapshot.created_at),
+          data: validatedSnapshot.state,
+        };
+      } catch (validationError) {
+        if (validationError instanceof EventValidationError) {
+          throw new Error(
+            `Invalid snapshot data from database: ${validationError.getValidationDetails()}`,
+          );
+        }
+        throw validationError;
+      }
     });
   }
 
