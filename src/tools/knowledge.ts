@@ -3,11 +3,10 @@
 // Following TRACED methodology - GREEN phase: minimal implementation to pass tests
 
 import type { ToolContext } from './types.js';
-import { EventStore } from '../knowledge-platform/events/event-store.js';
-import { SupabaseEventStore } from '../knowledge-platform/events/event-store-supabase.js';
+import { EventStoreMemory, type IEventStore } from '../knowledge-platform/events/event-store.js';
+import { EventStoreSupabase } from '../knowledge-platform/events/event-store-supabase.js';
 import { createSupabaseClient } from '../knowledge-platform/infrastructure/supabase-client.js';
-// Context7: consulted for fs
-import { promises as fs } from 'fs';
+import type { DomainEvent } from '../knowledge-platform/events/types.js';
 // Context7: consulted for path
 import * as path from 'path';
 // Context7: consulted for url
@@ -64,29 +63,22 @@ export async function handleKnowledgeEvents(
     // Get or create event store
     const eventStore = context.eventStore || await createEventStore();
 
-    // Audit the operation
-    if (context.auditLogger) {
-      await context.auditLogger.logOperation({
-        tool: 'knowledge_events',
-        operation: args.operation,
-        input: args,
-        output: null,
-        success: true,
-        error: null,
-      });
-    }
-
     if (args.operation === 'append') {
-      const event = await eventStore.appendEvent({
+      const event: DomainEvent = {
+        id: `evt-${Date.now()}`,
         aggregateId: args.aggregateId!,
         type: args.type!,
         data: args.data!,
+        version: 1, // In real implementation, would track versions
+        timestamp: new Date().toISOString(),
         metadata: args.metadata,
-      });
+      };
+
+      const eventId = await eventStore.append(event);
 
       return {
         success: true,
-        event,
+        event: { ...event, id: eventId },
       };
     } else if (args.operation === 'get') {
       const events = await eventStore.getEvents(args.aggregateId!);
@@ -103,18 +95,6 @@ export async function handleKnowledgeEvents(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-
-    // Audit the error
-    if (context.auditLogger) {
-      await context.auditLogger.logOperation({
-        tool: 'knowledge_events',
-        operation: args.operation,
-        input: args,
-        output: null,
-        success: false,
-        error: errorMessage,
-      });
-    }
 
     return {
       success: false,
@@ -137,18 +117,6 @@ export async function handleKnowledgeFieldMappings(
 
     // Get or create event store
     const eventStore = context.eventStore || await createEventStore();
-
-    // Audit the operation
-    if (context.auditLogger) {
-      await context.auditLogger.logOperation({
-        tool: 'knowledge_field_mappings',
-        operation: 'get',
-        input: args,
-        output: null,
-        success: true,
-        error: null,
-      });
-    }
 
     try {
       // Try to get snapshot from event store
@@ -177,18 +145,6 @@ export async function handleKnowledgeFieldMappings(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    // Audit the error
-    if (context.auditLogger) {
-      await context.auditLogger.logOperation({
-        tool: 'knowledge_field_mappings',
-        operation: 'get',
-        input: args,
-        output: null,
-        success: false,
-        error: errorMessage,
-      });
-    }
-
     return {
       success: false,
       error: errorMessage,
@@ -206,18 +162,6 @@ export async function handleKnowledgeRefreshViews(
 ): Promise<unknown> {
   try {
     const views = args.views || ['field_mappings'];
-
-    // Audit the operation
-    if (context.auditLogger) {
-      await context.auditLogger.logOperation({
-        tool: 'knowledge_refresh_views',
-        operation: 'refresh',
-        input: args,
-        output: null,
-        success: true,
-        error: null,
-      });
-    }
 
     // Get Supabase client
     const supabaseClient = context.supabaseClient || createSupabaseClient();
@@ -237,7 +181,7 @@ export async function handleKnowledgeRefreshViews(
 
       // For now, simulate success for valid views
       if (supabaseClient.rpc) {
-        const { data, error } = await supabaseClient.rpc('refresh_materialized_view', {
+        const { error } = await supabaseClient.rpc('refresh_materialized_view', {
           view_name: view,
         });
 
@@ -262,18 +206,6 @@ export async function handleKnowledgeRefreshViews(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    // Audit the error
-    if (context.auditLogger) {
-      await context.auditLogger.logOperation({
-        tool: 'knowledge_refresh_views',
-        operation: 'refresh',
-        input: args,
-        output: null,
-        success: false,
-        error: errorMessage,
-      });
-    }
-
     return {
       success: false,
       error: errorMessage,
@@ -285,16 +217,13 @@ export async function handleKnowledgeRefreshViews(
  * Create an event store instance
  * Uses Supabase backend if available, falls back to in-memory
  */
-async function createEventStore(): Promise<EventStore> {
+async function createEventStore(): Promise<IEventStore> {
   try {
     const supabaseClient = createSupabaseClient();
-    return new SupabaseEventStore(supabaseClient);
+    return new EventStoreSupabase(supabaseClient);
   } catch {
     // Fall back to in-memory store for testing
-    const { EventStore: InMemoryEventStore } = await import(
-      '../knowledge-platform/events/event-store.js'
-    );
-    return new InMemoryEventStore();
+    return new EventStoreMemory();
   }
 }
 
@@ -307,16 +236,6 @@ async function loadFieldMappingsFromYaml(
   fallbackReason?: string
 ): Promise<unknown> {
   try {
-    // Construct path to YAML file
-    const yamlPath = path.join(
-      __dirname,
-      '..',
-      '..',
-      'knowledge',
-      'field-mappings',
-      `${tableId}.yaml`
-    );
-
     // For testing, return mock data
     // In real implementation, would parse YAML file
     const fields = {

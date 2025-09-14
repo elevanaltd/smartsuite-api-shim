@@ -6,7 +6,7 @@ import type { AuditLogger } from '../audit/audit-logger.js';
 import type { FieldTranslator } from '../lib/field-translator.js';
 import type { TableResolver } from '../lib/table-resolver.js';
 import type { SmartSuiteClient } from '../smartsuite-client.js';
-import type { EventStore } from '../knowledge-platform/events/event-store.js';
+import type { IEventStore } from '../knowledge-platform/events/event-store.js';
 // Context7: consulted for @supabase/supabase-js
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -19,6 +19,6 @@ export interface ToolContext {
   fieldTranslator: FieldTranslator;
   tableResolver: TableResolver;
   auditLogger: AuditLogger;
-  eventStore?: EventStore; // Optional for Knowledge Platform tools
+  eventStore?: IEventStore; // Optional for Knowledge Platform tools
   supabaseClient?: SupabaseClient; // Optional for Knowledge Platform tools
 }
