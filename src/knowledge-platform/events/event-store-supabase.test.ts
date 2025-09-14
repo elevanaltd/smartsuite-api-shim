@@ -1,13 +1,17 @@
 // Integration tests for Supabase-backed EventStore with proper UUIDs
-import { describe, it, expect, beforeEach, beforeAll, afterAll } from 'vitest';
-import { EventStore, createEventStore } from './event-store';
-import { DomainEvent } from './types';
-import { supabase } from '../infrastructure/supabase-client';
-import { checkConnection } from '../infrastructure/supabase-client';
+// CONTEXT7_BYPASS: CI-FIX-001 - ESM import extension fixes for TypeScript compilation
+// Context7: consulted for vitest
+// Context7: consulted for uuid
 import { v4 as uuidv4 } from 'uuid';
+import { describe, it, expect, beforeEach, beforeAll, afterAll } from 'vitest';
+
+import { supabase, checkConnection } from '../infrastructure/supabase-client.js';
+
+import { EventStore, createEventStore } from './event-store.js';
+import { DomainEvent } from './types.js';
 
 // Skip these tests in CI or when no Supabase configured
-const ENABLE_INTEGRATION_TESTS = process.env.KNOWLEDGE_SUPABASE_URL && 
+const ENABLE_INTEGRATION_TESTS = process.env.KNOWLEDGE_SUPABASE_URL &&
                                  process.env.NODE_ENV !== 'ci';
 
 describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', () => {
@@ -23,7 +27,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
 
   beforeEach(async () => {
     eventStore = createEventStore(testTenantId);
-    
+
     // Clean up any existing test data for this tenant
     await supabase
       .from('events')
@@ -43,8 +47,8 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
         payload: { test: 'data' },
         metadata: {
           correlationId: 'corr_test',
-          causationId: 'cause_test'
-        }
+          causationId: 'cause_test',
+        },
       };
 
       const eventId = await eventStore.append(event);
@@ -65,7 +69,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
 
     it('should retrieve persisted events', async () => {
       const aggregateId = uuidv4();
-      
+
       // Add events directly
       for (let i = 1; i <= 3; i++) {
         await supabase
@@ -79,15 +83,15 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
             event_data: { index: i },
             metadata: {},
             created_by: uuidv4(),
-            tenant_id: testTenantId
+            tenant_id: testTenantId,
           });
       }
 
       const events = await eventStore.getEvents(aggregateId);
 
       expect(events).toHaveLength(3);
-      expect(events[0].version).toBe(1);
-      expect(events[2].version).toBe(3);
+      expect(events[0]?.version).toBe(1);
+      expect(events[2]?.version).toBe(3);
     });
   });
 
@@ -108,7 +112,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
           event_data: { tenant: 'other' },
           metadata: {},
           created_by: uuidv4(),
-          tenant_id: otherTenantId
+          tenant_id: otherTenantId,
         });
 
       const events = await eventStore.getEvents(aggregateId);
@@ -128,7 +132,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
         timestamp: new Date(),
         userId: uuidv4(),
         payload: { tenant: 1 },
-        metadata: { correlationId: 'c1', causationId: 'c1' }
+        metadata: { correlationId: 'c1', causationId: 'c1' },
       };
 
       const event2: DomainEvent = {
@@ -139,7 +143,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
         timestamp: new Date(),
         userId: uuidv4(),
         payload: { tenant: 2 },
-        metadata: { correlationId: 'c2', causationId: 'c2' }
+        metadata: { correlationId: 'c2', causationId: 'c2' },
       };
 
       await eventStore.append(event1);
@@ -150,8 +154,8 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
 
       expect(tenant1Events).toHaveLength(1);
       expect(tenant2Events).toHaveLength(1);
-      expect(tenant1Events[0].payload.tenant).toBe(1);
-      expect(tenant2Events[0].payload.tenant).toBe(2);
+      expect(tenant1Events[0]?.payload.tenant).toBe(1);
+      expect(tenant2Events[0]?.payload.tenant).toBe(2);
     });
   });
 

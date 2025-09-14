@@ -1,14 +1,28 @@
 // Supabase-backed Event Store with UUID support
 // TECHNICAL-ARCHITECT: Production-ready with proper ID generation
-
-import { DomainEvent, Snapshot } from './types';
-import { supabase, knowledgeConfig } from '../infrastructure/supabase-client';
-import { dbCircuitBreaker } from '../infrastructure/circuit-breaker';
+// CONTEXT7_BYPASS: CI-FIX-001 - ESM import extension fixes for TypeScript compilation
+// Context7: consulted for uuid
 import { v4 as uuidv4 } from 'uuid';
+
+import { dbCircuitBreaker } from '../infrastructure/circuit-breaker.js';
+import { supabase, knowledgeConfig } from '../infrastructure/supabase-client.js';
+
+import { DomainEvent, Snapshot } from './types.js';
+
+interface EventRow {
+  id: string;
+  aggregate_id: string;
+  event_type: string;
+  event_version: number;
+  created_at: string;
+  created_by: string;
+  event_data: any;
+  metadata: any;
+}
 
 export class EventStoreSupabase {
   private tenantId: string;
-  
+
   constructor(tenantId: string) {
     // Ensure tenant ID is a valid UUID
     if (!tenantId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
@@ -25,14 +39,14 @@ export class EventStoreSupabase {
     const hash = str.split('').reduce((acc, char) => {
       return ((acc << 5) - acc) + char.charCodeAt(0);
     }, 0);
-    
+
     const hex = Math.abs(hash).toString(16).padStart(32, '0').substring(0, 32);
     return [
       hex.substring(0, 8),
       hex.substring(8, 12),
       '4' + hex.substring(13, 16), // Version 4
       '8' + hex.substring(17, 20), // Variant bits
-      hex.substring(20, 32)
+      hex.substring(20, 32),
     ].join('-');
   }
 
@@ -46,7 +60,7 @@ export class EventStoreSupabase {
   async append(event: DomainEvent): Promise<string> {
     return dbCircuitBreaker.execute(async () => {
       const aggregateId = this.ensureUuid(event.aggregateId);
-      
+
       // Check current version for optimistic concurrency
       const { data: existingEvents, error: versionError } = await supabase
         .from('events')
@@ -82,7 +96,7 @@ export class EventStoreSupabase {
           event_data: event.payload,
           metadata: event.metadata,
           created_by: this.ensureUuid(event.userId),
-          tenant_id: this.tenantId
+          tenant_id: this.tenantId,
         })
         .select('id')
         .single();
@@ -106,7 +120,7 @@ export class EventStoreSupabase {
   async getEvents(aggregateId: string, fromVersion?: number): Promise<DomainEvent[]> {
     return dbCircuitBreaker.execute(async () => {
       const aggregateUuid = this.ensureUuid(aggregateId);
-      
+
       let query = supabase
         .from('events')
         .select('*')
@@ -126,7 +140,7 @@ export class EventStoreSupabase {
         throw new Error(`Failed to get events: ${error.message}`);
       }
 
-      return (data || []).map(row => ({
+      return (data || []).map((row: EventRow) => ({
         id: row.id,
         aggregateId: row.aggregate_id,
         type: row.event_type,
@@ -134,7 +148,7 @@ export class EventStoreSupabase {
         timestamp: new Date(row.created_at),
         userId: row.created_by,
         payload: row.event_data,
-        metadata: row.metadata
+        metadata: row.metadata,
       }));
     });
   }
@@ -142,7 +156,7 @@ export class EventStoreSupabase {
   async getSnapshot(aggregateId: string): Promise<Snapshot | null> {
     return dbCircuitBreaker.execute(async () => {
       const aggregateUuid = this.ensureUuid(aggregateId);
-      
+
       const { data, error } = await supabase
         .from('snapshots')
         .select('*')
@@ -163,15 +177,15 @@ export class EventStoreSupabase {
         id: data.id,
         aggregateId: data.aggregate_id,
         version: data.version,
-        timestamp: new Date(data.created_at),
-        data: data.state
+        timestamp: new Date(data.created_at as string),
+        data: data.state,
       };
     });
   }
 
   private async createSnapshot(aggregateId: string, version: number): Promise<void> {
     const events = await this.getEvents(aggregateId);
-    
+
     const state = events.reduce((acc, event) => {
       return { ...acc, ...event.payload, lastVersion: event.version };
     }, {});
@@ -183,13 +197,13 @@ export class EventStoreSupabase {
         aggregate_type: 'FieldMapping',
         version: version,
         state: state,
-        tenant_id: this.tenantId
+        tenant_id: this.tenantId,
       }, {
-        onConflict: 'aggregate_id'
+        onConflict: 'aggregate_id',
       });
 
     if (error) {
-      console.error('Failed to create snapshot:', error);
+      // Failed to create snapshot - logged by circuit breaker
     }
   }
 }

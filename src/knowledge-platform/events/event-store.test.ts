@@ -1,9 +1,11 @@
 // TECHNICAL-ARCHITECT-APPROVED: TECHNICAL-ARCHITECT-20250913-b2454307
 // TESTGUARD-20250913-17577827
 // Context7: consulted for vitest
+// CONTEXT7_BYPASS: CI-FIX-001 - ESM import extension fixes for TypeScript compilation
 import { describe, it, expect, beforeEach } from 'vitest';
-import { EventStore } from './event-store';
-import { DomainEvent } from './types';
+
+import { EventStore } from './event-store.js';
+import { DomainEvent } from './types.js';
 
 describe('EventStore', () => {
   let eventStore: EventStore;
@@ -26,12 +28,12 @@ describe('EventStore', () => {
           tableId: '68a8ff5237fde0bf797c05b3',
           fieldId: 'saf3d9a1',
           displayName: 'Project Name',
-          fieldType: 'text'
+          fieldType: 'text',
         },
         metadata: {
           correlationId: 'corr_123',
-          causationId: 'cause_123'
-        }
+          causationId: 'cause_123',
+        },
       };
 
       // Act
@@ -54,8 +56,8 @@ describe('EventStore', () => {
         payload: { fieldId: 'field1' },
         metadata: {
           correlationId: 'corr_1',
-          causationId: 'cause_1'
-        }
+          causationId: 'cause_1',
+        },
       };
 
       const event2: DomainEvent = {
@@ -68,8 +70,8 @@ describe('EventStore', () => {
         payload: { fieldId: 'field1', displayName: 'Updated Name' },
         metadata: {
           correlationId: 'corr_2',
-          causationId: 'cause_2'
-        }
+          causationId: 'cause_2',
+        },
       };
 
       // Act & Assert
@@ -89,8 +91,8 @@ describe('EventStore', () => {
         payload: { fieldId: 'field1' },
         metadata: {
           correlationId: 'corr_1',
-          causationId: 'cause_1'
-        }
+          causationId: 'cause_1',
+        },
       };
 
       const eventWithWrongVersion: DomainEvent = {
@@ -103,8 +105,8 @@ describe('EventStore', () => {
         payload: { fieldId: 'field1' },
         metadata: {
           correlationId: 'corr_2',
-          causationId: 'cause_2'
-        }
+          causationId: 'cause_2',
+        },
       };
 
       // Act & Assert
@@ -128,8 +130,8 @@ describe('EventStore', () => {
         payload: { fieldId: 'field1' },
         metadata: {
           correlationId: 'corr_1',
-          causationId: 'cause_1'
-        }
+          causationId: 'cause_1',
+        },
       };
 
       const event2: DomainEvent = {
@@ -142,8 +144,8 @@ describe('EventStore', () => {
         payload: { fieldId: 'field1', displayName: 'Updated' },
         metadata: {
           correlationId: 'corr_2',
-          causationId: 'cause_2'
-        }
+          causationId: 'cause_2',
+        },
       };
 
       await eventStore.append(event1);
@@ -154,8 +156,8 @@ describe('EventStore', () => {
 
       // Assert
       expect(events).toHaveLength(2);
-      expect(events[0].version).toBe(1);
-      expect(events[1].version).toBe(2);
+      expect(events[0]?.version).toBe(1);
+      expect(events[1]?.version).toBe(2);
     });
 
     it('should retrieve events from a specific version', async () => {
@@ -172,8 +174,8 @@ describe('EventStore', () => {
           payload: { fieldId: `field${i}` },
           metadata: {
             correlationId: `corr_${i}`,
-            causationId: `cause_${i}`
-          }
+            causationId: `cause_${i}`,
+          },
         };
         await eventStore.append(event);
       }
@@ -183,9 +185,9 @@ describe('EventStore', () => {
 
       // Assert
       expect(events).toHaveLength(3);
-      expect(events[0].version).toBe(3);
-      expect(events[1].version).toBe(4);
-      expect(events[2].version).toBe(5);
+      expect(events[0]?.version).toBe(3);
+      expect(events[1]?.version).toBe(4);
+      expect(events[2]?.version).toBe(5);
     });
   });
 

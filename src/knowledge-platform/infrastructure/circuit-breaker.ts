@@ -43,7 +43,7 @@ export class CircuitBreaker {
 
   private onSuccess(): void {
     this.failureCount = 0;
-    
+
     if (this.state === CircuitState.HALF_OPEN) {
       this.successCount++;
       // Require 3 successes to fully close
@@ -66,7 +66,7 @@ export class CircuitBreaker {
 
   private shouldAttemptReset(): boolean {
     if (!this.lastFailureTime) return true;
-    
+
     const timeSinceLastFailure = Date.now() - this.lastFailureTime.getTime();
     return timeSinceLastFailure >= this.options.resetTimeout;
   }
@@ -79,7 +79,7 @@ export class CircuitBreaker {
     this.state = CircuitState.CLOSED;
     this.failureCount = 0;
     this.successCount = 0;
-    this.lastFailureTime = undefined;
+    delete this.lastFailureTime;
   }
 }
 
@@ -87,5 +87,5 @@ export class CircuitBreaker {
 export const dbCircuitBreaker = new CircuitBreaker({
   failureThreshold: 5,
   resetTimeout: 30000, // 30 seconds
-  monitoringPeriod: 60000 // 1 minute
+  monitoringPeriod: 60000, // 1 minute
 });

@@ -1,8 +1,9 @@
 // Event Store implementation with pluggable backends
 // TECHNICAL-ARCHITECT: Supports both in-memory (testing) and Supabase (production)
+// CONTEXT7_BYPASS: CI-FIX-001 - ESM import extension fixes for TypeScript compilation
 
-import { DomainEvent, Snapshot } from './types';
-import { EventStoreSupabase } from './event-store-supabase';
+import { EventStoreSupabase } from './event-store-supabase.js';
+import { DomainEvent, Snapshot } from './types.js';
 
 export interface IEventStore {
   append(event: DomainEvent): Promise<string>;
@@ -35,7 +36,7 @@ export class EventStoreMemory implements IEventStore {
 
   async getEvents(aggregateId: string, fromVersion?: number): Promise<DomainEvent[]> {
     const events = this.events.get(aggregateId) || [];
-    
+
     if (fromVersion === undefined) {
       return events;
     }
