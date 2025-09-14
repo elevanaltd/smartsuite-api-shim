@@ -271,9 +271,11 @@ describe('AuditLogger', () => {
         },
       ];
 
-      for (const op of testOperations) {
-        await auditLogger.logMutation(op);
-      }
+      // Sequential processing required for audit order
+      await testOperations.reduce(async (prev, op) => {
+        await prev;
+        return auditLogger.logMutation(op);
+      }, Promise.resolve());
     });
 
     it('should generate SOC2 compliance report', async () => {

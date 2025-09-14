@@ -36,11 +36,12 @@ describe('KnowledgeLibrary Production Asset Loading', () => {
         expect(matches.length).toBeGreaterThan(0);
 
       } finally {
+        // eslint-disable-next-line require-atomic-updates
         process.env.NODE_ENV = originalNodeEnv;
       }
     });
 
-    it('should handle __dirname path resolution correctly in production builds', async () => {
+    it('should handle __dirname path resolution correctly in production builds', () => {
       // Test the path resolution logic directly
       // This will fail until we implement proper __dirname handling
 
@@ -103,6 +104,7 @@ describe('KnowledgeLibrary Production Asset Loading', () => {
         expect(entries).toBeGreaterThan(0);
 
       } finally {
+        // eslint-disable-next-line require-atomic-updates
         process.env.NODE_ENV = originalNodeEnv;
       }
     });
