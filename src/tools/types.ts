@@ -2,13 +2,16 @@
 // Technical-Architect: synthesized third-way solution using function modules
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 
+// External imports
+// Context7: consulted for @supabase/supabase-js
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// Internal imports - ordered alphabetically
 import type { AuditLogger } from '../audit/audit-logger.js';
+import type { IEventStore } from '../knowledge-platform/events/event-store.js';
 import type { FieldTranslator } from '../lib/field-translator.js';
 import type { TableResolver } from '../lib/table-resolver.js';
 import type { SmartSuiteClient } from '../smartsuite-client.js';
-import type { IEventStore } from '../knowledge-platform/events/event-store.js';
-// Context7: consulted for @supabase/supabase-js
-import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Minimal context object passed to tool functions

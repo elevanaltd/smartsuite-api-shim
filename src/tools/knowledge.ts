@@ -85,12 +85,15 @@ export async function handleKnowledgeEvents(
         success: true,
         events,
       };
+    } else {
+      // TypeScript exhaustiveness check - args.operation is never here
+      // But we still need to handle unexpected values at runtime
+      const unexpectedOperation: string = args.operation;
+      return {
+        success: false,
+        error: `Unknown operation: ${unexpectedOperation}`,
+      };
     }
-
-    return {
-      success: false,
-      error: `Unknown operation: ${args.operation}`,
-    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 

@@ -2,7 +2,7 @@
 // TECHNICAL-ARCHITECT: Production-ready with proper ID generation
 // CONTEXT7_BYPASS: CI-FIX-001 - ESM import extension fixes for TypeScript compilation
 // Context7: consulted for uuid
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 
 import { dbCircuitBreaker } from '../infrastructure/circuit-breaker.js';
 import { supabase, knowledgeConfig } from '../infrastructure/supabase-client.js';
@@ -29,20 +29,10 @@ export class EventStoreSupabase {
   }
 
   private stringToUuid(str: string): string {
-    // Create a deterministic UUID from a string
-    // For production, consider using a proper namespace UUID
-    const hash = str.split('').reduce((acc, char) => {
-      return ((acc << 5) - acc) + char.charCodeAt(0);
-    }, 0);
-
-    const hex = Math.abs(hash).toString(16).padStart(32, '0').substring(0, 32);
-    return [
-      hex.substring(0, 8),
-      hex.substring(8, 12),
-      '4' + hex.substring(13, 16), // Version 4
-      '8' + hex.substring(17, 20), // Variant bits
-      hex.substring(20, 32),
-    ].join('-');
+    // Use standard UUIDv5 with namespace for deterministic UUID generation
+    // Using DNS namespace as a reasonable default for tenant IDs
+    const DNS_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+    return uuidv5(str, DNS_NAMESPACE);
   }
 
   private ensureUuid(id: string): string {
@@ -108,7 +98,21 @@ export class EventStoreSupabase {
 
       // Check if we need to create a snapshot
       if (validatedEvent.version % knowledgeConfig.snapshotInterval === 0) {
-        await this.createSnapshot(aggregateId, validatedEvent.version);
+        // For O(1) snapshot creation, we need to get the current state first
+        // Get the most recent snapshot and apply events since then
+        const currentSnapshot = await this.getSnapshot(aggregateId);
+        const fromVersion = currentSnapshot ? currentSnapshot.version + 1 : 1;
+        const newEvents = await this.getEvents(aggregateId, fromVersion);
+
+        // Start with previous state or empty object
+        const baseState = currentSnapshot?.data || {};
+
+        // Apply only new events to create current state
+        const currentState = newEvents.reduce((acc, event) => {
+          return { ...acc, ...event.payload, lastVersion: event.version };
+        }, baseState);
+
+        await this.createSnapshotFromState(aggregateId, validatedEvent.version, currentState);
       }
 
       return data.id;
@@ -207,13 +211,11 @@ export class EventStoreSupabase {
     });
   }
 
-  private async createSnapshot(aggregateId: string, version: number): Promise<void> {
-    const events = await this.getEvents(aggregateId);
-
-    const state = events.reduce((acc, event) => {
-      return { ...acc, ...event.payload, lastVersion: event.version };
-    }, {});
-
+  /**
+   * Create snapshot from provided state (O(1) operation)
+   * This is the optimized version that doesn't refetch all events
+   */
+  private async createSnapshotFromState(aggregateId: string, version: number, state: object): Promise<void> {
     const { error } = await supabase
       .from('snapshots')
       .upsert({
@@ -230,6 +232,7 @@ export class EventStoreSupabase {
       // Failed to create snapshot - logged by circuit breaker
     }
   }
+
 }
 
 export function createEventStore(tenantId: string): EventStoreSupabase {

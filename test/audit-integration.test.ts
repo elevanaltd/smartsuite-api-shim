@@ -30,8 +30,10 @@ describe('Audit Integration', () => {
     process.env.SMARTSUITE_API_TOKEN = 'test-api-token';
     process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace-id';
 
-    // Create test audit file path
-    testAuditFile = path.join(process.cwd(), 'test-integration-audit.json');
+    // Create test audit file path (using NDJSON format)
+    // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-a4f5b1e8
+    // Updated to match new NDJSON audit format
+    testAuditFile = path.join(process.cwd(), 'test-integration-audit.ndjson');
 
     // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-189f9d0e
     // Mock the SmartSuite client methods to avoid real API calls
@@ -214,8 +216,11 @@ describe('Audit Integration', () => {
       // Verify file was created
       expect(await fs.pathExists(testAuditFile)).toBe(true);
 
-      // Verify file content
-      const fileContent = await fs.readJson(testAuditFile);
+      // Verify file content (parsing NDJSON format)
+      // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-a4f5b1e8
+      const rawContent = await fs.readFile(testAuditFile, 'utf-8');
+      const lines = rawContent.trim().split('\n').filter(line => line.trim() !== '');
+      const fileContent = lines.map(line => JSON.parse(line));
       expect(fileContent).toBeInstanceOf(Array);
       expect(fileContent).toHaveLength(1);
       expect(fileContent[0].operation).toBe('create');

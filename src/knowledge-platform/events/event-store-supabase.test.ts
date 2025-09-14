@@ -178,4 +178,165 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
         .eq('tenant_id', testTenantId);
     }
   });
+
+  describe('snapshot performance optimization', () => {
+    it('should create snapshots efficiently for many events (O(1) optimization)', async () => {
+      const aggregateId = 'field-mappings-test-performance';
+      const eventCount = 150; // More than snapshot interval (100)
+
+      console.time('Creating events with O(1) snapshots');
+
+      // Create many events to trigger snapshot creation
+      for (let i = 1; i <= eventCount; i++) {
+        const event: DomainEvent = {
+          id: `evt_${i}`,
+          aggregateId,
+          type: 'FieldMappingUpdated',
+          version: i,
+          timestamp: new Date(),
+          userId: uuidv4(),
+          payload: {
+            field: `field_${i}`,
+            action: 'updated',
+            timestamp: Date.now(),
+          },
+          metadata: {
+            correlationId: `corr_${i}`,
+            causationId: `cause_${i}`,
+          },
+        };
+
+        await eventStore.append(event);
+      }
+
+      console.timeEnd('Creating events with O(1) snapshots');
+
+      // Verify snapshot was created at interval (100)
+      const snapshot = await eventStore.getSnapshot(aggregateId);
+      expect(snapshot).toBeDefined();
+      expect(snapshot?.version).toBe(100);
+      expect(snapshot?.data.lastVersion).toBe(100);
+
+      // Verify all events are still accessible
+      const allEvents = await eventStore.getEvents(aggregateId);
+      expect(allEvents).toHaveLength(eventCount);
+    }, 15000); // Increase timeout for performance test
+
+    it('should handle incremental snapshot updates correctly', async () => {
+      const aggregateId = 'field-mappings-incremental-test';
+
+      // Create first batch of events (triggers first snapshot at version 100)
+      for (let i = 1; i <= 100; i++) {
+        const event: DomainEvent = {
+          id: `evt_batch1_${i}`,
+          aggregateId,
+          type: 'FieldMappingCreated',
+          version: i,
+          timestamp: new Date(),
+          userId: uuidv4(),
+          payload: {
+            field: `field_${i}`,
+            value: `value_${i}`,
+          },
+          metadata: {
+            correlationId: `corr_${i}`,
+            causationId: `cause_${i}`,
+          },
+        };
+
+        await eventStore.append(event);
+      }
+
+      // Verify first snapshot
+      let snapshot = await eventStore.getSnapshot(aggregateId);
+      expect(snapshot?.version).toBe(100);
+      expect(snapshot?.data.lastVersion).toBe(100);
+
+      // Create second batch (triggers second snapshot at version 200)
+      for (let i = 101; i <= 200; i++) {
+        const event: DomainEvent = {
+          id: `evt_batch2_${i}`,
+          aggregateId,
+          type: 'FieldMappingUpdated',
+          version: i,
+          timestamp: new Date(),
+          userId: uuidv4(),
+          payload: {
+            field: `field_${i}`,
+            value: `updated_value_${i}`,
+          },
+          metadata: {
+            correlationId: `corr_${i}`,
+            causationId: `cause_${i}`,
+          },
+        };
+
+        await eventStore.append(event);
+      }
+
+      // Verify second snapshot has incremental state
+      snapshot = await eventStore.getSnapshot(aggregateId);
+      expect(snapshot?.version).toBe(200);
+      expect(snapshot?.data.lastVersion).toBe(200);
+
+      // Should have state from both batches
+      expect(snapshot?.data.field_50).toBe('value_50'); // From first batch
+      expect(snapshot?.data.field_150).toBe('updated_value_150'); // From second batch
+    }, 20000);
+
+    it('should use UUIDv5 for deterministic string-to-UUID conversion', async () => {
+      // Test that the same input always produces the same UUID
+      const testString = 'field-mappings-test-uuid';
+
+      const eventStore1 = createEventStore('test-tenant-123');
+      const eventStore2 = createEventStore('test-tenant-123');
+
+      // Create events with the same string-based aggregate ID
+      const event1: DomainEvent = {
+        id: 'evt_uuid_test_1',
+        aggregateId: testString,
+        type: 'TestEvent',
+        version: 1,
+        timestamp: new Date(),
+        userId: 'user-123',
+        payload: { test: 'uuid consistency' },
+        metadata: { correlationId: 'corr_uuid_test', causationId: 'cause_uuid_test' },
+      };
+
+      const event2: DomainEvent = {
+        id: 'evt_uuid_test_2',
+        aggregateId: testString,
+        type: 'TestEvent',
+        version: 2,
+        timestamp: new Date(),
+        userId: 'user-123',
+        payload: { test: 'uuid consistency 2' },
+        metadata: { correlationId: 'corr_uuid_test_2', causationId: 'cause_uuid_test_2' },
+      };
+
+      await eventStore1.append(event1);
+      await eventStore2.append(event2);
+
+      // Both events should be stored under the same UUID-converted aggregate
+      const events1 = await eventStore1.getEvents(testString);
+      const events2 = await eventStore2.getEvents(testString);
+
+      expect(events1).toHaveLength(2); // Should see both events
+      expect(events2).toHaveLength(2); // Should see both events
+      expect(events1[0]?.aggregateId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    });
+  });
+
+  afterAll(async () => {
+    // Final cleanup after all tests
+    await supabase
+      .from('events')
+      .delete()
+      .eq('tenant_id', testTenantId);
+
+    await supabase
+      .from('snapshots')
+      .delete()
+      .eq('tenant_id', testTenantId);
+  });
 });
