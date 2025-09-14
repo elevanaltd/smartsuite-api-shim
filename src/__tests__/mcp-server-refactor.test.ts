@@ -45,7 +45,7 @@ describe('MCP Server with Function Modules', () => {
     expect(mockClient.listRecords).toHaveBeenCalled();
   });
 
-  it('should create proper ToolContext for function modules', async () => {
+  it('should create proper ToolContext for function modules', () => {
     const mockClient = {};
     const mockFieldTranslator = {};
     const mockTableResolver = {};

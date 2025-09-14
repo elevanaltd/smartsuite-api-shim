@@ -190,9 +190,11 @@ describe('CLI Audit Reports', () => {
         },
       ];
 
-      for (const op of operations) {
-        await auditLogger.logMutation(op);
-      }
+      // Sequential processing required for audit order
+      await operations.reduce(async (prev, op) => {
+        await prev;
+        return auditLogger.logMutation(op);
+      }, Promise.resolve());
     });
 
     it('should include all required fields in SOC2 report', async () => {

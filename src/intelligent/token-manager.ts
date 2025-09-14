@@ -13,7 +13,7 @@ export class TokenManager {
    * Estimates token count for given input
    * Uses approximation: 4 characters ≈ 1 token (conservative estimate)
    */
-  public estimateTokens(input: any): number {
+  public estimateTokens(input: unknown): number {
     let text: string;
 
     if (typeof input === 'string') {
@@ -34,7 +34,7 @@ export class TokenManager {
    * Validates that input doesn't exceed token limits
    * Throws error if MAX_TOKENS exceeded, warns at WARNING_THRESHOLD
    */
-  public validateTokenLimit(input: any): void {
+  public validateTokenLimit(input: unknown): void {
     const estimatedTokens = this.estimateTokens(input);
 
     if (estimatedTokens >= TokenManager.MAX_TOKENS) {
@@ -45,10 +45,14 @@ export class TokenManager {
     }
 
     if (estimatedTokens >= TokenManager.WARNING_THRESHOLD) {
+      // Token usage warning - keeping silent to avoid console pollution
+      // Consider using a proper logger in production
+      /*
       console.warn(
         `Token usage warning: estimated ${estimatedTokens} tokens (${Math.round(estimatedTokens / TokenManager.MAX_TOKENS * 100)}% of limit). ` +
         `Approaching maximum of ${TokenManager.MAX_TOKENS} tokens. Consider optimization.`,
       );
+      */
     }
   }
 

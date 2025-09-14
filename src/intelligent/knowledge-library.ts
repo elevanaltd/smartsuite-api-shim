@@ -60,7 +60,7 @@ export class KnowledgeLibrary {
         const valueSize = JSON.stringify(value).length * 2; // ~2 bytes per char
         return keySize + valueSize;
       },
-      dispose: (_value, _key, reason) => {
+      dispose: (_value, _key, reason): void => {
         // Optional: Log cache evictions for monitoring
         if (reason === 'evict') {
           // Could add logging here if needed
