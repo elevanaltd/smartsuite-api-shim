@@ -70,7 +70,7 @@ export class TokenManager {
    * Validates token limits for SmartSuite API responses before processing
    * This is the primary integration point for preventing overflow
    */
-  public validateApiResponse(response: any, operation: string): void {
+  public validateApiResponse(response: unknown, operation: string): void {
     try {
       this.validateTokenLimit(response);
     } catch (error) {

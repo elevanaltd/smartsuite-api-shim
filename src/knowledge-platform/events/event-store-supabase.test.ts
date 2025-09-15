@@ -75,22 +75,26 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
     it('should retrieve persisted events', async () => {
       const aggregateId = uuidv4();
 
-      // Add events directly
+      // Add events directly (parallelized for test setup efficiency)
+      const insertPromises = [];
       for (let i = 1; i <= 3; i++) {
-        await supabase
-          .from('events')
-          .insert({
-            id: uuidv4(),
-            aggregate_id: aggregateId,
-            aggregate_type: 'Test',
-            event_type: 'TestEvent',
-            event_version: i,
-            event_data: { index: i },
-            metadata: {},
-            created_by: uuidv4(),
-            tenant_id: testTenantId,
-          });
+        insertPromises.push(
+          supabase
+            .from('events')
+            .insert({
+              id: uuidv4(),
+              aggregate_id: aggregateId,
+              aggregate_type: 'Test',
+              event_type: 'TestEvent',
+              event_version: i,
+              event_data: { index: i },
+              metadata: {},
+              created_by: uuidv4(),
+              tenant_id: testTenantId,
+            }),
+        );
       }
+      await Promise.all(insertPromises);
 
       const events = await eventStore.getEvents(aggregateId);
 
@@ -192,6 +196,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
       console.time('Creating events with O(1) snapshots');
 
       // Create many events to trigger snapshot creation
+      // eslint-disable-next-line no-await-in-loop -- Sequential appends required to test versioning contract
       for (let i = 1; i <= eventCount; i++) {
         const event: DomainEvent = {
           id: uuidv4(),
@@ -231,6 +236,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
       const aggregateId = uuidv4();
 
       // Create first batch of events (triggers first snapshot at version 100)
+      // eslint-disable-next-line no-await-in-loop -- Sequential appends required to test versioning contract
       for (let i = 1; i <= 100; i++) {
         const event: DomainEvent = {
           id: uuidv4(),
@@ -258,6 +264,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
       expect(snapshot?.data.lastVersion).toBe(100);
 
       // Create second batch (triggers second snapshot at version 200)
+      // eslint-disable-next-line no-await-in-loop -- Sequential appends required to test versioning contract
       for (let i = 101; i <= 200; i++) {
         const event: DomainEvent = {
           id: uuidv4(),

@@ -50,7 +50,7 @@ export class EventStoreSupabase {
     // Validate input event against schema for runtime safety (at ingress)
     const validatedEvent = DomainEventSchema.parse(event);
 
-    return dbCircuitBreaker.execute(async () => {
+    return dbCircuitBreaker.execute<string>(async () => {
       const aggregateId = this.ensureUuid(validatedEvent.aggregateId);
 
       // Check current version for optimistic concurrency
@@ -66,7 +66,7 @@ export class EventStoreSupabase {
         throw new Error(`Version check failed: ${versionError.message}`);
       }
 
-      const currentVersion = existingEvents?.[0]?.event_version || 0;
+      const currentVersion = (existingEvents?.[0] as { event_version?: number })?.event_version || 0;
       const expectedVersion = currentVersion + 1;
 
       if (validatedEvent.version !== expectedVersion) {

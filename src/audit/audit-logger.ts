@@ -120,7 +120,7 @@ export class AuditLogger {
     const entries: AuditLogEntry[] = [];
     for (const line of lines) {
       try {
-        const entry = JSON.parse(line);
+        const entry = JSON.parse(line) as unknown;
         entries.push(this.deserializeEntry(entry));
       } catch (error) {
         // Skip malformed lines (shouldn't happen but handle gracefully)
