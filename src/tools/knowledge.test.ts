@@ -55,7 +55,7 @@ describe('Knowledge Platform MCP Tools', () => {
           },
         };
 
-        vi.mocked(mockEventStore.append).mockResolvedValue('evt-123');
+        (mockEventStore.append as any).mockResolvedValue('evt-123');
 
         const result = await handleKnowledgeEvents(args, mockContext);
 
@@ -70,7 +70,7 @@ describe('Knowledge Platform MCP Tools', () => {
             version: 1,
           }),
         });
-        expect(mockEventStore.append).toHaveBeenCalledWith(
+        expect(vi.mocked(mockEventStore).append).toHaveBeenCalledWith(
           expect.objectContaining({
             aggregateId: args.aggregateId,
             type: args.type,
@@ -93,7 +93,7 @@ describe('Knowledge Platform MCP Tools', () => {
           success: false,
           error: expect.stringContaining('Missing required field'),
         });
-        expect(mockEventStore.append).not.toHaveBeenCalled();
+        expect(vi.mocked(mockEventStore).append).not.toHaveBeenCalled();
       });
     });
 
@@ -127,7 +127,7 @@ describe('Knowledge Platform MCP Tools', () => {
           },
         ];
 
-        vi.mocked(mockEventStore.getEvents).mockResolvedValue(events);
+        (mockEventStore.getEvents as any).mockResolvedValue(events);
 
         const result = await handleKnowledgeEvents(args, mockContext);
 
@@ -135,7 +135,7 @@ describe('Knowledge Platform MCP Tools', () => {
           success: true,
           events,
         });
-        expect(mockEventStore.getEvents).toHaveBeenCalledWith(args.aggregateId);
+        expect(vi.mocked(mockEventStore).getEvents).toHaveBeenCalledWith(args.aggregateId);
       });
 
       it('should handle missing events', async () => {
@@ -144,7 +144,7 @@ describe('Knowledge Platform MCP Tools', () => {
           aggregateId: 'non-existent',
         };
 
-        vi.mocked(mockEventStore.getEvents).mockResolvedValue([]);
+        (mockEventStore.getEvents as any).mockResolvedValue([]);
 
         const result = await handleKnowledgeEvents(args, mockContext);
 
@@ -177,7 +177,7 @@ describe('Knowledge Platform MCP Tools', () => {
         timestamp: new Date('2025-01-10T00:00:00Z'),
       };
 
-      vi.mocked(mockEventStore.getSnapshot).mockResolvedValue(snapshot);
+      (mockEventStore.getSnapshot as any).mockResolvedValue(snapshot);
 
       const result = await handleKnowledgeFieldMappings(args, mockContext);
 
@@ -196,7 +196,7 @@ describe('Knowledge Platform MCP Tools', () => {
         tableId: '68a8ff5237fde0bf797c05b3',
       };
 
-      vi.mocked(mockEventStore.getSnapshot).mockResolvedValue(null);
+      (mockEventStore.getSnapshot as any).mockResolvedValue(null);
 
       const result = await handleKnowledgeFieldMappings(args, mockContext);
 
@@ -213,7 +213,7 @@ describe('Knowledge Platform MCP Tools', () => {
         tableId: '68a8ff5237fde0bf797c05b3',
       };
 
-      vi.mocked(mockEventStore.getSnapshot).mockRejectedValue(
+      (mockEventStore.getSnapshot as any).mockRejectedValue(
         new Error('Circuit breaker is OPEN'),
       );
 
@@ -301,7 +301,7 @@ describe('Knowledge Platform MCP Tools', () => {
         data: {},
       };
 
-      vi.mocked(mockEventStore.append).mockRejectedValue(
+      (mockEventStore.append as any).mockRejectedValue(
         new Error('Database connection failed'),
       );
 

@@ -5,14 +5,13 @@
 // ERROR-ARCHITECT: These tests use mocks in CI environment where real Supabase is unavailable
 // Real integration tests run when proper Supabase instance is configured
 import { v4 as uuidv4 } from 'uuid';
-import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, afterAll } from 'vitest';
 
 import { supabase, checkConnection } from '../infrastructure/supabase-client.js';
 
-import { EventStore } from './event-store.js';
 import { createEventStore } from './event-store-supabase.js';
+import { IEventStore } from './event-store.js';
 import { DomainEvent } from './types.js';
-import { EventStoreSupabase } from './event-store-supabase.js';
 
 // Detect if we're in CI with only PostgreSQL (not full Supabase)
 const IS_CI_POSTGRES = process.env.KNOWLEDGE_SUPABASE_URL?.startsWith('http://localhost');
@@ -26,7 +25,7 @@ const ENABLE_INTEGRATION_TESTS = process.env.KNOWLEDGE_SUPABASE_URL &&
 
 describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', () => {
   const testTenantId = uuidv4(); // Use proper UUID
-  let eventStore: EventStore;
+  let eventStore: IEventStore;
 
   beforeAll(async () => {
     const connected = await checkConnection();

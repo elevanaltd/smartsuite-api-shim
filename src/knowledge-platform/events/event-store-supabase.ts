@@ -193,7 +193,10 @@ export class EventStoreSupabase {
         .eq('tenant_id', this.tenantId)
         .single();
 
-      const { data, error } = result as { data: any; error: any };
+      const { data, error } = result as {
+        data: Record<string, unknown> | null;
+        error: { code?: string; message: string } | null
+      };
 
       if (error) {
         if (error.code === 'PGRST116') {

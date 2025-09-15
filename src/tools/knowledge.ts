@@ -167,13 +167,10 @@ export async function handleKnowledgeRefreshViews(
     // Get Supabase client
     const supabaseClient = context.supabaseClient || supabase;
 
-    // Attempt to refresh each view
-    const errors: string[] = [];
-
-    for (const view of views) {
+    // Attempt to refresh each view in parallel
+    const refreshPromises = views.map(async (view) => {
       if (view === 'invalid_view') {
-        errors.push(`View not found: ${view}`);
-        continue;
+        return { view, error: `View not found: ${view}` };
       }
 
       // In real implementation, this would call:
@@ -187,10 +184,15 @@ export async function handleKnowledgeRefreshViews(
         });
 
         if (error) {
-          errors.push(error.message);
+          return { view, error: error.message };
         }
       }
-    }
+
+      return { view, error: null };
+    });
+
+    const results = await Promise.all(refreshPromises);
+    const errors = results.filter(result => result.error !== null).map(result => result.error!);
 
     if (errors.length > 0) {
       return {
