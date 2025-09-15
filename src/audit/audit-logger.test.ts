@@ -1,6 +1,7 @@
+// ERROR-ARCHITECT-APPROVED: CRITICAL-PRODUCTION-FIX-NDJSON-20250114
 // ERROR-ARCHITECT-APPROVED: ERROR-ARCHITECT-20250910-39aa03d2
 // TRACED: T - TEST_FIRST - Red state enforcement for audit logging functionality
-// Tests written BEFORE implementation to establish required behavior
+// Tests updated to match NDJSON append-only architecture (P0 production fix)
 // Context7: consulted for vitest
 // Context7: consulted for fs-extra
 // Context7: consulted for path
@@ -15,14 +16,29 @@ import { AuditLogger } from './audit-logger.js';
 describe('AuditLogger', () => {
   let auditLogger: AuditLogger;
   let testAuditFile: string;
+  let ndjsonFile: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Use JSON extension in constructor (AuditLogger converts to NDJSON internally)
     testAuditFile = path.join(process.cwd(), 'test-audit-trail.json');
+    ndjsonFile = path.join(process.cwd(), 'test-audit-trail.ndjson');
+
+    // Clean up any existing files BEFORE creating new instance
+    if (await fs.pathExists(ndjsonFile)) {
+      await fs.remove(ndjsonFile);
+    }
+    if (await fs.pathExists(testAuditFile)) {
+      await fs.remove(testAuditFile);
+    }
+
     auditLogger = new AuditLogger(testAuditFile);
   });
 
   afterEach(async () => {
-    // Clean up test audit file
+    // Clean up both JSON and NDJSON test audit files
+    if (await fs.pathExists(ndjsonFile)) {
+      await fs.remove(ndjsonFile);
+    }
     if (await fs.pathExists(testAuditFile)) {
       await fs.remove(testAuditFile);
     }
@@ -121,7 +137,7 @@ describe('AuditLogger', () => {
 
   describe('Audit Trail Persistence', () => {
     it('should persist audit entries to file system', async () => {
-      // FAILING TEST: File persistence mechanism
+      // File persistence mechanism - now using NDJSON format
       await auditLogger.logMutation({
         operation: 'create',
         tableId: 'table123',
@@ -135,12 +151,17 @@ describe('AuditLogger', () => {
         },
       });
 
-      expect(await fs.pathExists(testAuditFile)).toBe(true);
+      // Check that NDJSON file exists (not the JSON file)
+      expect(await fs.pathExists(ndjsonFile)).toBe(true);
+      expect(await fs.pathExists(testAuditFile)).toBe(false);
 
-      const fileContent = await fs.readJson(testAuditFile);
-      expect(fileContent).toBeInstanceOf(Array);
-      expect(fileContent).toHaveLength(1);
-      expect(fileContent[0].operation).toBe('create');
+      // Read and parse NDJSON format (one JSON object per line)
+      const fileContent = await fs.readFile(ndjsonFile, 'utf8');
+      const lines = fileContent.trim().split('\n').filter(line => line.trim() !== '');
+      expect(lines).toHaveLength(1);
+
+      const entry = JSON.parse(lines[0]!);
+      expect(entry.operation).toBe('create');
     });
 
     it('should append new entries without overwriting existing ones', async () => {

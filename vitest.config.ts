@@ -49,5 +49,13 @@ export default defineConfig({
       },
     },
     testTimeout: 10000,
+    // Limit parallelism to prevent memory issues
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        maxThreads: 4,
+        minThreads: 1,
+      },
+    },
   },
 });

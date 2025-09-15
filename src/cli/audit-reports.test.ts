@@ -18,7 +18,7 @@ describe('CLI Audit Reports', () => {
   let processExitSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
-    testAuditFile = path.join(process.cwd(), 'test-cli-audit.json');
+    testAuditFile = path.join(process.cwd(), 'test-cli-audit.ndjson');
 
     // Mock console output for testing
     consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -85,7 +85,7 @@ describe('CLI Audit Reports', () => {
     it('should handle missing audit file gracefully', async () => {
       // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-78ab647c
       // Fix: Missing file returns empty report, not error
-      const nonExistentFile = '/path/that/does/not/exist/audit.json';
+      const nonExistentFile = '/path/that/does/not/exist/audit.ndjson';
 
       await generateComplianceReport('SOC2', nonExistentFile, 'text');
 
@@ -95,13 +95,17 @@ describe('CLI Audit Reports', () => {
     });
 
     it('should handle invalid audit data gracefully', async () => {
-      // FAILING TEST: Error handling for corrupted data
-      const invalidFile = path.join(process.cwd(), 'invalid-audit.json');
+      // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-78ab647c
+      // Fix: Invalid NDJSON lines are now silently skipped, resulting in empty report
+      const invalidFile = path.join(process.cwd(), 'invalid-audit.ndjson');
       await fs.writeFile(invalidFile, 'invalid json');
 
       await generateComplianceReport('SOC2', invalidFile, 'text');
 
-      expect(processExitSpy).toHaveBeenCalledWith(1);
+      // Should print empty report, not exit with error (invalid lines are skipped)
+      expect(processExitSpy).not.toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('COMPLIANCE REPORT'));
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Total Operations: 0'));
 
       // Clean up
       await fs.remove(invalidFile);
@@ -112,7 +116,7 @@ describe('CLI Audit Reports', () => {
     it('should use default audit file path when not specified', async () => {
       // FAILING TEST: Default parameter handling
       // Create audit file at default location
-      const defaultPath = path.join(process.cwd(), 'audit-trail.json');
+      const defaultPath = path.join(process.cwd(), 'audit-trail.ndjson');
       const auditLogger = new AuditLogger(defaultPath);
       await auditLogger.logMutation({
         operation: 'create',

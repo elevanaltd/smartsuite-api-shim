@@ -12,7 +12,7 @@ export async function generateComplianceReport(
   auditFilePath?: string,
   outputFormat: 'json' | 'text' = 'text',
 ): Promise<void> {
-  const auditPath = auditFilePath ?? path.join(process.cwd(), 'audit-trail.json');
+  const auditPath = auditFilePath ?? path.join(process.cwd(), 'audit-trail.ndjson');
   const auditLogger = new AuditLogger(auditPath);
 
   try {

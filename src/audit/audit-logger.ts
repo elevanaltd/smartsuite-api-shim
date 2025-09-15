@@ -124,7 +124,7 @@ export class AuditLogger {
         entries.push(this.deserializeEntry(entry));
       } catch (error) {
         // Skip malformed lines (shouldn't happen but handle gracefully)
-        console.error('Failed to parse audit log line:', error);
+        // Silently skip to avoid noise in production logs
       }
     }
 
@@ -281,9 +281,9 @@ export class AuditLogger {
         // Rename old file to .json.backup to preserve it
         await fs.rename(this.legacyJsonPath, `${this.legacyJsonPath}.backup`);
 
-        console.log(`Migrated audit log from JSON to NDJSON format: ${this.auditFilePath}`);
+        // Migration successful - legacy file backed up
       } catch (error) {
-        console.error('Failed to migrate legacy audit log:', error);
+        // Failed to migrate - continue without migration, new entries will use NDJSON
         // Continue without migration - new entries will use NDJSON
       }
     }

@@ -46,8 +46,8 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
         userId: uuidv4(),
         payload: { test: 'data' },
         metadata: {
-          correlationId: 'corr_test',
-          causationId: 'cause_test',
+          correlationId: uuidv4(),
+          causationId: uuidv4(),
         },
       };
 
@@ -136,7 +136,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
         timestamp: new Date(),
         userId: uuidv4(),
         payload: { tenant: 1 },
-        metadata: { correlationId: 'c1', causationId: 'c1' },
+        metadata: { correlationId: uuidv4(), causationId: uuidv4() },
       };
 
       const event2: DomainEvent = {
@@ -147,7 +147,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
         timestamp: new Date(),
         userId: uuidv4(),
         payload: { tenant: 2 },
-        metadata: { correlationId: 'c2', causationId: 'c2' },
+        metadata: { correlationId: uuidv4(), causationId: uuidv4() },
       };
 
       await eventStore.append(event1);
@@ -181,7 +181,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
 
   describe('snapshot performance optimization', () => {
     it('should create snapshots efficiently for many events (O(1) optimization)', async () => {
-      const aggregateId = 'field-mappings-test-performance';
+      const aggregateId = uuidv4();
       const eventCount = 150; // More than snapshot interval (100)
 
       console.time('Creating events with O(1) snapshots');
@@ -189,7 +189,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
       // Create many events to trigger snapshot creation
       for (let i = 1; i <= eventCount; i++) {
         const event: DomainEvent = {
-          id: `evt_${i}`,
+          id: uuidv4(),
           aggregateId,
           type: 'FieldMappingUpdated',
           version: i,
@@ -223,12 +223,12 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
     }, 15000); // Increase timeout for performance test
 
     it('should handle incremental snapshot updates correctly', async () => {
-      const aggregateId = 'field-mappings-incremental-test';
+      const aggregateId = uuidv4();
 
       // Create first batch of events (triggers first snapshot at version 100)
       for (let i = 1; i <= 100; i++) {
         const event: DomainEvent = {
-          id: `evt_batch1_${i}`,
+          id: uuidv4(),
           aggregateId,
           type: 'FieldMappingCreated',
           version: i,
@@ -255,7 +255,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
       // Create second batch (triggers second snapshot at version 200)
       for (let i = 101; i <= 200; i++) {
         const event: DomainEvent = {
-          id: `evt_batch2_${i}`,
+          id: uuidv4(),
           aggregateId,
           type: 'FieldMappingUpdated',
           version: i,
@@ -286,14 +286,14 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
 
     it('should use UUIDv5 for deterministic string-to-UUID conversion', async () => {
       // Test that the same input always produces the same UUID
-      const testString = 'field-mappings-test-uuid';
+      const testString = uuidv4();
 
       const eventStore1 = createEventStore('test-tenant-123');
       const eventStore2 = createEventStore('test-tenant-123');
 
       // Create events with the same string-based aggregate ID
       const event1: DomainEvent = {
-        id: 'evt_uuid_test_1',
+        id: uuidv4(),
         aggregateId: testString,
         type: 'TestEvent',
         version: 1,
@@ -304,7 +304,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
       };
 
       const event2: DomainEvent = {
-        id: 'evt_uuid_test_2',
+        id: uuidv4(),
         aggregateId: testString,
         type: 'TestEvent',
         version: 2,
