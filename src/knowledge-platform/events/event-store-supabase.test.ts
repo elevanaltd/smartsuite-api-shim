@@ -9,8 +9,10 @@ import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vites
 
 import { supabase, checkConnection } from '../infrastructure/supabase-client.js';
 
-import { EventStore, createEventStore } from './event-store.js';
+import { EventStore } from './event-store.js';
+import { createEventStore } from './event-store-supabase.js';
 import { DomainEvent } from './types.js';
+import { EventStoreSupabase } from './event-store-supabase.js';
 
 // Detect if we're in CI with only PostgreSQL (not full Supabase)
 const IS_CI_POSTGRES = process.env.KNOWLEDGE_SUPABASE_URL?.startsWith('http://localhost');
@@ -355,64 +357,19 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
       .eq('tenant_id', testTenantId);
   });
 });
-// Mock tests that run in CI when real Supabase is unavailable
-// ERROR-ARCHITECT: These tests validate EventStore logic without database dependency
-describe.skipIf(!IS_CI_POSTGRES)('EventStore Mock Tests (CI)', () => {
+// Unit tests for EventStore validation logic
+// These run without any external dependencies
+describe('EventStore Validation', () => {
   const testTenantId = uuidv4();
-  let eventStore: EventStore;
 
-  beforeAll(() => {
-    // Mock the supabase client module for CI testing
-    vi.mock('../infrastructure/supabase-client.js', () => {
-      const mockSupabase = {
-        from: (_table: string) => ({
-          select: () => ({
-            eq: () => ({
-              limit: () => ({
-                data: null,
-                error: { code: 'PGRST116' },
-              }),
-            }),
-          }),
-          insert: (data: any) => ({
-            select: () => ({
-              single: async () => ({
-                data: { id: data.id },
-                error: null,
-              }),
-            }),
-          }),
-          delete: () => ({
-            eq: () => ({ data: null, error: null }),
-          }),
-        }),
-      };
-
-      return {
-        supabase: mockSupabase,
-        checkConnection: vi.fn().mockResolvedValue(true),
-        knowledgeConfig: {
-          schema: 'test',
-          maxRetries: 3,
-          retryDelayMs: 100,
-          snapshotInterval: 100,
-          maxEventsPerQuery: 1000,
-        },
-      };
-    });
-  });
-
-  beforeEach(() => {
-    eventStore = createEventStore(testTenantId);
-  });
-
-  it('should create event store with valid tenant ID', () => {
-    expect(eventStore).toBeDefined();
+  it('should require tenant ID for Supabase event store', () => {
     expect(() => createEventStore('')).toThrow('Tenant ID is required');
+    expect(() => createEventStore('valid-tenant')).not.toThrow();
   });
 
   it('should handle UUID conversion for non-UUID tenant IDs', () => {
     const store = createEventStore('test-tenant-string');
     expect(store).toBeDefined();
+    expect(store).toBeInstanceOf(EventStoreSupabase);
   });
 });
