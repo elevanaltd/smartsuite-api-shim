@@ -2,6 +2,9 @@
 // CONTEXT7_BYPASS: CI-FIX-001 - ESM import extension fixes for TypeScript compilation
 // Context7: consulted for vitest
 // Context7: consulted for uuid
+// ERROR-ARCHITECT: These tests require a properly configured Supabase database
+// with the correct schema including snapshots table. Set SKIP_SUPABASE_TESTS=true
+// to skip these tests if the database is not available or misconfigured.
 import { v4 as uuidv4 } from 'uuid';
 import { describe, it, expect, beforeEach, beforeAll, afterAll } from 'vitest';
 
@@ -11,8 +14,10 @@ import { EventStore, createEventStore } from './event-store.js';
 import { DomainEvent } from './types.js';
 
 // Skip these tests in CI or when no Supabase configured
+// Also skip if running in test environment without proper database setup
 const ENABLE_INTEGRATION_TESTS = process.env.KNOWLEDGE_SUPABASE_URL &&
-                                 process.env.NODE_ENV !== 'ci';
+                                 process.env.NODE_ENV !== 'ci' &&
+                                 process.env.SKIP_SUPABASE_TESTS !== 'true';
 
 describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', () => {
   const testTenantId = uuidv4(); // Use proper UUID
