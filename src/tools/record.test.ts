@@ -72,7 +72,7 @@ describe('handleRecord Tool Function', () => {
       expect(result).toHaveProperty('operation', 'create');
       expect(result).toHaveProperty('tableId', 'test-app-id');
       expect(result).toHaveProperty('payload');
-      expect(mockClient.createRecord).not.toHaveBeenCalled();
+      expect(mockClient.createRecord as any).not.toHaveBeenCalled();
     });
 
     it('should perform dry-run validation for update operation', async () => {
@@ -92,7 +92,7 @@ describe('handleRecord Tool Function', () => {
       expect(result).toHaveProperty('validated', true);
       expect(result).toHaveProperty('operation', 'update');
       expect(result).toHaveProperty('recordId', 'rec-123');
-      expect(mockClient.updateRecord).not.toHaveBeenCalled();
+      expect(mockClient.updateRecord as any).not.toHaveBeenCalled();
     });
 
     it('should perform dry-run validation for delete operation', async () => {
@@ -111,7 +111,7 @@ describe('handleRecord Tool Function', () => {
       expect(result).toHaveProperty('validated', true);
       expect(result).toHaveProperty('operation', 'delete');
       expect(result).toHaveProperty('recordId', 'rec-123');
-      expect(mockClient.deleteRecord).not.toHaveBeenCalled();
+      expect(mockClient.deleteRecord as any).not.toHaveBeenCalled();
     });
   });
 
@@ -130,7 +130,7 @@ describe('handleRecord Tool Function', () => {
 
       const result = await handleRecord(mockContext, args);
 
-      expect(mockClient.createRecord).toHaveBeenCalledWith('test-app-id', { title: 'New Record' });
+      expect(mockClient.createRecord as any).toHaveBeenCalledWith('test-app-id', { title: 'New Record' });
       expect(result).toEqual(mockCreatedRecord);
     });
 
@@ -151,7 +151,7 @@ describe('handleRecord Tool Function', () => {
 
       const result = await handleRecord(mockContext, args);
 
-      expect(mockClient.updateRecord).toHaveBeenCalledWith('test-app-id', 'rec-123', { title: 'Updated' });
+      expect(mockClient.updateRecord as any).toHaveBeenCalledWith('test-app-id', 'rec-123', { title: 'Updated' });
       expect(result).toEqual(mockUpdatedRecord);
     });
 
@@ -170,7 +170,7 @@ describe('handleRecord Tool Function', () => {
 
       const result = await handleRecord(mockContext, args);
 
-      expect(mockClient.deleteRecord).toHaveBeenCalledWith('test-app-id', 'rec-123');
+      expect(mockClient.deleteRecord as any).toHaveBeenCalledWith('test-app-id', 'rec-123');
       expect(result).toEqual({ deleted: 'rec-123' });
     });
   });
@@ -208,7 +208,7 @@ describe('handleRecord Tool Function', () => {
         validated: true,
       });
       // In dry-run mode, we should NOT call the actual API endpoint
-      expect(mockContext.client.request).not.toHaveBeenCalled();
+      expect(mockContext.client.request as any).not.toHaveBeenCalled();
     });
     it('should validate bulk_delete operations in dry-run mode', async () => {
       const args = {
@@ -226,7 +226,7 @@ describe('handleRecord Tool Function', () => {
         validated: true,
       });
       // In dry-run mode, we should NOT call the actual API endpoint
-      expect(mockContext.client.request).not.toHaveBeenCalled();
+      expect(mockContext.client.request as any).not.toHaveBeenCalled();
     });
     it('should require dry_run parameter', async () => {
       const args = {
@@ -268,7 +268,7 @@ describe('handleRecord Tool Function', () => {
 
       const result = await handleRecord(mockContext, args);
 
-      expect(mockFieldTranslator.humanToApi).toHaveBeenCalledWith('test-app-id', { title: 'Test Value' }, true);
+      expect(mockFieldTranslator.humanToApi as any).toHaveBeenCalledWith('test-app-id', { title: 'Test Value' }, true);
       expect(result).toHaveProperty('payload', { s123: 'Test Value' });
     });
 
@@ -290,7 +290,7 @@ describe('handleRecord Tool Function', () => {
 
       const result = await handleRecord(mockContext, args);
 
-      expect(mockFieldTranslator.apiToHuman).toHaveBeenCalledWith('test-app-id', mockApiRecord);
+      expect(mockFieldTranslator.apiToHuman as any).toHaveBeenCalledWith('test-app-id', mockApiRecord);
       expect(result).toEqual(mockHumanRecord);
     });
   });

@@ -32,20 +32,38 @@ describe('SmartSuiteShimServer', () => {
     expect(() => new SmartSuiteShimServer()).not.toThrow();
   });
 
-  // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250909-e6897600
-  it('should register exactly 6 tools including intelligent', async () => {
-    const server = new SmartSuiteShimServer();
-    const tools = await server.getTools();
+  // TESTGUARD: Refactored from brittle exact-match to resilient contract-based tests
+  // Following CONTRACT-DRIVEN-CORRECTION principle
 
-    expect(tools).toHaveLength(6);
-    expect(tools.map((t: any) => t.name)).toEqual([
+  it('should register the 6 core SmartSuite tools', async () => {
+    const server = new SmartSuiteShimServer();
+    const toolNames = (await server.getTools()).map((t: any) => t.name);
+
+    expect(toolNames).toEqual(expect.arrayContaining([
       'smartsuite_query',
       'smartsuite_record',
       'smartsuite_schema',
       'smartsuite_undo',
       'smartsuite_discover',
       'smartsuite_intelligent',
-    ]);
+    ]));
+  });
+
+  it('should register the 3 Knowledge Platform tools', async () => {
+    const server = new SmartSuiteShimServer();
+    const toolNames = (await server.getTools()).map((t: any) => t.name);
+
+    expect(toolNames).toEqual(expect.arrayContaining([
+      'smartsuite_knowledge_events',
+      'smartsuite_knowledge_field_mappings',
+      'smartsuite_knowledge_refresh_views',
+    ]));
+  });
+
+  it('should register a total of 9 tools', async () => {
+    const server = new SmartSuiteShimServer();
+    const tools = await server.getTools();
+    expect(tools).toHaveLength(9);
   });
 
   it('should enforce mandatory dry-run pattern for record tool', async () => {

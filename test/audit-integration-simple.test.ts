@@ -18,7 +18,8 @@ describe('Audit Integration - Direct Testing', () => {
   let auditLogger: AuditLogger;
 
   beforeEach(async () => {
-    testAuditFile = path.join(process.cwd(), 'test-direct-audit.json');
+    // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-c9b1d3a0
+    testAuditFile = path.join(process.cwd(), 'test-direct-audit.ndjson');
     server = new SmartSuiteShimServer();
 
     // Replace the audit logger with our test instance
@@ -190,7 +191,8 @@ describe('Audit Integration - Direct Testing', () => {
       const productionServer = new SmartSuiteShimServer();
       // const expectedPath = path.join(process.cwd(), 'audit-trail.json');
 
-      expect((productionServer as any).auditLogger.auditFilePath).toContain('audit-trail.json');
+      // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-c9b1d3a0
+      expect((productionServer as any).auditLogger.auditFilePath).toContain('audit-trail.ndjson');
     });
   });
 

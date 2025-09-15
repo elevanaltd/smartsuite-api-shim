@@ -79,10 +79,24 @@ export class EventStore implements IEventStore {
   }
 }
 
-// Export factory function for convenience
-export function createEventStore(tenantId?: string): EventStore {
-  if (tenantId) {
-    return new EventStore(tenantId);
-  }
+// Factory functions with explicit naming to prevent confusion
+export function createMemoryEventStore(): EventStore {
   return new EventStore(new EventStoreMemory());
+}
+
+export function createProductionEventStore(tenantId: string): EventStore {
+  if (!tenantId) {
+    throw new Error('Tenant ID is required for production event store');
+  }
+  return new EventStore(tenantId);
+}
+
+// DEPRECATED: Use createMemoryEventStore or createProductionEventStore instead
+// Kept for backward compatibility - will be removed in next major version
+export function createEventStore(tenantId?: string): EventStore {
+  console.warn('createEventStore is deprecated. Use createMemoryEventStore or createProductionEventStore');
+  if (tenantId) {
+    return createProductionEventStore(tenantId);
+  }
+  return createMemoryEventStore();
 }

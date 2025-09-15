@@ -1,4 +1,5 @@
 // TESTGUARD-APPROVED: Test evolution from bug reproduction to fix validation
+// TESTGUARD-APPROVED: TESTGUARD-20250915-17578946 - Update tests for NDJSON architecture
 // Context7: consulted for vitest
 // Context7: consulted for fs
 import * as fs from 'fs';
@@ -9,11 +10,15 @@ import { AuditLogger, type MutationLogInput } from '../audit-logger.js';
 
 describe('AuditLogger MCP Environment', () => {
   const testAuditPath = '/tmp/test-audit-trail-mcp.json';
+  const ndjsonPath = '/tmp/test-audit-trail-mcp.ndjson';
 
   beforeEach(async () => {
-    // Clean up test files
+    // Clean up test files - both JSON and NDJSON
     if (fs.existsSync(testAuditPath)) {
       await fs.promises.unlink(testAuditPath);
+    }
+    if (fs.existsSync(ndjsonPath)) {
+      await fs.promises.unlink(ndjsonPath);
     }
     if (fs.existsSync(`${testAuditPath}.lock`)) {
       await fs.promises.unlink(`${testAuditPath}.lock`);
@@ -21,9 +26,12 @@ describe('AuditLogger MCP Environment', () => {
   });
 
   afterEach(async () => {
-    // Clean up test files
+    // Clean up test files - both JSON and NDJSON
     if (fs.existsSync(testAuditPath)) {
       await fs.promises.unlink(testAuditPath);
+    }
+    if (fs.existsSync(ndjsonPath)) {
+      await fs.promises.unlink(ndjsonPath);
     }
     if (fs.existsSync(`${testAuditPath}.lock`)) {
       await fs.promises.unlink(`${testAuditPath}.lock`);
@@ -49,8 +57,9 @@ describe('AuditLogger MCP Environment', () => {
     // Should not throw - this validates the fs-extra → native fs fix
     await expect(auditLogger.logMutation(testInput)).resolves.toBeUndefined();
 
-    // Verify audit file was created and contains the entry
-    expect(fs.existsSync(testAuditPath)).toBe(true);
+    // Verify NDJSON audit file was created (not JSON)
+    expect(fs.existsSync(ndjsonPath)).toBe(true);
+    expect(fs.existsSync(testAuditPath)).toBe(false);
 
     const entries = await auditLogger.getEntries();
     expect(entries).toHaveLength(1);

@@ -27,6 +27,14 @@ import {
 } from './smartsuite-client.js';
 import { handleDiscover } from './tools/discover.js';
 import { handleIntelligent } from './tools/intelligent.js';
+import {
+  handleKnowledgeEvents,
+  handleKnowledgeFieldMappings,
+  handleKnowledgeRefreshViews,
+  type KnowledgeEventsArgs,
+  type KnowledgeFieldMappingsArgs,
+  type KnowledgeRefreshViewsArgs,
+} from './tools/knowledge.js';
 import { handleQuery } from './tools/query.js';
 import { handleRecord } from './tools/record.js';
 import { handleSchema } from './tools/schema.js';
@@ -287,6 +295,61 @@ export class SmartSuiteShimServer {
           required: ['endpoint', 'method', 'operation_description'],
         },
       },
+      {
+        name: 'smartsuite_knowledge_events',
+        description: 'Knowledge Platform event operations (append/get events)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            operation: {
+              type: 'string',
+              enum: ['append', 'get'],
+              description: 'Event operation to perform',
+            },
+            aggregateId: {
+              type: 'string',
+              description: 'Aggregate ID for event operations',
+            },
+            event: {
+              type: 'object',
+              description: 'Event data for append operations',
+            },
+            limit: {
+              type: 'number',
+              description: 'Maximum number of events to retrieve (for get operations)',
+            },
+          },
+          required: ['operation'],
+        },
+      },
+      {
+        name: 'smartsuite_knowledge_field_mappings',
+        description: 'Get field mappings from Knowledge Platform',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            tableId: {
+              type: 'string',
+              description: 'SmartSuite table ID to get field mappings for',
+            },
+          },
+          required: ['tableId'],
+        },
+      },
+      {
+        name: 'smartsuite_knowledge_refresh_views',
+        description: 'Refresh Knowledge Platform materialized views',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            views: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'List of views to refresh (default: field_mappings)',
+            },
+          },
+        },
+      },
     ];
   }
 
@@ -468,6 +531,12 @@ export class SmartSuiteShimServer {
         return handleDiscover(this.createToolContext(), args);
       case 'smartsuite_intelligent':
         return handleIntelligent(this.createToolContext(), args);
+      case 'smartsuite_knowledge_events':
+        return handleKnowledgeEvents(args as unknown as KnowledgeEventsArgs, this.createToolContext());
+      case 'smartsuite_knowledge_field_mappings':
+        return handleKnowledgeFieldMappings(args as unknown as KnowledgeFieldMappingsArgs, this.createToolContext());
+      case 'smartsuite_knowledge_refresh_views':
+        return handleKnowledgeRefreshViews(args as unknown as KnowledgeRefreshViewsArgs, this.createToolContext());
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }

@@ -1,24 +1,25 @@
 // Supabase-backed Event Store with UUID support
 // TECHNICAL-ARCHITECT: Production-ready with proper ID generation
 // CONTEXT7_BYPASS: CI-FIX-001 - ESM import extension fixes for TypeScript compilation
-// Context7: consulted for uuid
-import { v4 as uuidv4 } from 'uuid';
+// Context7: consulted for uuid - uuidv5 for deterministic UUID generation
+// Critical-Engineer: consulted for Event Store architecture (validation, UUIDs, performance)
+import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 
 import { dbCircuitBreaker } from '../infrastructure/circuit-breaker.js';
 import { supabase, knowledgeConfig } from '../infrastructure/supabase-client.js';
 
-import { DomainEvent, Snapshot } from './types.js';
+import {
+  DomainEvent,
+  DomainEventSchema,
+  Snapshot,
+  parseEventRow,
+  parseSnapshotRow,
+  EventValidationError,
+} from './types.js';
 
-interface EventRow {
-  id: string;
-  aggregate_id: string;
-  event_type: string;
-  event_version: number;
-  created_at: string;
-  created_by: string;
-  event_data: any;
-  metadata: any;
-}
+// Application-specific namespace for UUIDv5 generation
+// Generated once with uuidv4() and hardcoded for consistency
+const TENANT_ID_NAMESPACE = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
 
 export class EventStoreSupabase {
   private tenantId: string;
@@ -34,20 +35,8 @@ export class EventStoreSupabase {
   }
 
   private stringToUuid(str: string): string {
-    // Create a deterministic UUID from a string
-    // For production, consider using a proper namespace UUID
-    const hash = str.split('').reduce((acc, char) => {
-      return ((acc << 5) - acc) + char.charCodeAt(0);
-    }, 0);
-
-    const hex = Math.abs(hash).toString(16).padStart(32, '0').substring(0, 32);
-    return [
-      hex.substring(0, 8),
-      hex.substring(8, 12),
-      '4' + hex.substring(13, 16), // Version 4
-      '8' + hex.substring(17, 20), // Variant bits
-      hex.substring(20, 32),
-    ].join('-');
+    // Use standard UUIDv5 with application-specific namespace for deterministic UUID generation
+    return uuidv5(str, TENANT_ID_NAMESPACE);
   }
 
   private ensureUuid(id: string): string {
@@ -58,8 +47,11 @@ export class EventStoreSupabase {
   }
 
   async append(event: DomainEvent): Promise<string> {
-    return dbCircuitBreaker.execute(async () => {
-      const aggregateId = this.ensureUuid(event.aggregateId);
+    // Validate input event against schema for runtime safety (at ingress)
+    const validatedEvent = DomainEventSchema.parse(event);
+
+    return dbCircuitBreaker.execute<string>(async () => {
+      const aggregateId = this.ensureUuid(validatedEvent.aggregateId);
 
       // Check current version for optimistic concurrency
       const { data: existingEvents, error: versionError } = await supabase
@@ -74,15 +66,15 @@ export class EventStoreSupabase {
         throw new Error(`Version check failed: ${versionError.message}`);
       }
 
-      const currentVersion = existingEvents?.[0]?.event_version || 0;
+      const currentVersion = (existingEvents?.[0] as { event_version?: number })?.event_version ?? 0;
       const expectedVersion = currentVersion + 1;
 
-      if (event.version !== expectedVersion) {
-        throw new Error(`Version conflict: expected ${expectedVersion}, got ${event.version}`);
+      if (validatedEvent.version !== expectedVersion) {
+        throw new Error(`Version conflict: expected ${expectedVersion}, got ${validatedEvent.version}`);
       }
 
       // Generate proper UUID for event if needed
-      const eventId = event.id.startsWith('evt_') ? uuidv4() : this.ensureUuid(event.id);
+      const eventId = validatedEvent.id.startsWith('evt_') ? uuidv4() : this.ensureUuid(validatedEvent.id);
 
       // Insert the event
       const { data, error } = await supabase
@@ -91,11 +83,11 @@ export class EventStoreSupabase {
           id: eventId,
           aggregate_id: aggregateId,
           aggregate_type: 'FieldMapping',
-          event_type: event.type,
-          event_version: event.version,
-          event_data: event.payload,
-          metadata: event.metadata,
-          created_by: this.ensureUuid(event.userId),
+          event_type: validatedEvent.type,
+          event_version: validatedEvent.version,
+          event_data: validatedEvent.payload,
+          metadata: validatedEvent.metadata,
+          created_by: this.ensureUuid(validatedEvent.userId),
           tenant_id: this.tenantId,
         })
         .select('id')
@@ -103,17 +95,31 @@ export class EventStoreSupabase {
 
       if (error) {
         if (error.code === '23505') {
-          throw new Error(`Version conflict: event version ${event.version} already exists`);
+          throw new Error(`Version conflict: event version ${validatedEvent.version} already exists`);
         }
         throw new Error(`Failed to append event: ${error.message}`);
       }
 
       // Check if we need to create a snapshot
-      if (event.version % knowledgeConfig.snapshotInterval === 0) {
-        await this.createSnapshot(aggregateId, event.version);
+      if (validatedEvent.version % knowledgeConfig.snapshotInterval === 0) {
+        // For O(1) snapshot creation, we need to get the current state first
+        // Get the most recent snapshot and apply events since then
+        const currentSnapshot = await this.getSnapshot(aggregateId);
+        const fromVersion = currentSnapshot ? currentSnapshot.version + 1 : 1;
+        const newEvents = await this.getEvents(aggregateId, fromVersion);
+
+        // Start with previous state or empty object
+        const baseState = currentSnapshot?.data ?? {};
+
+        // Apply only new events to create current state
+        const currentState = newEvents.reduce((acc, event) => {
+          return { ...acc, ...event.payload, lastVersion: event.version };
+        }, baseState);
+
+        await this.createSnapshotFromState(aggregateId, validatedEvent.version, currentState);
       }
 
-      return data.id;
+      return data.id as string;
     });
   }
 
@@ -140,16 +146,39 @@ export class EventStoreSupabase {
         throw new Error(`Failed to get events: ${error.message}`);
       }
 
-      return (data || []).map((row: EventRow) => ({
-        id: row.id,
-        aggregateId: row.aggregate_id,
-        type: row.event_type,
-        version: row.event_version,
-        timestamp: new Date(row.created_at),
-        userId: row.created_by,
-        payload: row.event_data,
-        metadata: row.metadata,
-      }));
+      // Resilient event loading - skip corrupted events rather than failing entirely
+      const events: DomainEvent[] = [];
+      const dataArray = data ?? [];
+      for (const [index, rawRow] of dataArray.entries()) {
+        try {
+          // Validate raw database row against schema
+          const validatedRow = parseEventRow(rawRow);
+
+          events.push({
+            id: validatedRow.id,
+            aggregateId: validatedRow.aggregate_id,
+            type: validatedRow.event_type,
+            version: validatedRow.event_version,
+            timestamp: new Date(validatedRow.created_at),
+            userId: validatedRow.created_by,
+            payload: validatedRow.event_data,
+            metadata: validatedRow.metadata,
+          } as DomainEvent);
+        } catch (validationError) {
+          if (validationError instanceof EventValidationError) {
+            // Skip corrupted events silently - in production send to monitoring service
+            // eslint-disable-next-line no-console
+            console.error(
+              `Skipping corrupted event at row ${index} for aggregate ${aggregateUuid}: ${validationError.getValidationDetails()}`,
+            );
+          } else {
+            // Re-throw unexpected errors
+            throw validationError;
+          }
+        }
+      }
+
+      return events;
     });
   }
 
@@ -157,12 +186,17 @@ export class EventStoreSupabase {
     return dbCircuitBreaker.execute(async () => {
       const aggregateUuid = this.ensureUuid(aggregateId);
 
-      const { data, error } = await supabase
+      const result = await supabase
         .from('snapshots')
         .select('*')
         .eq('aggregate_id', aggregateUuid)
         .eq('tenant_id', this.tenantId)
         .single();
+
+      const { data, error } = result as {
+        data: Record<string, unknown> | null;
+        error: { code?: string; message: string } | null
+      };
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -173,23 +207,33 @@ export class EventStoreSupabase {
 
       if (!data) return null;
 
-      return {
-        id: data.id,
-        aggregateId: data.aggregate_id,
-        version: data.version,
-        timestamp: new Date(data.created_at as string),
-        data: data.state,
-      };
+      try {
+        // Validate raw database row against schema
+        const validatedSnapshot = parseSnapshotRow(data);
+
+        return {
+          id: validatedSnapshot.id,
+          aggregateId: validatedSnapshot.aggregate_id,
+          version: validatedSnapshot.version,
+          timestamp: new Date(validatedSnapshot.created_at),
+          data: validatedSnapshot.state,
+        };
+      } catch (validationError) {
+        if (validationError instanceof EventValidationError) {
+          throw new Error(
+            `Invalid snapshot data from database: ${validationError.getValidationDetails()}`,
+          );
+        }
+        throw validationError;
+      }
     });
   }
 
-  private async createSnapshot(aggregateId: string, version: number): Promise<void> {
-    const events = await this.getEvents(aggregateId);
-
-    const state = events.reduce((acc, event) => {
-      return { ...acc, ...event.payload, lastVersion: event.version };
-    }, {});
-
+  /**
+   * Create snapshot from provided state (O(1) operation)
+   * This is the optimized version that doesn't refetch all events
+   */
+  private async createSnapshotFromState(aggregateId: string, version: number, state: object): Promise<void> {
     const { error } = await supabase
       .from('snapshots')
       .upsert({
@@ -203,7 +247,10 @@ export class EventStoreSupabase {
       });
 
     if (error) {
-      // Failed to create snapshot - logged by circuit breaker
+      // Failed to create snapshot - circuit breaker will handle logging
+      // In production, send to monitoring service instead
+      // eslint-disable-next-line no-console
+      console.error(`Failed to create snapshot for ${aggregateId} at version ${version}:`, error);
     }
   }
 }
