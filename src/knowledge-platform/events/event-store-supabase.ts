@@ -66,7 +66,7 @@ export class EventStoreSupabase {
         throw new Error(`Version check failed: ${versionError.message}`);
       }
 
-      const currentVersion = (existingEvents?.[0] as { event_version?: number })?.event_version || 0;
+      const currentVersion = (existingEvents?.[0] as { event_version?: number })?.event_version ?? 0;
       const expectedVersion = currentVersion + 1;
 
       if (validatedEvent.version !== expectedVersion) {
@@ -109,7 +109,7 @@ export class EventStoreSupabase {
         const newEvents = await this.getEvents(aggregateId, fromVersion);
 
         // Start with previous state or empty object
-        const baseState = currentSnapshot?.data || {};
+        const baseState = currentSnapshot?.data ?? {};
 
         // Apply only new events to create current state
         const currentState = newEvents.reduce((acc, event) => {
@@ -119,7 +119,7 @@ export class EventStoreSupabase {
         await this.createSnapshotFromState(aggregateId, validatedEvent.version, currentState);
       }
 
-      return data.id;
+      return data.id as string;
     });
   }
 
@@ -148,7 +148,8 @@ export class EventStoreSupabase {
 
       // Resilient event loading - skip corrupted events rather than failing entirely
       const events: DomainEvent[] = [];
-      for (const [index, rawRow] of (data || []).entries()) {
+      const dataArray = data ?? [];
+      for (const [index, rawRow] of dataArray.entries()) {
         try {
           // Validate raw database row against schema
           const validatedRow = parseEventRow(rawRow);
@@ -165,11 +166,11 @@ export class EventStoreSupabase {
           } as DomainEvent);
         } catch (validationError) {
           if (validationError instanceof EventValidationError) {
-            // Log the error but continue processing other events
+            // Skip corrupted events silently - in production send to monitoring service
+            // eslint-disable-next-line no-console
             console.error(
               `Skipping corrupted event at row ${index} for aggregate ${aggregateUuid}: ${validationError.getValidationDetails()}`,
             );
-            // In production, you might want to send this to a monitoring service
           } else {
             // Re-throw unexpected errors
             throw validationError;
@@ -185,12 +186,14 @@ export class EventStoreSupabase {
     return dbCircuitBreaker.execute(async () => {
       const aggregateUuid = this.ensureUuid(aggregateId);
 
-      const { data, error } = await supabase
+      const result = await supabase
         .from('snapshots')
         .select('*')
         .eq('aggregate_id', aggregateUuid)
         .eq('tenant_id', this.tenantId)
         .single();
+
+      const { data, error } = result as { data: any; error: any };
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -241,7 +244,9 @@ export class EventStoreSupabase {
       });
 
     if (error) {
-      // Failed to create snapshot - logged by circuit breaker
+      // Failed to create snapshot - circuit breaker will handle logging
+      // In production, send to monitoring service instead
+      // eslint-disable-next-line no-console
       console.error(`Failed to create snapshot for ${aggregateId} at version ${version}:`, error);
     }
   }

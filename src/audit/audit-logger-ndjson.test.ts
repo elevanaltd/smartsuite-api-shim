@@ -31,6 +31,8 @@ describe('AuditLogger NDJSON Format', () => {
       `${testAuditFile}.lock`, // Should not exist but clean up just in case
     ];
 
+    // Sequential file cleanup required for test isolation
+    // eslint-disable-next-line no-await-in-loop
     for (const file of filesToClean) {
       if (await fs.pathExists(file)) {
         await fs.remove(file);
