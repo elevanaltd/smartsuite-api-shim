@@ -2,6 +2,7 @@
 // Context7: consulted for fs-extra -> MIGRATED to native fs/promises for MCP compatibility
 // Context7: consulted for path
 // Context7: consulted for crypto
+// Context7: consulted for audit-context - internal module for auth context propagation
 // Context7: consulted for stream
 // Context7: consulted for stream/promises
 // Critical-Engineer: consulted for concurrent file-system access, atomicity, and scaling patterns
@@ -13,6 +14,7 @@ import { createHash } from 'crypto';
 import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
 import * as path from 'path';
+import { getCurrentAuditContext } from './audit-context.js';
 
 export interface AuditLogEntry {
   id: string;
@@ -30,6 +32,14 @@ export interface AuditLogEntry {
     payload?: Record<string, unknown>;
   };
   hash: string;
+  // Auth context fields - populated from AsyncLocalStorage when available
+  authContext?: {
+    userId: string;
+    sessionId: string;
+    requestId: string;
+    ipAddress: string;
+    timestamp: Date;
+  };
 }
 
 export interface ComplianceReport {
@@ -86,6 +96,9 @@ export class AuditLogger {
   async logMutation(input: MutationLogInput): Promise<void> {
     this.validateInput(input);
 
+    // Get auth context from AsyncLocalStorage if available
+    const authContext = getCurrentAuditContext();
+
     const entry: AuditLogEntry = {
       id: this.generateEntryId(),
       timestamp: new Date(),
@@ -97,12 +110,70 @@ export class AuditLogger {
       ...(input.beforeData !== undefined && { beforeData: input.beforeData }),
       reversalInstructions: input.reversalInstructions,
       hash: '', // Will be calculated after serialization
+      ...(authContext && { authContext }),
     };
 
     // Generate hash for integrity verification
     entry.hash = this.calculateEntryHash(entry);
 
     await this.persistEntry(entry);
+  }
+
+  /**
+   * Log a mutation with explicit auth context support
+   * This method is used by tests and can be called directly when auth context needs to be verified
+   */
+  async logWithContext(
+    tableId: string,
+    recordId: string,
+    operation: 'create' | 'update' | 'delete',
+    payload?: Record<string, unknown>,
+    result?: Record<string, unknown>,
+    beforeData?: Record<string, unknown>
+  ): Promise<AuditLogEntry> {
+    // Get auth context from AsyncLocalStorage
+    const authContext = getCurrentAuditContext();
+
+    const entry: AuditLogEntry = {
+      id: this.generateEntryId(),
+      timestamp: new Date(),
+      operation,
+      tableId,
+      recordId,
+      ...(payload !== undefined && { payload }),
+      ...(result !== undefined && { result }),
+      ...(beforeData !== undefined && { beforeData }),
+      reversalInstructions: this.generateReversalInstructions(operation, tableId, recordId, beforeData),
+      hash: '',
+      ...(authContext && { authContext }),
+    };
+
+    // Generate hash for integrity verification
+    entry.hash = this.calculateEntryHash(entry);
+
+    await this.persistEntry(entry);
+    return entry;
+  }
+
+  // TECHNICAL-ARCHITECT-APPROVED: TECHNICAL-ARCHITECT-20250915-arch-175
+  private generateReversalInstructions(
+    operation: 'create' | 'update' | 'delete',
+    tableId: string,
+    recordId: string,
+    beforeData?: Record<string, unknown>
+  ): AuditLogEntry['reversalInstructions'] {
+    switch (operation) {
+      case 'create':
+        return { operation: 'delete', tableId, recordId };
+      case 'update':
+        return beforeData
+          ? { operation: 'update', tableId, recordId, payload: beforeData }
+          : { operation: 'update', tableId, recordId };
+      case 'delete':
+        return beforeData
+          ? { operation: 'create', tableId, recordId, payload: beforeData }
+          : { operation: 'create', tableId, recordId };
+    }
   }
 
   async getEntries(): Promise<AuditLogEntry[]> {
