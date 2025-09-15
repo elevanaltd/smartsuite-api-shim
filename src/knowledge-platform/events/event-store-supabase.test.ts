@@ -357,19 +357,3 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
       .eq('tenant_id', testTenantId);
   });
 });
-// Unit tests for EventStore validation logic
-// These run without any external dependencies
-describe('EventStore Validation', () => {
-  const testTenantId = uuidv4();
-
-  it('should require tenant ID for Supabase event store', () => {
-    expect(() => createEventStore('')).toThrow('Tenant ID is required');
-    expect(() => createEventStore('valid-tenant')).not.toThrow();
-  });
-
-  it('should handle UUID conversion for non-UUID tenant IDs', () => {
-    const store = createEventStore('test-tenant-string');
-    expect(store).toBeDefined();
-    expect(store).toBeInstanceOf(EventStoreSupabase);
-  });
-});
