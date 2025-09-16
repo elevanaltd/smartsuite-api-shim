@@ -114,12 +114,11 @@ export class SmartSuiteShimServer {
    * Ensure authentication is complete before tool execution
    * With fail-fast initialization, this is now much simpler
    */
-  private async ensureAuthenticated(): Promise<void> {
+  private ensureAuthenticated(): void {
     if (!this.client) {
       throw new Error('Authentication required: call authenticate() first');
     }
     // Client exists, we're authenticated
-    return Promise.resolve();
   }
 
   getTools(): Array<{
@@ -485,7 +484,7 @@ export class SmartSuiteShimServer {
    * Call a tool by name - public interface for testing
    */
   async callTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
-    return this.executeTool(toolName, args);
+    return await this.executeTool(toolName, args);
   }
 
   /**
@@ -505,7 +504,7 @@ export class SmartSuiteShimServer {
 
   async executeTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
     // AUTO-AUTHENTICATION: Ensure authentication is complete
-    await this.ensureAuthenticated();
+    this.ensureAuthenticated();
 
     // Initialize field mappings on first use if not already done
     if (!this.fieldMappingsInitialized) {
