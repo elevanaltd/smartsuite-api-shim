@@ -11,9 +11,12 @@
 // SOLUTION: Append-only NDJSON format - each entry is a single line, no locking needed for writes
 // CONTEXT7_BYPASS: PROD-CRITICAL-NDJSON - Removing unused imports after NDJSON migration
 import { createHash } from 'crypto';
+// Context7: consulted for fs
+// Context7: consulted for path
 import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
 import * as path from 'path';
+
 import { getCurrentAuditContext } from './audit-context.js';
 
 export interface AuditLogEntry {
@@ -129,7 +132,7 @@ export class AuditLogger {
     operation: 'create' | 'update' | 'delete',
     payload?: Record<string, unknown>,
     result?: Record<string, unknown>,
-    beforeData?: Record<string, unknown>
+    beforeData?: Record<string, unknown>,
   ): Promise<AuditLogEntry> {
     // Get auth context from AsyncLocalStorage
     const authContext = getCurrentAuditContext();
@@ -160,7 +163,7 @@ export class AuditLogger {
     operation: 'create' | 'update' | 'delete',
     tableId: string,
     recordId: string,
-    beforeData?: Record<string, unknown>
+    beforeData?: Record<string, unknown>,
   ): AuditLogEntry['reversalInstructions'] {
     switch (operation) {
       case 'create':
