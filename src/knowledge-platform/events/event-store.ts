@@ -17,7 +17,7 @@ export class EventStoreMemory implements IEventStore {
   private snapshots: Map<string, Snapshot> = new Map();
   private versions: Map<string, number> = new Map();
 
-  async append(event: DomainEvent): Promise<string> {
+  append(event: DomainEvent): Promise<string> {
     const currentVersion = this.versions.get(event.aggregateId) ?? 0;
     const expectedVersion = currentVersion + 1;
 
@@ -31,21 +31,21 @@ export class EventStoreMemory implements IEventStore {
     this.events.get(event.aggregateId)!.push(event);
     this.versions.set(event.aggregateId, event.version);
 
-    return event.id;
+    return Promise.resolve(event.id);
   }
 
-  async getEvents(aggregateId: string, fromVersion?: number): Promise<DomainEvent[]> {
+  getEvents(aggregateId: string, fromVersion?: number): Promise<DomainEvent[]> {
     const events = this.events.get(aggregateId) ?? [];
 
     if (fromVersion === undefined) {
-      return events;
+      return Promise.resolve(events);
     }
 
-    return events.filter(e => e.version >= fromVersion);
+    return Promise.resolve(events.filter(e => e.version >= fromVersion));
   }
 
-  async getSnapshot(aggregateId: string): Promise<Snapshot | null> {
-    return this.snapshots.get(aggregateId) ?? null;
+  getSnapshot(aggregateId: string): Promise<Snapshot | null> {
+    return Promise.resolve(this.snapshots.get(aggregateId) ?? null);
   }
 }
 
