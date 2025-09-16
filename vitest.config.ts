@@ -30,6 +30,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      all: true, // Ensure all files are included, not just tested ones
       exclude: [
         'node_modules/**',
         'build/**',
@@ -38,13 +39,16 @@ export default defineConfig({
         '**/*.config.*',
         '**/*.d.ts',
         'scripts/**',
+        '**/main.ts',
+        '**/types.ts',
       ],
       thresholds: {
         global: {
-          branches: 80,
-          functions: 80,
-          lines: 80,
-          statements: 80,
+          // TESTGUARD ENFORCEMENT: 98% coverage requirement for critical input validation
+          branches: 98,
+          functions: 98,
+          lines: 98,
+          statements: 98,
         },
       },
     },

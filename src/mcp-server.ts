@@ -40,6 +40,33 @@ import { handleRecord } from './tools/record.js';
 import { handleSchema } from './tools/schema.js';
 import type { ToolContext } from './tools/types.js';
 import { handleUndo } from './tools/undo.js';
+// Context7: consulted for zod - already noted above
+import { validateMcpToolInput, McpValidationError } from './validation/input-validator.js';
+import { z } from 'zod';
+
+// MCP Tool validation schemas
+const QueryToolSchema = z.object({
+  operation: z.enum(['list', 'get', 'search', 'count']),
+  appId: z.string().min(1),
+  filters: z.record(z.unknown()).optional(),
+  sort: z.record(z.unknown()).optional(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+  recordId: z.string().optional(),
+});
+
+const RecordToolSchema = z.object({
+  operation: z.enum(['create', 'update', 'delete', 'bulk_update', 'bulk_delete']),
+  appId: z.string().min(1),
+  recordId: z.string().optional(),
+  data: z.record(z.unknown()).optional(),
+  dry_run: z.boolean(),
+});
+
+const SchemaToolSchema = z.object({
+  appId: z.string().min(1),
+  output_mode: z.enum(['summary', 'fields', 'detailed']).optional(),
+});
 
 export class SmartSuiteShimServer {
   private client?: SmartSuiteClient;
@@ -502,6 +529,34 @@ export class SmartSuiteShimServer {
     };
   }
 
+  /**
+   * Validate tool input parameters using appropriate schema and SmartDoc validation
+   */
+  private validateToolInput(toolName: string, args: Record<string, unknown>): unknown {
+    const schema = this.getValidationSchemaForTool(toolName);
+    if (!schema) {
+      return args; // No validation required for this tool
+    }
+
+    return validateMcpToolInput(toolName, schema, args);
+  }
+
+  /**
+   * Get validation schema for a specific tool
+   */
+  private getValidationSchemaForTool(toolName: string): z.ZodSchema<any> | null {
+    switch (toolName) {
+      case 'smartsuite_query':
+        return QueryToolSchema;
+      case 'smartsuite_record':
+        return RecordToolSchema;
+      case 'smartsuite_schema':
+        return SchemaToolSchema;
+      default:
+        return null;
+    }
+  }
+
   async executeTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
     // AUTO-AUTHENTICATION: Ensure authentication is complete
     this.ensureAuthenticated();
@@ -511,7 +566,18 @@ export class SmartSuiteShimServer {
       await this.initializeFieldMappings();
     }
 
-    // DRY-RUN pattern enforcement for mutations (North Star requirement)
+    // INPUT VALIDATION: Validate and transform inputs using validation middleware
+    let validatedArgs: unknown;
+    try {
+      validatedArgs = this.validateToolInput(toolName, args);
+    } catch (error) {
+      if (error instanceof McpValidationError) {
+        throw new Error(`${error.message}: ${error.validationErrors.join(', ')}`);
+      }
+      throw error;
+    }
+
+    // DRY-RUN pattern enforcement for mutations (project requirement)
     if (toolName === 'smartsuite_record' && args.dry_run === undefined) {
       throw new Error('Dry-run pattern required: mutation tools must specify dry_run parameter');
     }
