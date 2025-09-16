@@ -49,6 +49,7 @@ describe('AuditContext - Auth Context Propagation', () => {
         timestamp: new Date(),
       };
 
+      // eslint-disable-next-line @typescript-eslint/require-await -- async callback required by withAuditContext API for context propagation
       await withAuditContext(testContext, async () => {
         const currentContext = auditContextStorage.getStore();
         expect(currentContext).toEqual(testContext);
@@ -75,11 +76,13 @@ describe('AuditContext - Auth Context Propagation', () => {
       const results: string[] = [];
 
       await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/require-await -- async callback required by withAuditContext API for context propagation
         withAuditContext(context1, async () => {
           await new Promise(resolve => setTimeout(resolve, 10));
           const ctx = auditContextStorage.getStore();
           results.push(ctx?.userId ?? 'none');
         }),
+        // eslint-disable-next-line @typescript-eslint/require-await -- async callback required by withAuditContext API for context propagation
         withAuditContext(context2, async () => {
           const ctx = auditContextStorage.getStore();
           results.push(ctx?.userId ?? 'none');
@@ -181,7 +184,7 @@ describe('AuditContext - Auth Context Propagation', () => {
       });
     });
   });
-
+      // eslint-disable-next-line @typescript-eslint/require-await -- async callback required by withAuditContext API for context propagation
   describe('MCP Tool Handler Integration', () => {
     it('should wrap MCP tool handlers with auth context', async () => {
       const mockHandler = vi.fn(async () => {

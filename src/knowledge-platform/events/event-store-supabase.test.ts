@@ -220,6 +220,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
           },
         };
 
+        // eslint-disable-next-line no-await-in-loop -- sequential execution required for performance timing measurement
         await eventStore.append(event);
       }
 
@@ -259,6 +260,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
           },
         };
 
+        // eslint-disable-next-line no-await-in-loop -- sequential execution required for performance timing measurement
         await eventStore.append(event);
       }
 
@@ -287,6 +289,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
           },
         };
 
+        // eslint-disable-next-line no-await-in-loop -- sequential execution required for performance timing measurement
         await eventStore.append(event);
       }
 
