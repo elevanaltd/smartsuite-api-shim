@@ -177,7 +177,8 @@ describe('EventStore', () => {
             causationId: `cause_${i}`,
           },
         };
-        // eslint-disable-next-line no-await-in-loop -- sequential execution required for event versioning contract        await eventStore.append(event);
+        // eslint-disable-next-line no-await-in-loop -- sequential execution required for event versioning contract
+        await eventStore.append(event);
       }
 
       // Act

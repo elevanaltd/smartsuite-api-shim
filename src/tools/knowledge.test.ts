@@ -70,7 +70,8 @@ describe('Knowledge Platform MCP Tools', () => {
             version: 1,
           }),
         });
-        expect(vi.mocked(mockEventStore).append).toHaveBeenCalledWith(
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockEventStore.append).toHaveBeenCalledWith(
           expect.objectContaining({
             aggregateId: args.aggregateId,
             type: args.type,
@@ -93,7 +94,8 @@ describe('Knowledge Platform MCP Tools', () => {
           success: false,
           error: expect.stringContaining('Missing required field'),
         });
-        expect(vi.mocked(mockEventStore).append).not.toHaveBeenCalled();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockEventStore.append).not.toHaveBeenCalled();
       });
     });
 
@@ -135,7 +137,8 @@ describe('Knowledge Platform MCP Tools', () => {
           success: true,
           events,
         });
-        expect(vi.mocked(mockEventStore).getEvents).toHaveBeenCalledWith(args.aggregateId);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockEventStore.getEvents).toHaveBeenCalledWith(args.aggregateId);
       });
 
       it('should handle missing events', async () => {
