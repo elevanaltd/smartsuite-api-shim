@@ -3,12 +3,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { SmartSuiteShimServer } from '../../src/mcp-server.js';
+import { createAuthenticatedTestServer } from '../helpers/test-server.js';
 
 describe('Field Translation Integration - Manual Path Test', () => {
   let server: SmartSuiteShimServer;
 
-  beforeEach(() => {
-    server = new SmartSuiteShimServer();
+  beforeEach(async () => {
+    // Use TestGuard-approved authentication helper
+    server = await createAuthenticatedTestServer();
 
     // Mock the client to avoid API calls
     (server as any).client = {

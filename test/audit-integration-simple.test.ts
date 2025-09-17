@@ -21,6 +21,14 @@ describe('Audit Integration - Direct Testing', () => {
     // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-c9b1d3a0
     testAuditFile = path.join(process.cwd(), 'test-direct-audit.ndjson');
     server = new SmartSuiteShimServer();
+    // Mock environment for test
+    process.env.SMARTSUITE_API_TOKEN = 'test-token';
+    process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
+    // Mock authenticate to avoid real API calls
+    server['authenticate'] = vi.fn().mockResolvedValue(undefined);
+    // Initialize server to register tools
+    await server.initialize();
+
 
     // Replace the audit logger with our test instance
     auditLogger = new AuditLogger(testAuditFile);

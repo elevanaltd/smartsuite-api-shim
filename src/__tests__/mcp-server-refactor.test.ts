@@ -7,11 +7,19 @@ import { SmartSuiteShimServer } from '../mcp-server.js';
 describe('MCP Server with Function Modules', () => {
   let server: SmartSuiteShimServer;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     server = new SmartSuiteShimServer();
-    // Mock authentication
+
+    // Mock authentication method to prevent API calls
+    vi.spyOn(server as any, 'authenticate').mockResolvedValue(undefined);
+    vi.spyOn(server as any, 'initializeFieldMappings').mockResolvedValue(undefined);
+
+    // Mock authentication state
     (server as any).isAuthenticated = true;
     (server as any).fieldMappingsInitialized = true;
+
+    // Initialize the server to register tools in the registry
+    await server.initialize();
   });
 
   it('should dispatch query operations to function module', async () => {

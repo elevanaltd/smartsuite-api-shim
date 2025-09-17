@@ -112,6 +112,7 @@ describe('handleSchema', () => {
             required: false,
           },
         ],
+        conditionalFieldsSupported: true,
       });
     });
   });
@@ -142,6 +143,7 @@ describe('handleSchema', () => {
         structure: [
           { slug: 'field1', field_type: 'text', label: 'Field 1' },
         ],
+        conditionalFieldsSupported: true,
         fieldMappings: {
           hasCustomMappings: true,
           message: 'This table supports human-readable field names. Use field names from the mappings below instead of API codes.',
@@ -174,6 +176,7 @@ describe('handleSchema', () => {
         structure: [
           { slug: 'field1', field_type: 'text', label: 'Field 1' },
         ],
+        conditionalFieldsSupported: true,
         fieldMappings: {
           hasCustomMappings: false,
           message: 'This table uses raw API field codes. Custom field mappings not available.',

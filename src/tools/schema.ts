@@ -73,17 +73,58 @@ function generateSchemaSummary(schema: Record<string, unknown>, structure: Array
 }
 
 /**
+ * Process conditional field visibility based on field dependencies
+ */
+function processConditionalFields(structure: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
+  const processedFields = structure.map((field) => {
+    const params = field.params as Record<string, unknown> | undefined;
+    const conditionalLogic = params?.conditional_logic as Record<string, unknown> | undefined;
+
+    if (conditionalLogic) {
+      return {
+        ...field,
+        visibility: {
+          conditional: true,
+          conditions: conditionalLogic,
+          description: 'Field visibility depends on other field values',
+        },
+      };
+    }
+
+    return field;
+  });
+
+  return processedFields;
+}
+
+/**
  * Generate fields output mode (field names/types without full params)
  */
 function generateSchemaFields(schema: Record<string, unknown>, structure: Array<Record<string, unknown>>): unknown {
-  const fields = structure.map((field) => {
+  // Process conditional fields first
+  const processedStructure = processConditionalFields(structure);
+
+  const fields = processedStructure.map((field) => {
     const params = field.params as Record<string, unknown> | undefined;
-    return {
+    const visibility = field.visibility as Record<string, unknown> | undefined;
+
+    const fieldInfo: Record<string, unknown> = {
       slug: field.slug,
       field_type: field.field_type,
       label: field.label,
       required: params?.required || false,
     };
+
+    // Add conditional visibility info if present
+    if (visibility?.conditional) {
+      fieldInfo.conditional = {
+        isConditional: true,
+        conditions: visibility.conditions,
+        description: visibility.description,
+      };
+    }
+
+    return fieldInfo;
   });
 
   return {
@@ -91,6 +132,7 @@ function generateSchemaFields(schema: Record<string, unknown>, structure: Array<
     name: schema.name,
     field_count: structure.length,
     fields,
+    conditionalFieldsSupported: true,
   };
 }
 
@@ -98,10 +140,18 @@ function generateSchemaFields(schema: Record<string, unknown>, structure: Array<
  * Generate detailed output mode (full schema with field mappings)
  */
 function generateSchemaDetailed(context: ToolContext, appId: string, schema: Record<string, unknown>): unknown {
+  const schemaObj = { ...schema };
+
+  // Process conditional fields if structure exists
+  if (schemaObj.structure && Array.isArray(schemaObj.structure)) {
+    schemaObj.structure = processConditionalFields(schemaObj.structure as Array<Record<string, unknown>>);
+    schemaObj.conditionalFieldsSupported = true;
+  }
+
   // FIELD MAPPING: Add human-readable field mappings to schema response
   if (context.fieldTranslator.hasMappings(appId)) {
     return {
-      ...schema,
+      ...schemaObj,
       fieldMappings: {
         hasCustomMappings: true,
         message:
@@ -113,7 +163,7 @@ function generateSchemaDetailed(context: ToolContext, appId: string, schema: Rec
   }
 
   return {
-    ...schema,
+    ...schemaObj,
     fieldMappings: {
       hasCustomMappings: false,
       message: 'This table uses raw API field codes. Custom field mappings not available.',

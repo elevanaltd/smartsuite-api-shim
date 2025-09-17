@@ -4,13 +4,11 @@
 // Time Budget: 5 minutes validation
 
 // Context7: consulted for vitest
-// CONTEXT7_BYPASS: CI-FIX - ESLint import order fix for CI pipeline
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
-// Mock SmartSuite client creation - can be overridden per test
-import { createAuthenticatedClient } from '../src/smartsuite-client.js';
 
+// Mock SmartSuite client creation
 vi.mock('../src/smartsuite-client.js', () => ({
   createAuthenticatedClient: vi.fn().mockResolvedValue({
     listRecords: vi.fn(),
@@ -30,11 +28,10 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
   beforeEach(async () => {
     server = new SmartSuiteShimServer();
     originalFetch = global.fetch;
-    // Set up test environment with auto-auth disabled for test control
+    // Mock environment variables for test
     process.env.SMARTSUITE_API_TOKEN = 'test-token';
     process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
-    process.env.SKIP_AUTO_AUTH = 'true';
-    // Initialize server to register tools without auto-authentication
+    // Initialize server to register tools
     await server.initialize();
     vi.clearAllMocks();
   });
@@ -148,9 +145,8 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     });
 
     it('should handle authentication errors gracefully', async () => {
-      // TESTGUARD-APPROVED: Correctly mocking authentication failure for error handling test
-      // Override the global mock for this specific test to simulate auth failure
-      vi.mocked(createAuthenticatedClient).mockRejectedValueOnce(new Error('Authentication failed: Invalid token'));
+      // Mock fetch to simulate auth failure
+      global.fetch = vi.fn().mockRejectedValue(new Error('Authentication failed: Invalid token'));
 
       await expect(
         server.authenticate({
@@ -159,6 +155,8 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
           baseUrl: 'https://app.smartsuite.com',
         }),
       ).rejects.toThrow('Authentication failed');
+
+
     });
   });
 
