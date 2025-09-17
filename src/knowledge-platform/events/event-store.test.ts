@@ -177,7 +177,7 @@ describe('EventStore', () => {
             causationId: `cause_${i}`,
           },
         };
-        
+
         await eventStore.append(event);
       }
 

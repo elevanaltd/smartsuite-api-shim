@@ -49,7 +49,6 @@ describe('AuditContext - Auth Context Propagation', () => {
         timestamp: new Date(),
       };
 
-      
       await withAuditContext(testContext, async () => {
         const currentContext = auditContextStorage.getStore();
         expect(currentContext).toEqual(testContext);
@@ -76,13 +75,11 @@ describe('AuditContext - Auth Context Propagation', () => {
       const results: string[] = [];
 
       await Promise.all([
-        
         withAuditContext(context1, async () => {
           await new Promise(resolve => setTimeout(resolve, 10));
           const ctx = auditContextStorage.getStore();
           results.push(ctx?.userId ?? 'none');
         }),
-        
         withAuditContext(context2, async () => {
           const ctx = auditContextStorage.getStore();
           results.push(ctx?.userId ?? 'none');
@@ -186,7 +183,7 @@ describe('AuditContext - Auth Context Propagation', () => {
   });
   describe('MCP Tool Handler Integration', () => {
     it('should wrap MCP tool handlers with auth context', async () => {
-      
+
       const mockHandler = vi.fn(async () => {
         const context = auditContextStorage.getStore();
         return { success: true, context };
@@ -234,7 +231,7 @@ describe('AuditContext - Auth Context Propagation', () => {
         leakedContexts.push(auditContextStorage.getStore());
       });
 
-      
+
       const noContextHandler = async (): Promise<void> => {
         leakedContexts.push(auditContextStorage.getStore());
       };
@@ -259,7 +256,7 @@ describe('AuditContext - Auth Context Propagation', () => {
         requestId: 'temp-request',
         ipAddress: '3.3.3.3',
         timestamp: new Date(),
-      
+
       }, async () => {
         // Context should exist inside handler
         expect(auditContextStorage.getStore()).toBeDefined();

@@ -36,7 +36,7 @@ describe('KnowledgeLibrary Production Asset Loading', () => {
         expect(matches.length).toBeGreaterThan(0);
 
       } finally {
-        
+
         process.env.NODE_ENV = originalNodeEnv;
       }
     });
@@ -104,7 +104,7 @@ describe('KnowledgeLibrary Production Asset Loading', () => {
         expect(entries).toBeGreaterThan(0);
 
       } finally {
-        
+
         process.env.NODE_ENV = originalNodeEnv;
       }
     });

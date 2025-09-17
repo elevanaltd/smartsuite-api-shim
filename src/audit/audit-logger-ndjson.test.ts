@@ -32,7 +32,7 @@ describe('AuditLogger NDJSON Format', () => {
     ];
 
     // Sequential file cleanup required for test isolation
-    
+
     for (const file of filesToClean) {
       if (await fs.pathExists(file)) {
         await fs.remove(file);
