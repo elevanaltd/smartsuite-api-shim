@@ -149,6 +149,7 @@ describe('Schema Optimization', () => {
             required: false,
           },
         ],
+        conditionalFieldsSupported: true,
       });
     });
   });
@@ -162,6 +163,7 @@ describe('Schema Optimization', () => {
 
       expect(result).toEqual({
         ...mockFullSchema,
+        conditionalFieldsSupported: true,
         fieldMappings: {
           hasCustomMappings: expect.any(Boolean),
           message: expect.any(String),

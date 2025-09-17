@@ -8,6 +8,19 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
 
+// Mock SmartSuite client creation
+vi.mock('../src/smartsuite-client.js', () => ({
+  createAuthenticatedClient: vi.fn().mockResolvedValue({
+    listRecords: vi.fn(),
+    getRecord: vi.fn(),
+    createRecord: vi.fn(),
+    updateRecord: vi.fn(),
+    deleteRecord: vi.fn(),
+    getSchema: vi.fn(),
+    getApplicationStructure: vi.fn(),
+  }),
+}));
+
 describe('ERROR-ARCHITECT: Integration Validation', () => {
   let server: SmartSuiteShimServer;
   let originalFetch: typeof global.fetch;
@@ -18,8 +31,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     // Mock environment variables for test
     process.env.SMARTSUITE_API_TOKEN = 'test-token';
     process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
-    // Mock authenticate to avoid real API calls
-    server['authenticate'] = vi.fn().mockResolvedValue(undefined);
     // Initialize server to register tools
     await server.initialize();
     vi.clearAllMocks();
@@ -56,19 +67,12 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
   describe('Integration Point 2: DRY-RUN ↔ Mutation Safety', () => {
     it('should enforce dry-run pattern for mutations', async () => {
-      // Mock authentication
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
-
+      // Authenticate first to have a client
       await server.authenticate({
         apiKey: 'test-api-key',
         workspaceId: 'test-workspace',
         baseUrl: 'https://app.smartsuite.com',
       });
-
-
 
       // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250909-7cf66e12
       // Fixed field name: projects table uses 'projectName' not 'name'
@@ -83,12 +87,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     });
 
     it('should allow dry-run mutations', async () => {
-      // Mock authentication
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
-
+      // Authenticate first to have a client
       await server.authenticate({
         apiKey: 'test-api-key',
         workspaceId: 'test-workspace',
@@ -113,12 +112,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
   describe('Integration Point 3: Error Handling ↔ User Experience', () => {
     it('should provide clear error for unknown tools', async () => {
-      // Mock authentication
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
-
+      // Authenticate first to have a client
       await server.authenticate({
         apiKey: 'test-api-key',
         workspaceId: 'test-workspace',
@@ -133,12 +127,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     });
 
     it('should provide clear error for unknown operations', async () => {
-      // Mock authentication
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
-
+      // Authenticate first to have a client
       await server.authenticate({
         apiKey: 'test-api-key',
         workspaceId: 'test-workspace',
