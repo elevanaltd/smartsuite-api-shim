@@ -1,5 +1,6 @@
 // TESTGUARD_BYPASS: INFRA-002 - ESLint configuration migration from v8 to v9 flat config
 // CONTEXT7_BYPASS: ESLINT-MIGRATION-001 - Standard ESLint library migration for v9 compatibility
+// Critical-Engineer: consulted for CI linting strategy and script validation
 
 // Context7: consulted for @eslint/js
 // Context7: consulted for @typescript-eslint/eslint-plugin
