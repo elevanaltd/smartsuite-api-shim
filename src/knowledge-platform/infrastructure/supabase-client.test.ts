@@ -2,12 +2,7 @@
 // CRITICAL-PATH-FIX: Emergency test creation to fix CWD-dependent path resolution
 // CONTEXT7_BYPASS: CRITICAL-PATH-FIX - Server fails when run from different CWD
 // Context7: consulted for vitest - Testing framework already configured in project
-// Context7: consulted for path - Node.js built-in module for path operations
-// Context7: consulted for url - Node.js built-in module for URL/file path conversion
 // TESTGUARD-APPROVED: TESTGUARD-20250917-607eaffc
-
-import { dirname, join, resolve } from 'path';
-import { fileURLToPath } from 'url';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
