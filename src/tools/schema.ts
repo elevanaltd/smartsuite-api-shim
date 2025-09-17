@@ -1,6 +1,7 @@
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 // Technical-Architect: function module pattern for tool extraction
 
+import { isSchemaToolArgs } from '../lib/type-guards.js';
 import type { ToolContext } from './types.js';
 
 // Schema caching interface
@@ -207,18 +208,32 @@ function transformSchemaOutput(context: ToolContext, appId: string, schema: unkn
  */
 export async function handleSchema(
   context: ToolContext,
-  args: Record<string, unknown>,
+  args: unknown,
   cache: SchemaCache = defaultSchemaCache,
 ): Promise<unknown> {
-  // Critical-Engineer: consulted for Architecture pattern selection
-  let appId = args.appId as string;
-  const output_mode = (args.output_mode as string) ?? 'summary';
-
-  // INPUT VALIDATION: Validate output_mode enum
-  const validModes = ['summary', 'fields', 'detailed'];
-  if (!validModes.includes(output_mode)) {
-    throw new Error(`Invalid output_mode "${output_mode}". Must be one of: ${validModes.join(', ')}`);
+  // TYPE SAFETY: Basic validation first (but preserve specific error messages)
+  if (!args || typeof args !== 'object' || !('appId' in args)) {
+    throw new Error('Invalid schema arguments: missing required fields or invalid types');
   }
+
+  // More specific validation for established contracts
+  if (!isSchemaToolArgs(args)) {
+    // If basic structure is okay but type guard fails, it might be output_mode
+    const argsObj = args as Record<string, unknown>;
+    if (argsObj.output_mode && typeof argsObj.output_mode === 'string') {
+      const validModes = ['summary', 'fields', 'detailed'];
+      if (!validModes.includes(argsObj.output_mode)) {
+        throw new Error(`Invalid output_mode "${argsObj.output_mode}". Must be one of: ${validModes.join(', ')}`);
+      }
+    }
+    throw new Error('Invalid schema arguments: missing required fields or invalid types');
+  }
+
+  // Critical-Engineer: consulted for Architecture pattern selection
+  let { appId } = args;
+  const output_mode = args.output_mode ?? 'summary';
+
+  // Type guard already validates output_mode enum
 
   // TABLE RESOLUTION: Convert table name to ID if needed
   const resolvedId = context.tableResolver.resolveTableId(appId);
