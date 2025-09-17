@@ -55,7 +55,7 @@ export async function handleKnowledgeEvents(
     }
 
     // Get or create event store
-    const eventStore = context.eventStore || await createEventStore();
+    const eventStore = context.eventStore ?? await createEventStore();
 
     if (args.operation === 'append') {
       const event: DomainEvent = {
@@ -64,8 +64,8 @@ export async function handleKnowledgeEvents(
         type: args.type!,
         version: 1, // In real implementation, would track versions
         timestamp: new Date(),
-        userId: args.metadata?.userId || 'system',
-        payload: (args.data as Record<string, unknown>) || {},
+        userId: args.metadata?.userId ?? 'system',
+        payload: (args.data as Record<string, unknown>) ?? {},
         metadata: {
           correlationId: `corr-${Date.now()}`,
           causationId: `cause-${Date.now()}`,
@@ -117,7 +117,7 @@ export async function handleKnowledgeFieldMappings(
     const aggregateId = `field-mappings-${tableId}`;
 
     // Get or create event store
-    const eventStore = context.eventStore || await createEventStore();
+    const eventStore = context.eventStore ?? await createEventStore();
 
     try {
       // Try to get snapshot from event store
@@ -162,10 +162,10 @@ export async function handleKnowledgeRefreshViews(
   context: ToolContext,
 ): Promise<unknown> {
   try {
-    const views = args.views || ['field_mappings'];
+    const views = args.views ?? ['field_mappings'];
 
     // Get Supabase client
-    const supabaseClient = context.supabaseClient || supabase;
+    const supabaseClient = context.supabaseClient ?? supabase;
 
     // Attempt to refresh each view in parallel
     const refreshPromises = views.map(async (view) => {

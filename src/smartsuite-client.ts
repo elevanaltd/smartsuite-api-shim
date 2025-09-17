@@ -110,16 +110,16 @@ export async function createAuthenticatedClient(
       }
 
       if (response.status === 401) {
-        const message = `Authentication failed: ${String(errorData.error || 'Invalid API key')}`;
+        const message = `Authentication failed: ${String(errorData.error ?? 'Invalid API key')}`;
         throw new Error(message);
       } else if (response.status === 403) {
-        const message = `Authorization failed: ${String(errorData.error || 'No access to workspace')}`;
+        const message = `Authorization failed: ${String(errorData.error ?? 'No access to workspace')}`;
         throw new Error(message);
       } else if (response.status === 503) {
-        const message = `SmartSuite API unavailable: ${String(errorData.error || 'Service temporarily unavailable')}. Try again later.`;
+        const message = `SmartSuite API unavailable: ${String(errorData.error ?? 'Service temporarily unavailable')}. Try again later.`;
         throw new Error(message);
       } else {
-        const message = `API error ${response.status}: ${String(errorData.error || response.statusText)}`;
+        const message = `API error ${response.status}: ${String(errorData.error ?? response.statusText)}`;
         throw new Error(message);
       }
     }

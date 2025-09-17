@@ -61,7 +61,7 @@ function generateSchemaSummary(schema: Record<string, unknown>, structure: Array
   const fieldTypes: Record<string, number> = {};
   for (const field of structure) {
     const fieldType = field.field_type as string;
-    fieldTypes[fieldType] = (fieldTypes[fieldType] || 0) + 1;
+    fieldTypes[fieldType] = (fieldTypes[fieldType] ?? 0) + 1;
   }
 
   return {
@@ -112,7 +112,7 @@ function generateSchemaFields(schema: Record<string, unknown>, structure: Array<
       slug: field.slug,
       field_type: field.field_type,
       label: field.label,
-      required: params?.required || false,
+      required: params?.required ?? false,
     };
 
     // Add conditional visibility info if present

@@ -118,7 +118,7 @@ async function logUndoOperation(
   await auditLogger.logMutation({
     operation: reversalInstructions.operation,
     tableId: reversalInstructions.tableId,
-    recordId: reversalInstructions.recordId || entry.recordId,
+    recordId: reversalInstructions.recordId ?? entry.recordId,
     result: result as Record<string, unknown>,
     reversalInstructions: {
       operation: 'undo-undo' as any,  // Special non-executable operation type

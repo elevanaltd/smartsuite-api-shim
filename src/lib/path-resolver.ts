@@ -86,7 +86,7 @@ export function isProductionEnvironment(): boolean {
   }
 
   // Check if we're running from a build directory
-  const stackTrace = new Error().stack || '';
+  const stackTrace = new Error().stack ?? '';
   return stackTrace.includes('build/src') || stackTrace.includes('dist/src');
 }
 
