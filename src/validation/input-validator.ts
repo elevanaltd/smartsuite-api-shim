@@ -68,9 +68,9 @@ function performSmartDocValidation(toolName: string, validatedInput: unknown): v
     return;
   }
 
-  const recordData = validatedInput as any;
+  const recordData = validatedInput as Record<string, unknown>;
   if (recordData.data && typeof recordData.data === 'object') {
-    validateRecordDataFields(toolName, recordData.data);
+    validateRecordDataFields(toolName, recordData.data as Record<string, unknown>);
   }
 }
 

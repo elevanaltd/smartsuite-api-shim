@@ -15,6 +15,7 @@ import * as path from 'path';
 // Context7: consulted for url
 import { fileURLToPath } from 'url';
 
+
 // ERROR-ARCHITECT-APPROVED: ARCH-REFACTOR-APPROVED-2025-09-12-FUNCTION-MODULES
 import { AuditLogger } from './audit/audit-logger.js';
 import { FieldTranslator } from './lib/field-translator.js';
@@ -25,48 +26,9 @@ import {
   SmartSuiteClientConfig,
   createAuthenticatedClient,
 } from './smartsuite-client.js';
-import { handleDiscover } from './tools/discover.js';
-import { handleIntelligent } from './tools/intelligent.js';
-import {
-  handleKnowledgeEvents,
-  handleKnowledgeFieldMappings,
-  handleKnowledgeRefreshViews,
-  type KnowledgeEventsArgs,
-  type KnowledgeFieldMappingsArgs,
-  type KnowledgeRefreshViewsArgs,
-} from './tools/knowledge.js';
-import { handleQuery } from './tools/query.js';
-import { handleRecord } from './tools/record.js';
-import { handleSchema } from './tools/schema.js';
+import { defaultToolRegistry, registerAllTools } from './tools/tool-definitions.js';
 import type { ToolContext } from './tools/types.js';
-import { handleUndo } from './tools/undo.js';
-// Context7: consulted for zod - already noted above
-import { validateMcpToolInput, McpValidationError } from './validation/input-validator.js';
-import { z } from 'zod';
-
-// MCP Tool validation schemas
-const QueryToolSchema = z.object({
-  operation: z.enum(['list', 'get', 'search', 'count']),
-  appId: z.string().min(1),
-  filters: z.record(z.unknown()).optional(),
-  sort: z.record(z.unknown()).optional(),
-  limit: z.number().optional(),
-  offset: z.number().optional(),
-  recordId: z.string().optional(),
-});
-
-const RecordToolSchema = z.object({
-  operation: z.enum(['create', 'update', 'delete', 'bulk_update', 'bulk_delete']),
-  appId: z.string().min(1),
-  recordId: z.string().optional(),
-  data: z.record(z.unknown()).optional(),
-  dry_run: z.boolean(),
-});
-
-const SchemaToolSchema = z.object({
-  appId: z.string().min(1),
-  output_mode: z.enum(['summary', 'fields', 'detailed']).optional(),
-});
+import { McpValidationError } from './validation/input-validator.js';
 
 export class SmartSuiteShimServer {
   private client?: SmartSuiteClient;
@@ -96,6 +58,15 @@ export class SmartSuiteShimServer {
    * Following fail-fast pattern: if auth fails, server should not start
    */
   public async initialize(): Promise<void> {
+    // Critical-Engineer: consulted for Architecture pattern selection (Tool Registry)
+    // Register all tools with error-resistant implementation and fail-fast pattern
+    try {
+      registerAllTools();
+    } catch (error) {
+      console.error('FATAL: Tool registration failed:', error instanceof Error ? error.message : String(error));
+      throw new Error('Cannot start server: Tool system failed to initialize properly.');
+    }
+
     const apiToken = process.env.SMARTSUITE_API_TOKEN;
     const workspaceId = process.env.SMARTSUITE_WORKSPACE_ID;
 
@@ -529,33 +500,6 @@ export class SmartSuiteShimServer {
     };
   }
 
-  /**
-   * Validate tool input parameters using appropriate schema and SmartDoc validation
-   */
-  private validateToolInput(toolName: string, args: Record<string, unknown>): unknown {
-    const schema = this.getValidationSchemaForTool(toolName);
-    if (!schema) {
-      return args; // No validation required for this tool
-    }
-
-    return validateMcpToolInput(toolName, schema, args);
-  }
-
-  /**
-   * Get validation schema for a specific tool
-   */
-  private getValidationSchemaForTool(toolName: string): z.ZodSchema<any> | null {
-    switch (toolName) {
-      case 'smartsuite_query':
-        return QueryToolSchema;
-      case 'smartsuite_record':
-        return RecordToolSchema;
-      case 'smartsuite_schema':
-        return SchemaToolSchema;
-      default:
-        return null;
-    }
-  }
 
   async executeTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
     // AUTO-AUTHENTICATION: Ensure authentication is complete
@@ -566,44 +510,16 @@ export class SmartSuiteShimServer {
       await this.initializeFieldMappings();
     }
 
-    // INPUT VALIDATION: Validate and transform inputs using validation middleware
-    let validatedArgs: unknown;
+    // Use type-safe registry for tool execution with preserved McpValidationError structure
+    // Registry handles validation, type safety, observability, and error handling
     try {
-      validatedArgs = this.validateToolInput(toolName, args);
+      return await defaultToolRegistry.execute(toolName, this.createToolContext(), args);
     } catch (error) {
+      // Preserve McpValidationError structure but provide backward-compatible error format
       if (error instanceof McpValidationError) {
         throw new Error(`${error.message}: ${error.validationErrors.join(', ')}`);
       }
       throw error;
-    }
-
-    // DRY-RUN pattern enforcement for mutations (project requirement)
-    if (toolName === 'smartsuite_record' && args.dry_run === undefined) {
-      throw new Error('Dry-run pattern required: mutation tools must specify dry_run parameter');
-    }
-
-    // Basic tool dispatch
-    switch (toolName) {
-      case 'smartsuite_query':
-        return handleQuery(this.createToolContext(), args);
-      case 'smartsuite_record':
-        return handleRecord(this.createToolContext(), args);
-      case 'smartsuite_schema':
-        return handleSchema(this.createToolContext(), args);
-      case 'smartsuite_undo':
-        return handleUndo(this.createToolContext(), args);
-      case 'smartsuite_discover':
-        return handleDiscover(this.createToolContext(), args);
-      case 'smartsuite_intelligent':
-        return handleIntelligent(this.createToolContext(), args);
-      case 'smartsuite_knowledge_events':
-        return handleKnowledgeEvents(args as unknown as KnowledgeEventsArgs, this.createToolContext());
-      case 'smartsuite_knowledge_field_mappings':
-        return handleKnowledgeFieldMappings(args as unknown as KnowledgeFieldMappingsArgs, this.createToolContext());
-      case 'smartsuite_knowledge_refresh_views':
-        return handleKnowledgeRefreshViews(args as unknown as KnowledgeRefreshViewsArgs, this.createToolContext());
-      default:
-        throw new Error(`Unknown tool: ${toolName}`);
     }
   }
 }

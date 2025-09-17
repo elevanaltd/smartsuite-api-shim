@@ -3,7 +3,6 @@
 // Context7: consulted for vitest
 // Context7: consulted for zod
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { z } from 'zod';
 
 import { SmartSuiteShimServer } from '../mcp-server.js';
 
