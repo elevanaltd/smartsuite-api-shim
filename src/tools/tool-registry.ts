@@ -26,18 +26,28 @@ export class ToolRegistry {
    */
   register<T extends ZodType>(tool: Tool<T>): void {
     // Security check: Prevent prototype pollution attacks
-    if (typeof tool.name !== 'string' || tool.name.includes('__proto__') || tool.name.includes('constructor')) {
-      throw new Error(`Invalid tool name: ${tool.name}. Tool names cannot contain prototype pollution vectors.`);
+    if (
+      typeof tool.name !== 'string' ||
+      tool.name.includes('__proto__') ||
+      tool.name.includes('constructor')
+    ) {
+      throw new Error(
+        `Invalid tool name: ${tool.name}. Tool names cannot contain prototype pollution vectors.`,
+      );
     }
 
     // Duplicate registration check: Fail-fast to prevent silent overwrites
     if (this.tools.has(tool.name)) {
-      throw new Error(`Tool '${tool.name}' is already registered. Duplicate registration is not allowed.`);
+      throw new Error(
+        `Tool '${tool.name}' is already registered. Duplicate registration is not allowed.`,
+      );
     }
 
     // Validate tool structure before registration
     if (!tool.schema || !tool.execute || !tool.description) {
-      throw new Error(`Tool '${tool.name}' is missing required properties (schema, execute, or description).`);
+      throw new Error(
+        `Tool '${tool.name}' is missing required properties (schema, execute, or description).`,
+      );
     }
 
     this.tools.set(tool.name, tool);
@@ -54,7 +64,7 @@ export class ToolRegistry {
 
     // Use existing validation infrastructure to preserve McpValidationError structure
 
-    const validatedArgs = validateMcpToolInput(toolName, tool.schema, rawArgs);
+    const validatedArgs: unknown = validateMcpToolInput(toolName, tool.schema, rawArgs);
 
     // Observability wrapper for production monitoring
     const startTime = Date.now();
@@ -80,7 +90,12 @@ export class ToolRegistry {
   /**
    * Log tool execution for observability (can be extended with metrics)
    */
-  private logToolExecution(toolName: string, duration: number, status: 'success' | 'failure', error?: unknown): void {
+  private logToolExecution(
+    toolName: string,
+    duration: number,
+    status: 'success' | 'failure',
+    error?: unknown,
+  ): void {
     // TODO: Replace with proper metrics/observability system (Prometheus, DataDog, etc.)
     // For now, structured logging provides operational insight
     const logData: Record<string, unknown> = {
@@ -142,7 +157,7 @@ export class ToolRegistry {
   /**
    * Get tool information for MCP protocol
    */
-  getToolInfo(toolName: string): { name: string; description: string; schema: any } | null {
+  getToolInfo(toolName: string): { name: string; description: string; schema: unknown } | null {
     const tool = this.tools.get(toolName);
     if (!tool) return null;
 

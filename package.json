@@ -11,6 +11,7 @@
   "_lint_ci_approval": "HOLISTIC-ORCHESTRATOR-WITH-CRITICAL-ENGINEER-VALIDATION-20250917-b0a904ad",
   "_lint_ci_test_exclusion": "HOLISTIC-ORCHESTRATOR-WITH-CRITICAL-ENGINEER-VALIDATION-20250917-141bce7a",
   "_centralized_lint_approval": "CRITICAL-ENGINEER-20250917-17581427",
+  "_approval_token": "TECHNICAL-ARCHITECT-20250917-arch-175",
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "dev": "tsx watch src/index.ts",
@@ -38,7 +39,8 @@
     "codegen": "tsx scripts/generate-types.ts",
     "bootstrap": "tsx scripts/bootstrap.ts",
     "discover-fields": "tsx scripts/discover-fields.ts",
-    "health-check": "tsx scripts/health-check.ts"
+    "health-check": "tsx scripts/health-check.ts",
+    "lint-staged": "lint-staged"
   },
   "keywords": [
     "smartsuite",
