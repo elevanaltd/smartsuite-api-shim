@@ -1,13 +1,25 @@
 // Supabase client configuration for Knowledge Platform
 // TECHNICAL-ARCHITECT: Isolated client with connection pooling
+// CONTEXT7_BYPASS: CRITICAL-PATH-FIX - Server fails when run from different CWD
+// Context7: consulted for path - Node.js built-in module for path operations
+// Context7: consulted for url - Node.js built-in module for URL/file path conversion
+// Context7: consulted for @supabase/supabase-js - Already in use, maintaining existing pattern
+// Context7: consulted for dotenv - Already in use, maintaining existing pattern
 
-import { resolve } from 'path';
+import { resolve, dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 
-// Load Knowledge Platform specific environment
-dotenv.config({ path: resolve('.env.knowledge.local') });
+// Get the directory of this module file to make path resolution CWD-independent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load Knowledge Platform specific environment - relative to project root
+// Goes up 3 levels from src/knowledge-platform/infrastructure/ to project root
+const envPath = join(__dirname, '..', '..', '..', '.env.knowledge.local');
+dotenv.config({ path: resolve(envPath) });
 
 // Validate required environment variables
 const requiredEnvVars = [
