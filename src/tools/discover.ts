@@ -27,7 +27,11 @@ export const isDiscoverToolArgs = createToolArgumentGuard<DiscoverToolArgs>(
 /**
  * Handle discovery of tables and fields
  * Enables exploration of available tables and their human-readable field names
+ *
+ * Note: Function signature is async to maintain interface contract with ToolHandler,
+ * but current implementation is synchronous. Future enhancements may require async operations.
  */
+// eslint-disable-next-line @typescript-eslint/require-await -- Interface contract requires async signature
 export async function handleDiscover(
   context: ToolContext,
   args: Record<string, unknown>,
@@ -77,8 +81,9 @@ export async function handleDiscover(
 
     // Get field mappings if available
     if (fieldTranslator.hasMappings(resolvedId)) {
-      // Access internal mappings through proper interface
-      const mapping = (fieldTranslator as any).mappings.get(resolvedId) as { fields?: Record<string, unknown> } | undefined;
+      // Access mappings through public method
+      const mappings = fieldTranslator.getMappings();
+      const mapping = mappings.get(resolvedId);
       if (mapping?.fields) {
         const fields = mapping.fields;
         return {

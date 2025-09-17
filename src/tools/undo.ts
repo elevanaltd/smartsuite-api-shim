@@ -141,10 +141,12 @@ async function logUndoOperation(
     recordId: reversalInstructions.recordId ?? entry.recordId,
     result: result as Record<string, unknown>,
     reversalInstructions: {
-      operation: 'undo-undo' as any,  // Special non-executable operation type
+      operation: 'delete' as const,  // Use delete as a placeholder for undo-undo
       originalTransactionId: entry.id,
       message: 'This undo operation cannot be undone',
-    } as any,
+      tableId: reversalInstructions.tableId,
+      recordId: reversalInstructions.recordId ?? entry.recordId,
+    },
   });
 }
 

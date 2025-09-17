@@ -219,7 +219,11 @@ export async function handleKnowledgeRefreshViews(
 /**
  * Create an event store instance
  * Uses Supabase backend if available, falls back to in-memory
+ *
+ * Note: Returns a Promise to maintain consistency with async event store patterns,
+ * even though current implementation is synchronous
  */
+// eslint-disable-next-line @typescript-eslint/require-await -- Returns Promise for interface consistency
 async function createEventStore(): Promise<IEventStore> {
   try {
     // EventStoreSupabase expects a tenantId, not a client
@@ -233,7 +237,11 @@ async function createEventStore(): Promise<IEventStore> {
 /**
  * Load field mappings from YAML files
  * Fallback mechanism when event store is unavailable
+ *
+ * Note: Returns a Promise for consistency with async patterns,
+ * though current implementation is synchronous
  */
+// eslint-disable-next-line @typescript-eslint/require-await -- Returns Promise for interface consistency
 async function loadFieldMappingsFromYaml(
   tableId: string,
   fallbackReason?: string,
@@ -247,7 +255,15 @@ async function loadFieldMappingsFromYaml(
       // Add more fields as needed
     };
 
-    const result: any = {
+    interface FieldMappingResult {
+      success: boolean;
+      tableId: string;
+      fields: Record<string, string>;
+      source: string;
+      fallbackReason?: string;
+    }
+
+    const result: FieldMappingResult = {
       success: true,
       tableId,
       fields,

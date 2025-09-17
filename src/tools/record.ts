@@ -242,9 +242,13 @@ async function performDryRunValidation(
   try {
     if (operation === 'bulk_update' || operation === 'bulk_delete') {
       // For bulk operations, validate count limits
-      const itemCount = Array.isArray(translatedData) ? translatedData.length :
-                        (translatedData as any)?.items?.length ||
-                        (translatedData as any)?.ids?.length || 0;
+      let itemCount = 0;
+      if (Array.isArray(translatedData)) {
+        itemCount = translatedData.length;
+      } else if (translatedData && typeof translatedData === 'object') {
+        const bulkData = translatedData as { items?: unknown[]; ids?: unknown[] };
+        itemCount = bulkData.items?.length ?? bulkData.ids?.length ?? 0;
+      }
 
       if (itemCount > 25) {
         validationErrors.push(`Bulk operation exceeds SmartSuite's 25-record limit (${itemCount} records)`);
@@ -303,11 +307,15 @@ async function performDryRunValidation(
   validationCache.set(operationKey, cacheEntry);
 
   // Determine record count for bulk operations
-  const recordCount = operation === 'bulk_update' || operation === 'bulk_delete'
-    ? (Array.isArray(translatedData) ? translatedData.length :
-       (translatedData as any)?.items?.length ||
-       (translatedData as any)?.ids?.length || 0)
-    : 1;
+  let recordCount = 1;
+  if (operation === 'bulk_update' || operation === 'bulk_delete') {
+    if (Array.isArray(translatedData)) {
+      recordCount = translatedData.length;
+    } else if (translatedData && typeof translatedData === 'object') {
+      const bulkData = translatedData as { items?: unknown[]; ids?: unknown[] };
+      recordCount = bulkData.items?.length ?? bulkData.ids?.length ?? 0;
+    }
+  }
 
   return {
     dry_run: true,
@@ -471,16 +479,17 @@ export async function handleRecord(context: ToolContext, args: unknown): Promise
       // translatedData is guaranteed to exist for create operations due to validation above
       result = await context.client.createRecord(appId, translatedData!);
       // AUDIT LOGGING: Create operation
+      const createdRecord = result as { id?: string } | null;
       await context.auditLogger.logMutation({
         operation: 'create',
         tableId: appId,
-        recordId: (result as any)?.id || recordId,
+        recordId: createdRecord?.id ?? recordId,
         payload: translatedData!,
         result: result as Record<string, unknown>,
         reversalInstructions: {
           operation: 'delete',
           tableId: appId,
-          recordId: (result as any)?.id || recordId,
+          recordId: createdRecord?.id ?? recordId,
         },
       });
       break;

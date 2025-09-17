@@ -18,7 +18,7 @@ export interface Tool<T extends ZodType = ZodType> {
 
 // Registry implementation with full type safety and security hardening
 export class ToolRegistry {
-  private tools = new Map<string, Tool<any>>();
+  private tools = new Map<string, Tool<ZodType>>();
 
   /**
    * Register a tool with its schema and handler
@@ -98,7 +98,8 @@ export class ToolRegistry {
       } else if (typeof error === 'object' && error !== null) {
         logData.error = JSON.stringify(error);
       } else {
-        logData.error = String(error);
+        // At this point, error is a primitive (number, boolean, undefined, null, symbol, bigint)
+        logData.error = String(error as number | boolean | undefined | null | symbol | bigint);
       }
     }
 

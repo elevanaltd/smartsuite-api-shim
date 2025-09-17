@@ -43,12 +43,29 @@ export const isIntelligentToolArgs = createToolArgumentGuard<IntelligentToolArgs
 // This follows the lazy initialization pattern from the main server
 let intelligentHandlerCache: IntelligentOperationHandler | null = null;
 
+// Promise to track initialization in progress (prevents race conditions)
+let initializationPromise: Promise<IntelligentOperationHandler> | null = null;
+
 /**
- * Initialize the intelligent handler lazily
+ * Initialize the intelligent handler lazily with race condition protection
  * Creates KnowledgeLibrary, SafetyEngine, and IntelligentOperationHandler
+ *
+ * Critical-Engineer: consulted for External service integrations (third-party APIs, webhooks)
+ * Race condition fixed: Uses promise caching to ensure single initialization
  */
 async function initializeIntelligentHandler(client: SmartSuiteClient | undefined): Promise<IntelligentOperationHandler> {
-  if (!intelligentHandlerCache) {
+  // If already initialized, return cached instance
+  if (intelligentHandlerCache) {
+    return intelligentHandlerCache;
+  }
+
+  // If initialization is in progress, wait for it to complete
+  if (initializationPromise) {
+    return initializationPromise;
+  }
+
+  // Start initialization and cache the promise to prevent concurrent initialization
+  initializationPromise = (async (): Promise<void> => {
     const knowledgeLibrary = new KnowledgeLibrary();
     // Use path resolver to handle both development and production environments
     // Development: loads from src/knowledge
@@ -62,10 +79,13 @@ async function initializeIntelligentHandler(client: SmartSuiteClient | undefined
       safetyEngine,
       client,  // Pass client for API proxy functionality
     );
-    // Atomic assignment to avoid race condition warning
+
+    // Store the handler atomically after successful initialization
     intelligentHandlerCache = handler;
-  }
-  return intelligentHandlerCache;
+    return handler;
+  })();
+
+  return initializationPromise;
 }
 
 /**

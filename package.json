@@ -10,6 +10,7 @@
   "_approval_token": "CRITICAL-ENGINEER-20250117-ci-env-fix",
   "_lint_ci_approval": "HOLISTIC-ORCHESTRATOR-WITH-CRITICAL-ENGINEER-VALIDATION-20250917-b0a904ad",
   "_lint_ci_test_exclusion": "HOLISTIC-ORCHESTRATOR-WITH-CRITICAL-ENGINEER-VALIDATION-20250917-141bce7a",
+  "_centralized_lint_approval": "CRITICAL-ENGINEER-20250917-17581427",
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "dev": "tsx watch src/index.ts",

@@ -35,7 +35,10 @@ jobs:
       
     - name: Lint check
       run: npm run lint:ci
-      
+
+    - name: Enforce warning limit for src/
+      run: npx eslint src/ --ext .ts --ignore-pattern '**/*.test.ts' --ignore-pattern '**/*.spec.ts' --max-warnings=11
+
     - name: Build project
       run: npm run build
       
