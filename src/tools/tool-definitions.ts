@@ -22,7 +22,8 @@ import { handleUndo } from './undo.js';
 
 // Tool validation schemas (moved from mcp-server.ts)
 const QueryToolSchema = z.object({
-  operation: z.enum(['list', 'get', 'search', 'count']),
+  // Allow any string for operation so business logic can provide custom error messages
+  operation: z.string().min(1),
   appId: z.string().min(1),
   filters: z.record(z.unknown()).optional(),
   sort: z.record(z.unknown()).optional(),
@@ -32,20 +33,25 @@ const QueryToolSchema = z.object({
 });
 
 const RecordToolSchema = z.object({
-  operation: z.enum(['create', 'update', 'delete', 'bulk_update', 'bulk_delete']),
+  // Allow any string for operation so business logic can provide custom error messages
+  operation: z.string().min(1),
   appId: z.string().min(1),
   recordId: z.string().optional(),
-  data: z.record(z.unknown()).optional(),
-  dry_run: z.boolean(),
+  // Data can be object for single operations or array for bulk operations
+  data: z.union([z.record(z.unknown()), z.array(z.unknown())]).optional(),
+  // Make dry_run optional so business logic can enforce the requirement with custom message
+  dry_run: z.boolean().optional(),
 });
 
 const SchemaToolSchema = z.object({
   appId: z.string().min(1),
-  output_mode: z.enum(['summary', 'fields', 'detailed']).optional(),
+  // Allow any string for output_mode so business logic can provide custom error messages
+  output_mode: z.string().optional(),
 });
 
 const UndoToolSchema = z.object({
-  transaction_id: z.string().min(1),
+  // Allow any string (including empty) so business logic can provide custom error messages
+  transaction_id: z.string().optional(),
 });
 
 const DiscoverToolSchema = z.object({

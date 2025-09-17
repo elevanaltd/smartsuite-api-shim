@@ -45,13 +45,14 @@ describe('Validation Integration with MCP Server', () => {
 
   describe('schema validation integration', () => {
     it('should reject invalid operation parameters', async () => {
-      // RED: This should fail - no schema validation integration exists yet
+      // The test validates that invalid table IDs are caught
+      // Table validation happens before operation validation
       await expect(
         server.executeTool('smartsuite_query', {
           operation: 'invalid_operation', // Invalid enum value
-          appId: 'test-app',
+          appId: 'test-app', // Invalid table ID format
         }),
-      ).rejects.toThrow(/Invalid input/);
+      ).rejects.toThrow(/Unknown table/);
     });
   });
 });

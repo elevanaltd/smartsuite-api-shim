@@ -69,8 +69,9 @@ export class SmartSuiteShimServer {
 
     const apiToken = process.env.SMARTSUITE_API_TOKEN;
     const workspaceId = process.env.SMARTSUITE_WORKSPACE_ID;
+    const skipAutoAuth = process.env.SKIP_AUTO_AUTH === 'true';
 
-    if (apiToken && workspaceId) {
+    if (apiToken && workspaceId && !skipAutoAuth) {
       // eslint-disable-next-line no-console
       console.log('Auto-authenticating from environment variables...');
       this.authConfig = {
@@ -489,8 +490,10 @@ export class SmartSuiteShimServer {
    * Create context object for tool functions
    */
   private createToolContext(): ToolContext {
+    // This should never happen if ensureAuthenticated() was called
+    // But we keep the check for safety
     if (!this.client) {
-      throw new Error('Client not initialized');
+      throw new Error('Authentication required: call authenticate() first');
     }
     return {
       client: this.client,
@@ -502,7 +505,8 @@ export class SmartSuiteShimServer {
 
 
   async executeTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
-    // AUTO-AUTHENTICATION: Ensure authentication is complete
+    // AUTO-AUTHENTICATION: Ensure authentication is complete FIRST
+    // This must happen before createToolContext() to avoid "Cannot read properties of undefined"
     this.ensureAuthenticated();
 
     // Initialize field mappings on first use if not already done
@@ -513,6 +517,7 @@ export class SmartSuiteShimServer {
     // Use type-safe registry for tool execution with preserved McpValidationError structure
     // Registry handles validation, type safety, observability, and error handling
     try {
+      // Now safe to create context since we've verified authentication
       return await defaultToolRegistry.execute(toolName, this.createToolContext(), args);
     } catch (error) {
       // Preserve McpValidationError structure but provide backward-compatible error format

@@ -48,14 +48,12 @@ describe('Build Artifact Tests', () => {
 
       // Act: Create the server (this should succeed without throwing)
       const server = new SmartSuiteShimServer();
-    // Mock environment for test
-    process.env.SMARTSUITE_API_TOKEN = 'test-token';
-    process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
-    // Mock authenticate to avoid real API calls
-    server['authenticate'] = vi.fn().mockResolvedValue(undefined);
-    // Initialize server to register tools
-    await server.initialize();
 
+      // Mock authenticate to avoid real API calls
+      server['authenticate'] = vi.fn().mockResolvedValue(undefined);
+
+      // Initialize server to register tools
+      await server.initialize();
 
       // Assert: Server should be created successfully
       expect(server).toBeDefined();
@@ -87,14 +85,6 @@ describe('Build Artifact Tests', () => {
       // TESTGUARD-APPROVED: TESTGUARD-20250908-38bf9a44
       // Act: Create the server (constructor is synchronous)
       const server = new SmartSuiteShimServer();
-    // Mock environment for test
-    process.env.SMARTSUITE_API_TOKEN = 'test-token';
-    process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
-    // Mock authenticate to avoid real API calls
-    server['authenticate'] = vi.fn().mockResolvedValue(undefined);
-    // Initialize server to register tools
-    await server.initialize();
-
 
       // Assert: The initialize method should throw in fail-fast mode
       await expect(server.initialize()).rejects.toThrow('Could not authenticate server with environment credentials.');

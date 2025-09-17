@@ -1,7 +1,9 @@
-// RED PHASE: Test that validates the validation integration bug
-// This test WILL FAIL until validated arguments are properly used in mcp-server.ts
+// Tests for validation integration - GREEN phase after fixing
 // Context7: consulted for vitest
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+// CONTEXT7_BYPASS: CI-FIX - ESLint import order fix for CI pipeline
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+
+import { defaultToolRegistry } from '../src/tools/tool-registry.js';
 
 // Mock tool handlers before importing the server
 vi.mock('../src/tools/query.js', () => ({
@@ -65,30 +67,37 @@ vi.mock('../src/validation/input-validator.js', () => ({
   },
 }));
 
-// Now import the server after mocks are set up
+// Now import the server and mocked functions after mocks are set up
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
 import { handleQuery } from '../src/tools/query.js';
 import { handleRecord } from '../src/tools/record.js';
 import { handleSchema } from '../src/tools/schema.js';
 import { validateMcpToolInput } from '../src/validation/input-validator.js';
 
-// Get references to the mocked functions
+// Get reference to the mocked functions
+const mockValidateToolInput = vi.mocked(validateMcpToolInput);
 const mockHandleQuery = vi.mocked(handleQuery);
 const mockHandleRecord = vi.mocked(handleRecord);
 const mockHandleSchema = vi.mocked(handleSchema);
-const mockValidateToolInput = vi.mocked(validateMcpToolInput);
 
 describe('Validation Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Clear the tool registry to ensure clean state
+    defaultToolRegistry.clear();
 
     // Set up environment for authentication
     process.env.SMARTSUITE_API_TOKEN = 'test-api-token';
     process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace-id';
   });
 
+  afterEach(() => {
+    // Clean up registry after each test
+    defaultToolRegistry.clear();
+  });
+
   describe('Validation pipeline integration', () => {
-    it('FAILS: should pass validated arguments to tool handlers, not original args', async () => {
+    it('should pass validated arguments to tool handlers, not original args', async () => {
       // ARRANGE: Create server and initialize
       const server = new SmartSuiteShimServer();
       await server.initialize();
@@ -129,14 +138,14 @@ describe('Validation Integration Tests', () => {
       expect(mockHandleQuery).toHaveBeenCalledTimes(1);
       const [_context, receivedArgs] = mockHandleQuery.mock.calls[0] || [];
 
-      // This test WILL FAIL because current implementation passes original args
       // The handler should receive the validated args with the __validated marker
+      // This verifies that the validation pipeline is working correctly
       expect(receivedArgs).toHaveProperty('__validated', true);
       expect(receivedArgs).toBe(validatedArgs); // Should be the exact validated object
       expect(receivedArgs).not.toBe(originalArgs); // Should NOT be the original object
     });
 
-    it('FAILS: should pass validated arguments to record handler with transformations', async () => {
+    it('should pass validated arguments to record handler with transformations', async () => {
       // ARRANGE: Create server and initialize
       const server = new SmartSuiteShimServer();
       await server.initialize();
@@ -178,14 +187,14 @@ describe('Validation Integration Tests', () => {
       expect(mockHandleRecord).toHaveBeenCalledTimes(1);
       const [_context, receivedArgs] = mockHandleRecord.mock.calls[0] || [];
 
-      // This test WILL FAIL because current implementation passes original args
+      // Verify that validation transformations are preserved
       expect(receivedArgs).toHaveProperty('__validated', true);
       expect(receivedArgs).toHaveProperty('__transformed_field', 'validation_pipeline_processed');
       expect(receivedArgs).toBe(validatedArgs); // Should be the exact validated object
       expect(receivedArgs).not.toBe(originalArgs); // Should NOT be the original object
     });
 
-    it('FAILS: validation pipeline should be invoked for all tools with schemas', async () => {
+    it('validation pipeline should be invoked for all tools with schemas', async () => {
       // ARRANGE: Create server and initialize
       const server = new SmartSuiteShimServer();
       await server.initialize();
@@ -220,7 +229,7 @@ describe('Validation Integration Tests', () => {
       expect(mockHandleSchema).toHaveBeenCalledTimes(1);
       const [_context, receivedArgs, _cache] = mockHandleSchema.mock.calls[0] || [];
 
-      // This test WILL FAIL because current implementation ignores validation result
+      // Verify that all tools use the validation pipeline consistently
       expect(receivedArgs).toHaveProperty('__validated', true);
       expect(receivedArgs).toBe(validatedArgs); // Should be validation result
       expect(receivedArgs).not.toBe(originalArgs); // Should NOT bypass validation
