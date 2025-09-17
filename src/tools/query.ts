@@ -1,12 +1,12 @@
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 // Technical-Architect: function module pattern for tool extraction
 
-import type { SmartSuiteListResponse } from '../smartsuite-client.js';
 import {
   isQueryToolArgs,
   isSmartSuiteRecordArray,
   extractRecordData,
 } from '../lib/type-guards.js';
+import type { SmartSuiteListResponse } from '../smartsuite-client.js';
 
 import type { ToolContext } from './types.js';
 

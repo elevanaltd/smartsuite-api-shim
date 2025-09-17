@@ -5,6 +5,7 @@
 import {
   isRecordToolArgs,
 } from '../lib/type-guards.js';
+
 import type { ToolContext } from './types.js';
 
 // Validation cache for dry-run enforcement
@@ -458,9 +459,9 @@ export async function handleRecord(context: ToolContext, args: unknown): Promise
     try {
       // recordId is guaranteed to exist for these operations due to validation above
       beforeData = await context.client.getRecord(appId, recordId!);
-    } catch (error) {
+    } catch (_error) {
       // If we can't get beforeData, continue but log without it
-      console.warn(`Failed to fetch beforeData for ${operation} audit: ${String(error)}`);
+      // Failed to fetch beforeData - continue without it (non-critical for operation)
     }
   }
 

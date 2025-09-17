@@ -7,7 +7,7 @@ import { FilterValidator } from './lib/filter-validator.js';
 import {
   isSmartSuiteRecord,
   isSmartSuiteRecordArray,
-  type SmartSuiteRecordGuarded
+  type SmartSuiteRecordGuarded,
 } from './lib/type-guards.js';
 import logger from './logger.js';
 
@@ -553,8 +553,8 @@ export function createTypeSafeClient(client: SmartSuiteClient): TypeSafeSmartSui
 
     async listRecordsSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
       appId: string,
-      options?: SmartSuiteListOptions
-    ) {
+      options?: SmartSuiteListOptions,
+    ): Promise<{ items: T[]; total: number; offset: number; limit: number }> {
       const response = await client.listRecords(appId, options);
 
       // Validate response structure with type guards
@@ -577,8 +577,8 @@ export function createTypeSafeClient(client: SmartSuiteClient): TypeSafeSmartSui
 
     async getRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
       appId: string,
-      recordId: string
-    ) {
+      recordId: string,
+    ): Promise<T> {
       const response = await client.getRecord(appId, recordId);
 
       if (!isSmartSuiteRecord(response)) {
@@ -590,8 +590,8 @@ export function createTypeSafeClient(client: SmartSuiteClient): TypeSafeSmartSui
 
     async createRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
       appId: string,
-      data: Omit<T, 'id' | 'application_id' | 'created_at' | 'updated_at'>
-    ) {
+      data: Omit<T, 'id' | 'application_id' | 'created_at' | 'updated_at'>,
+    ): Promise<T> {
       const response = await client.createRecord(appId, data as Record<string, unknown>);
 
       if (!isSmartSuiteRecord(response)) {
@@ -604,8 +604,8 @@ export function createTypeSafeClient(client: SmartSuiteClient): TypeSafeSmartSui
     async updateRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
       appId: string,
       recordId: string,
-      data: Partial<Omit<T, 'id' | 'application_id'>>
-    ) {
+      data: Partial<Omit<T, 'id' | 'application_id'>>,
+    ): Promise<T> {
       const response = await client.updateRecord(appId, recordId, data as Record<string, unknown>);
 
       if (!isSmartSuiteRecord(response)) {

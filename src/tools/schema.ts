@@ -2,6 +2,7 @@
 // Technical-Architect: function module pattern for tool extraction
 
 import { isSchemaToolArgs } from '../lib/type-guards.js';
+
 import type { ToolContext } from './types.js';
 
 // Schema caching interface

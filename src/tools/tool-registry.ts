@@ -3,8 +3,8 @@
 // Context7: consulted for zod
 import { z, ZodType } from 'zod';
 
-import { validateMcpToolInput } from '../validation/input-validator.js';
 import logger from '../logger.js';
+import { validateMcpToolInput } from '../validation/input-validator.js';
 
 import type { ToolContext } from './types.js';
 
@@ -53,7 +53,7 @@ export class ToolRegistry {
     }
 
     // Use existing validation infrastructure to preserve McpValidationError structure
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
     const validatedArgs = validateMcpToolInput(toolName, tool.schema, rawArgs);
 
     // Observability wrapper for production monitoring
@@ -114,7 +114,7 @@ export class ToolRegistry {
    */
   getValidationSchema(toolName: string): ZodType | null {
     const tool = this.tools.get(toolName);
-    return tool?.schema || null;
+    return tool?.schema ?? null;
   }
 
   /**

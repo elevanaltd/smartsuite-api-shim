@@ -200,7 +200,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
       console.time('Creating events with O(1) snapshots');
 
       // Create many events to trigger snapshot creation
-      
+
       for (let i = 1; i <= eventCount; i++) {
         const event: DomainEvent = {
           id: uuidv4(),
@@ -220,7 +220,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
           },
         };
 
-        
+
         await eventStore.append(event);
       }
 
@@ -241,7 +241,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
       const aggregateId = uuidv4();
 
       // Create first batch of events (triggers first snapshot at version 100)
-      
+
       for (let i = 1; i <= 100; i++) {
         const event: DomainEvent = {
           id: uuidv4(),
@@ -260,7 +260,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
           },
         };
 
-        
+
         await eventStore.append(event);
       }
 
@@ -270,7 +270,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
       expect(snapshot?.data.lastVersion).toBe(100);
 
       // Create second batch (triggers second snapshot at version 200)
-      
+
       for (let i = 101; i <= 200; i++) {
         const event: DomainEvent = {
           id: uuidv4(),
@@ -289,7 +289,7 @@ describe.skipIf(!ENABLE_INTEGRATION_TESTS)('EventStore Supabase Integration', ()
           },
         };
 
-        
+
         await eventStore.append(event);
       }
 

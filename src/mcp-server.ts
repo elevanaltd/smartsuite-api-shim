@@ -21,6 +21,7 @@ import { AuditLogger } from './audit/audit-logger.js';
 import { FieldTranslator } from './lib/field-translator.js';
 import { MappingService } from './lib/mapping-service.js';
 import { TableResolver } from './lib/table-resolver.js';
+import logger from './logger.js';
 import {
   SmartSuiteClient,
   SmartSuiteClientConfig,
@@ -29,7 +30,6 @@ import {
 import { defaultToolRegistry, registerAllTools } from './tools/tool-definitions.js';
 import type { ToolContext } from './tools/types.js';
 import { McpValidationError } from './validation/input-validator.js';
-import logger from './logger.js';
 
 export class SmartSuiteShimServer {
   private client?: SmartSuiteClient;
@@ -73,7 +73,7 @@ export class SmartSuiteShimServer {
     const skipAutoAuth = process.env.SKIP_AUTO_AUTH === 'true';
 
     if (apiToken && workspaceId && !skipAutoAuth) {
-      // eslint-disable-next-line no-console
+
       logger.info('Auto-authenticating from environment variables...');
       this.authConfig = {
         apiKey: apiToken,
@@ -83,10 +83,10 @@ export class SmartSuiteShimServer {
       try {
         // BLOCKING call - server must be authenticated before starting
         await this.authenticate(this.authConfig);
-        // eslint-disable-next-line no-console
+
         logger.info('Authentication successful.');
       } catch (error) {
-        // eslint-disable-next-line no-console
+
         logger.error('FATAL: Auto-authentication failed.', error);
         // Re-throw to prevent the server from starting
         throw new Error('Could not authenticate server with environment credentials.');
@@ -387,12 +387,12 @@ export class SmartSuiteShimServer {
       let configPath: string | null = null;
 
       // Try each path until we find one that exists
-      // eslint-disable-next-line no-await-in-loop
+
       for (const tryPath of possiblePaths) {
         try {
           // Use native fs to check if directory exists and has files
           // Sequential checking is intentional - we stop at first valid path
-          // eslint-disable-next-line no-await-in-loop
+
           if (existsSync(tryPath)) {
             // eslint-disable-next-line no-await-in-loop
             const files = await fs.readdir(tryPath);
@@ -410,7 +410,7 @@ export class SmartSuiteShimServer {
         throw new Error('No valid field mappings directory found');
       }
 
-      // eslint-disable-next-line no-console
+
       logger.info('Loading field mappings from:', configPath);
 
       // Use MappingService for centralized collision detection

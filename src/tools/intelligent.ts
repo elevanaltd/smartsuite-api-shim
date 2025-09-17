@@ -4,8 +4,8 @@
 
 import { IntelligentOperationHandler, KnowledgeLibrary, SafetyEngine } from '../intelligent/index.js';
 import type { IntelligentToolInput } from '../intelligent/types.js';
-import { createToolArgumentGuard } from '../lib/type-guards.js';
 import { resolveKnowledgePath } from '../lib/path-resolver.js';
+import { createToolArgumentGuard } from '../lib/type-guards.js';
 import type { SmartSuiteClient } from '../smartsuite-client.js';
 
 import type { ToolContext } from './types.js';

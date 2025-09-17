@@ -2,9 +2,10 @@
 // TECHNICAL-ARCHITECT: Supports both in-memory (testing) and Supabase (production)
 // CONTEXT7_BYPASS: CI-FIX-001 - ESM import extension fixes for TypeScript compilation
 
+import logger from '../../logger.js';
+
 import { EventStoreSupabase } from './event-store-supabase.js';
 import { DomainEvent, Snapshot } from './types.js';
-import logger from '../../logger.js';
 
 export interface IEventStore {
   append(event: DomainEvent): Promise<string>;
