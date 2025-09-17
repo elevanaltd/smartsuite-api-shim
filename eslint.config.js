@@ -175,6 +175,23 @@ export default [
     },
   },
 
+  // Test file overrides - reduce noise in test files
+  {
+    files: ['**/*.test.ts', '**/*.spec.ts', 'test/**/*.ts', 'tests/**/*.ts'],
+    rules: {
+      '@typescript-eslint/require-await': 'off',
+      'no-console': 'off',
+      'no-await-in-loop': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/no-unsafe-call': 'warn',
+      '@typescript-eslint/no-unsafe-argument': 'warn',
+      '@typescript-eslint/unbound-method': 'off',
+      'require-atomic-updates': 'off',
+    },
+  },
+
   // Global ignores
   {
     ignores: [
