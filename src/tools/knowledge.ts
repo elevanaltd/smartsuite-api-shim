@@ -192,7 +192,7 @@ export async function handleKnowledgeRefreshViews(
     });
 
     const results = await Promise.all(refreshPromises);
-    const errors = results.filter(result => result.error !== null).map(result => result.error!);
+    const errors = results.filter(result => result.error !== null).map(result => result.error);
 
     if (errors.length > 0) {
       return {

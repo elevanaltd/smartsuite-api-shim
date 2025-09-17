@@ -15,6 +15,7 @@ import * as path from 'path';
 // Context7: consulted for url
 import { fileURLToPath } from 'url';
 
+
 // ERROR-ARCHITECT-APPROVED: ARCH-REFACTOR-APPROVED-2025-09-12-FUNCTION-MODULES
 import { AuditLogger } from './audit/audit-logger.js';
 import { FieldTranslator } from './lib/field-translator.js';
@@ -25,21 +26,9 @@ import {
   SmartSuiteClientConfig,
   createAuthenticatedClient,
 } from './smartsuite-client.js';
-import { handleDiscover } from './tools/discover.js';
-import { handleIntelligent } from './tools/intelligent.js';
-import {
-  handleKnowledgeEvents,
-  handleKnowledgeFieldMappings,
-  handleKnowledgeRefreshViews,
-  type KnowledgeEventsArgs,
-  type KnowledgeFieldMappingsArgs,
-  type KnowledgeRefreshViewsArgs,
-} from './tools/knowledge.js';
-import { handleQuery } from './tools/query.js';
-import { handleRecord } from './tools/record.js';
-import { handleSchema } from './tools/schema.js';
+import { defaultToolRegistry, registerAllTools } from './tools/tool-definitions.js';
 import type { ToolContext } from './tools/types.js';
-import { handleUndo } from './tools/undo.js';
+import { McpValidationError } from './validation/input-validator.js';
 
 export class SmartSuiteShimServer {
   private client?: SmartSuiteClient;
@@ -69,10 +58,20 @@ export class SmartSuiteShimServer {
    * Following fail-fast pattern: if auth fails, server should not start
    */
   public async initialize(): Promise<void> {
+    // Critical-Engineer: consulted for Architecture pattern selection (Tool Registry)
+    // Register all tools with error-resistant implementation and fail-fast pattern
+    try {
+      registerAllTools();
+    } catch (error) {
+      console.error('FATAL: Tool registration failed:', error instanceof Error ? error.message : String(error));
+      throw new Error('Cannot start server: Tool system failed to initialize properly.');
+    }
+
     const apiToken = process.env.SMARTSUITE_API_TOKEN;
     const workspaceId = process.env.SMARTSUITE_WORKSPACE_ID;
+    const skipAutoAuth = process.env.SKIP_AUTO_AUTH === 'true';
 
-    if (apiToken && workspaceId) {
+    if (apiToken && workspaceId && !skipAutoAuth) {
       // eslint-disable-next-line no-console
       console.log('Auto-authenticating from environment variables...');
       this.authConfig = {
@@ -114,12 +113,11 @@ export class SmartSuiteShimServer {
    * Ensure authentication is complete before tool execution
    * With fail-fast initialization, this is now much simpler
    */
-  private async ensureAuthenticated(): Promise<void> {
+  private ensureAuthenticated(): void {
     if (!this.client) {
       throw new Error('Authentication required: call authenticate() first');
     }
     // Client exists, we're authenticated
-    return Promise.resolve();
   }
 
   getTools(): Array<{
@@ -485,15 +483,17 @@ export class SmartSuiteShimServer {
    * Call a tool by name - public interface for testing
    */
   async callTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
-    return this.executeTool(toolName, args);
+    return await this.executeTool(toolName, args);
   }
 
   /**
    * Create context object for tool functions
    */
   private createToolContext(): ToolContext {
+    // This should never happen if ensureAuthenticated() was called
+    // But we keep the check for safety
     if (!this.client) {
-      throw new Error('Client not initialized');
+      throw new Error('Authentication required: call authenticate() first');
     }
     return {
       client: this.client,
@@ -503,42 +503,28 @@ export class SmartSuiteShimServer {
     };
   }
 
+
   async executeTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
-    // AUTO-AUTHENTICATION: Ensure authentication is complete
-    await this.ensureAuthenticated();
+    // AUTO-AUTHENTICATION: Ensure authentication is complete FIRST
+    // This must happen before createToolContext() to avoid "Cannot read properties of undefined"
+    this.ensureAuthenticated();
 
     // Initialize field mappings on first use if not already done
     if (!this.fieldMappingsInitialized) {
       await this.initializeFieldMappings();
     }
 
-    // DRY-RUN pattern enforcement for mutations (North Star requirement)
-    if (toolName === 'smartsuite_record' && args.dry_run === undefined) {
-      throw new Error('Dry-run pattern required: mutation tools must specify dry_run parameter');
-    }
-
-    // Basic tool dispatch
-    switch (toolName) {
-      case 'smartsuite_query':
-        return handleQuery(this.createToolContext(), args);
-      case 'smartsuite_record':
-        return handleRecord(this.createToolContext(), args);
-      case 'smartsuite_schema':
-        return handleSchema(this.createToolContext(), args);
-      case 'smartsuite_undo':
-        return handleUndo(this.createToolContext(), args);
-      case 'smartsuite_discover':
-        return handleDiscover(this.createToolContext(), args);
-      case 'smartsuite_intelligent':
-        return handleIntelligent(this.createToolContext(), args);
-      case 'smartsuite_knowledge_events':
-        return handleKnowledgeEvents(args as unknown as KnowledgeEventsArgs, this.createToolContext());
-      case 'smartsuite_knowledge_field_mappings':
-        return handleKnowledgeFieldMappings(args as unknown as KnowledgeFieldMappingsArgs, this.createToolContext());
-      case 'smartsuite_knowledge_refresh_views':
-        return handleKnowledgeRefreshViews(args as unknown as KnowledgeRefreshViewsArgs, this.createToolContext());
-      default:
-        throw new Error(`Unknown tool: ${toolName}`);
+    // Use type-safe registry for tool execution with preserved McpValidationError structure
+    // Registry handles validation, type safety, observability, and error handling
+    try {
+      // Now safe to create context since we've verified authentication
+      return await defaultToolRegistry.execute(toolName, this.createToolContext(), args);
+    } catch (error) {
+      // Preserve McpValidationError structure but provide backward-compatible error format
+      if (error instanceof McpValidationError) {
+        throw new Error(`${error.message}: ${error.validationErrors.join(', ')}`);
+      }
+      throw error;
     }
   }
 }

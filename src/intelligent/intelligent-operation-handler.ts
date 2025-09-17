@@ -110,7 +110,7 @@ export class IntelligentOperationHandler {
         );
         // Validate the dependency's return value
         knowledge = Array.isArray(foundKnowledge) ? foundKnowledge : [];
-      } catch (error) {
+      } catch (_error) {
         // Silently fall back to empty knowledge
         // In production, this could be logged to monitoring service
         knowledge = [];
@@ -120,7 +120,7 @@ export class IntelligentOperationHandler {
       let safetyAssessment;
       try {
         safetyAssessment = this.safetyEngine.assess(input, knowledge);
-      } catch (error) {
+      } catch (_error) {
         // Silently fall back to cautious safety assessment
         // In production, this could be logged to monitoring service
         safetyAssessment = {

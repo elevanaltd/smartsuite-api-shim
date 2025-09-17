@@ -17,8 +17,8 @@ export class EventStoreMemory implements IEventStore {
   private snapshots: Map<string, Snapshot> = new Map();
   private versions: Map<string, number> = new Map();
 
-  async append(event: DomainEvent): Promise<string> {
-    const currentVersion = this.versions.get(event.aggregateId) || 0;
+  append(event: DomainEvent): Promise<string> {
+    const currentVersion = this.versions.get(event.aggregateId) ?? 0;
     const expectedVersion = currentVersion + 1;
 
     if (event.version !== expectedVersion) {
@@ -31,21 +31,21 @@ export class EventStoreMemory implements IEventStore {
     this.events.get(event.aggregateId)!.push(event);
     this.versions.set(event.aggregateId, event.version);
 
-    return event.id;
+    return Promise.resolve(event.id);
   }
 
-  async getEvents(aggregateId: string, fromVersion?: number): Promise<DomainEvent[]> {
-    const events = this.events.get(aggregateId) || [];
+  getEvents(aggregateId: string, fromVersion?: number): Promise<DomainEvent[]> {
+    const events = this.events.get(aggregateId) ?? [];
 
     if (fromVersion === undefined) {
-      return events;
+      return Promise.resolve(events);
     }
 
-    return events.filter(e => e.version >= fromVersion);
+    return Promise.resolve(events.filter(e => e.version >= fromVersion));
   }
 
-  async getSnapshot(aggregateId: string): Promise<Snapshot | null> {
-    return this.snapshots.get(aggregateId) || null;
+  getSnapshot(aggregateId: string): Promise<Snapshot | null> {
+    return Promise.resolve(this.snapshots.get(aggregateId) ?? null);
   }
 }
 
@@ -67,15 +67,15 @@ export class EventStore implements IEventStore {
   }
 
   async append(event: DomainEvent): Promise<string> {
-    return this.backend.append(event);
+    return await this.backend.append(event);
   }
 
   async getEvents(aggregateId: string, fromVersion?: number): Promise<DomainEvent[]> {
-    return this.backend.getEvents(aggregateId, fromVersion);
+    return await this.backend.getEvents(aggregateId, fromVersion);
   }
 
   async getSnapshot(aggregateId: string): Promise<Snapshot | null> {
-    return this.backend.getSnapshot(aggregateId);
+    return await this.backend.getSnapshot(aggregateId);
   }
 }
 

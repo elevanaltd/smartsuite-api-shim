@@ -33,7 +33,7 @@ export const auditContextStorage = new AsyncLocalStorage<AuditContext>();
  */
 export async function withAuditContext<T>(
   context: AuditContext,
-  callback: () => Promise<T>
+  callback: () => Promise<T>,
 ): Promise<T> {
   return auditContextStorage.run(context, callback);
 }

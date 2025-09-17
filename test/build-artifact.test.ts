@@ -49,6 +49,12 @@ describe('Build Artifact Tests', () => {
       // Act: Create the server (this should succeed without throwing)
       const server = new SmartSuiteShimServer();
 
+      // Mock authenticate to avoid real API calls
+      server['authenticate'] = vi.fn().mockResolvedValue(undefined);
+
+      // Initialize server to register tools
+      await server.initialize();
+
       // Assert: Server should be created successfully
       expect(server).toBeDefined();
       expect(server).toBeInstanceOf(SmartSuiteShimServer);

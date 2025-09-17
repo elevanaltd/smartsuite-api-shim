@@ -65,7 +65,8 @@ describe('handleQuery Tool Function', () => {
 
     const result = await handleQuery(mockContext, args);
 
-    expect(mockTableResolver.resolveTableId as any).toHaveBeenCalledWith('test-app-id');
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mockTableResolver.resolveTableId).toHaveBeenCalledWith('test-app-id');
     expect(mockClient.listRecords as any).toHaveBeenCalled();
     expect(result).toHaveProperty('items');
     expect(result).toHaveProperty('limit');
@@ -85,7 +86,8 @@ describe('handleQuery Tool Function', () => {
 
     const result = await handleQuery(mockContext, args);
 
-    expect(mockTableResolver.resolveTableId as any).toHaveBeenCalledWith('test-app-id');
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mockTableResolver.resolveTableId).toHaveBeenCalledWith('test-app-id');
     expect(mockClient.getRecord as any).toHaveBeenCalledWith('test-app-id', 'rec-123');
     expect(result).toEqual(mockRecord);
   });
@@ -100,7 +102,8 @@ describe('handleQuery Tool Function', () => {
 
     const result = await handleQuery(mockContext, args);
 
-    expect(mockTableResolver.resolveTableId as any).toHaveBeenCalledWith('test-app-id');
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mockTableResolver.resolveTableId).toHaveBeenCalledWith('test-app-id');
     expect(mockClient.countRecords as any).toHaveBeenCalled();
     expect(result).toEqual({ count: 42 });
   });
