@@ -28,11 +28,13 @@ async function initializeIntelligentHandler(client: SmartSuiteClient | undefined
     await knowledgeLibrary.loadFromResearch(knowledgePath);
     const safetyEngine = new SafetyEngine(knowledgeLibrary);
     // Pass the SmartSuiteClient to enable execute and dry_run modes
-    intelligentHandlerCache = new IntelligentOperationHandler(
+    const handler = new IntelligentOperationHandler(
       knowledgeLibrary,
       safetyEngine,
       client,  // Pass client for API proxy functionality
     );
+    // Atomic assignment to avoid race condition warning
+    intelligentHandlerCache = handler;
   }
   return intelligentHandlerCache;
 }
