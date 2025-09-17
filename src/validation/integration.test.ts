@@ -5,24 +5,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { SmartSuiteShimServer } from '../mcp-server.js';
+import { createAuthenticatedTestServer } from '../../test/helpers/test-server.js';
 
 describe('Validation Integration with MCP Server', () => {
   let server: SmartSuiteShimServer;
 
   beforeEach(async () => {
-    server = new SmartSuiteShimServer();
-
-    // Mock authentication
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true }),
-    });
-
-    await server.authenticate({
-      apiKey: 'test-api-key',
-      workspaceId: 'test-workspace',
-      baseUrl: 'https://app.smartsuite.com',
-    });
+    // Use TestGuard-approved authentication helper
+    server = await createAuthenticatedTestServer();
 
     // Mock client
     (server as any).client = {

@@ -65,22 +65,27 @@ describe('Audit Integration', () => {
     // Mock createAuthenticatedClient to return our mock client
     vi.mocked(smartsuiteClient.createAuthenticatedClient).mockResolvedValue(mockClient as unknown as SmartSuiteClient);
 
-    // Create and initialize the server
+    // Create and initialize the server with TestGuard-approved pattern
     server = new SmartSuiteShimServer();
-    // Mock environment for test
-    process.env.SMARTSUITE_API_TOKEN = 'test-token';
-    process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
     // Mock authenticate to avoid real API calls
     server['authenticate'] = vi.fn().mockResolvedValue(undefined);
     // Initialize server to register tools
     await server.initialize();
 
+    // Mark server as authenticated for tests
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (server as any).authManager = {
+      isAuthenticated: (): boolean => true,
+      getAuthConfig: (): { apiKey: string; workspaceId: string; baseUrl: string } => ({
+        apiKey: 'test-api-token',
+        workspaceId: 'test-workspace-id',
+        baseUrl: 'https://app.smartsuite.com',
+      }),
+      requireAuth: (): void => {},
+    };
 
-    // Initialize authentication with mock credentials
-    await server.authenticate({
-      apiKey: 'test-api-token',
-      workspaceId: 'test-workspace-id',
-    });
+    // Set the client from the mock to satisfy authentication check
+    (server as any).client = mockClient;
 
     // Replace the audit logger with our test instance
     (server as any).auditLogger = new AuditLogger(testAuditFile);
