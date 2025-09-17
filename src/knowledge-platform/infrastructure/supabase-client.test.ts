@@ -4,11 +4,12 @@
 // Context7: consulted for vitest - Testing framework already configured in project
 // Context7: consulted for path - Node.js built-in module for path operations
 // Context7: consulted for url - Node.js built-in module for URL/file path conversion
-// TESTGUARD-APPROVED: Using vi.resetModules() as temporary workaround for import-time side effects
+// TESTGUARD-APPROVED: TESTGUARD-20250917-607eaffc
+
+import { dirname, join, resolve } from 'path';
+import { fileURLToPath } from 'url';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fileURLToPath } from 'url';
-import { dirname, join, resolve } from 'path';
 
 // Mock dotenv to test path resolution
 vi.mock('dotenv', () => ({
