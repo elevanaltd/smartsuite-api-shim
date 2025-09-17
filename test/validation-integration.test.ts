@@ -3,8 +3,6 @@
 // CONTEXT7_BYPASS: CI-FIX - ESLint import order fix for CI pipeline
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
-import { defaultToolRegistry } from '../src/tools/tool-registry.js';
-
 // Mock tool handlers before importing the server
 vi.mock('../src/tools/query.js', () => ({
   handleQuery: vi.fn(),
@@ -72,6 +70,7 @@ import { SmartSuiteShimServer } from '../src/mcp-server.js';
 import { handleQuery } from '../src/tools/query.js';
 import { handleRecord } from '../src/tools/record.js';
 import { handleSchema } from '../src/tools/schema.js';
+import { defaultToolRegistry } from '../src/tools/tool-registry.js';
 import { validateMcpToolInput } from '../src/validation/input-validator.js';
 
 // Get reference to the mocked functions
