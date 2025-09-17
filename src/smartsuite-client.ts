@@ -4,6 +4,7 @@
 // GREEN phase implementation to make authentication tests pass
 
 import { FilterValidator } from './lib/filter-validator.js';
+import logger from './logger.js';
 
 export interface SmartSuiteClientConfig {
   apiKey: string;
@@ -472,7 +473,7 @@ export async function createAuthenticatedClient(
 
       // Only attempt JSON parsing for JSON content types
       if (!contentType.includes('application/json')) {
-        console.warn('[SmartSuite Client] Non-JSON response received:', {
+        logger.warn('[SmartSuite Client] Non-JSON response received:', {
           status: response.status,
           contentType,
           url: options.endpoint,
@@ -487,7 +488,7 @@ export async function createAuthenticatedClient(
         return JSON.parse(responseText) as SmartSuiteRequestResponse;
       } catch (parseError) {
         // Critical diagnostic information for debugging JSON parse failures
-        console.error('[SmartSuite Client] JSON Parse Error:', {
+        logger.error('[SmartSuite Client] JSON Parse Error:', {
           status: response.status,
           statusText: response.statusText,
           contentType,

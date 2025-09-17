@@ -4,6 +4,7 @@
 import { z, ZodType } from 'zod';
 
 import { validateMcpToolInput } from '../validation/input-validator.js';
+import logger from '../logger.js';
 
 import type { ToolContext } from './types.js';
 
@@ -101,11 +102,10 @@ export class ToolRegistry {
       }
     }
 
-    // Use console for now (can be replaced with proper logger)
     if (status === 'failure') {
-      console.error('Tool execution failed:', logData);
+      logger.error('Tool execution failed:', logData);
     } else {
-      console.log('Tool execution completed:', logData);
+      logger.info('Tool execution completed:', logData);
     }
   }
 

@@ -29,6 +29,7 @@ import {
 import { defaultToolRegistry, registerAllTools } from './tools/tool-definitions.js';
 import type { ToolContext } from './tools/types.js';
 import { McpValidationError } from './validation/input-validator.js';
+import logger from './logger.js';
 
 export class SmartSuiteShimServer {
   private client?: SmartSuiteClient;
@@ -63,7 +64,7 @@ export class SmartSuiteShimServer {
     try {
       registerAllTools();
     } catch (error) {
-      console.error('FATAL: Tool registration failed:', error instanceof Error ? error.message : String(error));
+      logger.error('FATAL: Tool registration failed:', error instanceof Error ? error.message : String(error));
       throw new Error('Cannot start server: Tool system failed to initialize properly.');
     }
 
@@ -73,7 +74,7 @@ export class SmartSuiteShimServer {
 
     if (apiToken && workspaceId && !skipAutoAuth) {
       // eslint-disable-next-line no-console
-      console.log('Auto-authenticating from environment variables...');
+      logger.info('Auto-authenticating from environment variables...');
       this.authConfig = {
         apiKey: apiToken,
         workspaceId: workspaceId,
@@ -83,10 +84,10 @@ export class SmartSuiteShimServer {
         // BLOCKING call - server must be authenticated before starting
         await this.authenticate(this.authConfig);
         // eslint-disable-next-line no-console
-        console.log('Authentication successful.');
+        logger.info('Authentication successful.');
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('FATAL: Auto-authentication failed.', error);
+        logger.error('FATAL: Auto-authentication failed.', error);
         // Re-throw to prevent the server from starting
         throw new Error('Could not authenticate server with environment credentials.');
       }
@@ -410,7 +411,7 @@ export class SmartSuiteShimServer {
       }
 
       // eslint-disable-next-line no-console
-      console.log('Loading field mappings from:', configPath);
+      logger.info('Loading field mappings from:', configPath);
 
       // Use MappingService for centralized collision detection
       await this.mappingService.loadAllMappings(configPath);

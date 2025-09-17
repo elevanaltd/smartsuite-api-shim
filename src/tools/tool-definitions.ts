@@ -2,6 +2,7 @@
 // Type-safe tool definitions for all 9 MCP tools
 // Context7: consulted for zod
 import { z } from 'zod';
+import logger from '../logger.js';
 
 import { handleDiscover } from './discover.js';
 import { handleIntelligent } from './intelligent.js';
@@ -194,7 +195,7 @@ export function registerAllTools(): void {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       failedRegistrations.push({ toolName: tool.name, error: errorMessage });
-      console.error(`Failed to register ${name} ('${tool.name}'):`, errorMessage);
+      logger.error(`Failed to register ${name} ('${tool.name}'):`, errorMessage);
     }
   }
 
@@ -208,7 +209,7 @@ export function registerAllTools(): void {
   }
 
   const registeredToolNames = toolsToRegister.map(({ tool }) => tool.name);
-  console.log(`Successfully registered ${toolsToRegister.length} tools: ${registeredToolNames.join(', ')}`);
+  logger.info(`Successfully registered ${toolsToRegister.length} tools: ${registeredToolNames.join(', ')}`);
 }
 
 // Export individual tools for testing
