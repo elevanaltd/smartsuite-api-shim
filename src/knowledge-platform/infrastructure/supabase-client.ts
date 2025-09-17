@@ -55,7 +55,7 @@ export async function checkConnection(): Promise<boolean> {
       .limit(1);
 
     return !error || error.code === 'PGRST116'; // No rows is OK
-  } catch (error) {
+  } catch (_error) {
     // console.error('Supabase connection check failed:', error);
     return false;
   }

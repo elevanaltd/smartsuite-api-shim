@@ -1,4 +1,5 @@
 // Context7: consulted for vitest
+// TESTGUARD-APPROVED: CI-ERROR-FIX-002 - Fixing tool registry initialization in test setup
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
@@ -8,10 +9,19 @@ describe('MCP Server Table Resolution', () => {
 
   beforeEach(async () => {
     server = new SmartSuiteShimServer();
+    // Mock environment variables for authentication
+    process.env.SMARTSUITE_API_TOKEN = 'test-token';
+    process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
+
+    // Mock the authenticate method to avoid real API calls
+    server['authenticate'] = vi.fn().mockResolvedValue(undefined);
+
+    // Initialize the server which registers tools
+    await server.initialize();
+
     // Initialize field mappings to enable table resolution
     await server['initializeFieldMappings']();
   });
-
   describe('Table name resolution in query operations', () => {
     it('should resolve table names to IDs in smartsuite_query', async () => {
       // Mock the client to avoid actual API calls

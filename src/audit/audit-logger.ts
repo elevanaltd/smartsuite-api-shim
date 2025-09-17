@@ -196,7 +196,7 @@ export class AuditLogger {
       try {
         const entry = JSON.parse(line) as unknown;
         entries.push(this.deserializeEntry(entry));
-      } catch (error) {
+      } catch (_error) {
         // Skip malformed lines (shouldn't happen but handle gracefully)
         // Silently skip to avoid noise in production logs
       }
@@ -356,7 +356,7 @@ export class AuditLogger {
         await fs.rename(this.legacyJsonPath, `${this.legacyJsonPath}.backup`);
 
         // Migration successful - legacy file backed up
-      } catch (error) {
+      } catch (_error) {
         // Failed to migrate - continue without migration, new entries will use NDJSON
         // Continue without migration - new entries will use NDJSON
       }

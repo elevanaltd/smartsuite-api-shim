@@ -26,6 +26,7 @@ export default [
         tsconfigRootDir: import.meta.dirname,
       },
       globals: {
+        // Node.js globals
         console: 'readonly',
         process: 'readonly',
         Buffer: 'readonly',
@@ -37,6 +38,10 @@ export default [
         exports: 'readonly',
         alert: 'readonly',
         setTimeout: 'readonly',
+        // Node.js types and APIs
+        NodeJS: 'readonly',
+        fetch: 'readonly',
+        performance: 'readonly',
       },
     },
     plugins: {
@@ -52,7 +57,7 @@ export default [
       'no-unused-vars': 'off',
 
       // TypeScript specific rules
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unsafe-assignment': 'warn', // LINT_CLEANUP: Reduced to warning for systematic cleanup
@@ -112,6 +117,35 @@ export default [
   // Test files overrides
   {
     files: ['**/*.test.ts', '**/*.spec.ts'],
+    languageOptions: {
+      globals: {
+        // Vitest globals
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        vi: 'readonly',
+        test: 'readonly',
+        // Node.js globals (inherit from parent)
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        global: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        exports: 'readonly',
+        alert: 'readonly',
+        setTimeout: 'readonly',
+        NodeJS: 'readonly',
+        fetch: 'readonly',
+        performance: 'readonly',
+      },
+    },
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',

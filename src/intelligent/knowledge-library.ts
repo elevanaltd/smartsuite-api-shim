@@ -123,7 +123,7 @@ export class KnowledgeLibrary {
       // Additional patterns from research files are additive
 
       this.updateVersion();
-    } catch (error) {
+    } catch (_error) {
       // Default patterns are already loaded in constructor
       // File loading failures don't affect basic safety
       this.updateVersion();

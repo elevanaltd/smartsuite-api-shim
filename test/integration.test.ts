@@ -12,9 +12,16 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
   let server: SmartSuiteShimServer;
   let originalFetch: typeof global.fetch;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     server = new SmartSuiteShimServer();
     originalFetch = global.fetch;
+    // Mock environment variables for test
+    process.env.SMARTSUITE_API_TOKEN = 'test-token';
+    process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
+    // Mock authenticate to avoid real API calls
+    server['authenticate'] = vi.fn().mockResolvedValue(undefined);
+    // Initialize server to register tools
+    await server.initialize();
     vi.clearAllMocks();
   });
 

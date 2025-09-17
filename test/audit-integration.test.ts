@@ -67,6 +67,14 @@ describe('Audit Integration', () => {
 
     // Create and initialize the server
     server = new SmartSuiteShimServer();
+    // Mock environment for test
+    process.env.SMARTSUITE_API_TOKEN = 'test-token';
+    process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
+    // Mock authenticate to avoid real API calls
+    server['authenticate'] = vi.fn().mockResolvedValue(undefined);
+    // Initialize server to register tools
+    await server.initialize();
+
 
     // Initialize authentication with mock credentials
     await server.authenticate({
