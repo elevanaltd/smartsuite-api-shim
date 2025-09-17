@@ -3,8 +3,28 @@
 // Technical-Architect: function module pattern for tool extraction
 
 import type { AuditLogEntry } from '../audit/audit-logger.js';
+import { createToolArgumentGuard } from '../lib/type-guards.js';
 
 import type { ToolContext } from './types.js';
+
+// ============================================================================
+// TYPE DEFINITIONS & GUARDS
+// ============================================================================
+
+export interface UndoToolArgs {
+  transaction_id: string;
+  [key: string]: unknown;
+}
+
+export const isUndoToolArgs = createToolArgumentGuard<UndoToolArgs>(
+  ['transaction_id'],
+  {
+    transaction_id: (v): v is string =>
+      typeof v === 'string' &&
+      v.length > 0 &&
+      /^audit-\d{13}-[a-f0-9]{8}$/.test(v),
+  },
+);
 
 /**
  * Response format for undo operations
@@ -156,10 +176,15 @@ export async function handleUndo(
   context: ToolContext,
   args: Record<string, unknown>,
 ): Promise<UndoResponse> {
-  const { auditLogger } = context;
-  const transactionId = args.transaction_id as string;
+  // Type-safe argument validation
+  if (!isUndoToolArgs(args)) {
+    throw new Error('Invalid arguments for undo operation');
+  }
 
-  // Validate transaction ID format
+  const { auditLogger } = context;
+  const { transaction_id: transactionId } = args;
+
+  // Additional validation (transaction ID format already validated by type guard)
   validateTransactionId(transactionId);
 
   let entries: AuditLogEntry[];
