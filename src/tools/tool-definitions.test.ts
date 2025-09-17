@@ -1,24 +1,15 @@
 // Context7: consulted for vitest
 // Context7: consulted for zod
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
-import type { ToolContext } from './types.js';
-import { defaultToolRegistry } from './tool-registry.js';
+
 import { registerAllTools } from './tool-definitions.js';
+import { defaultToolRegistry } from './tool-registry.js';
 
 describe('Tool Definitions', () => {
-  let mockContext: ToolContext;
-
   beforeEach(() => {
     // Clear registry before each test
     (defaultToolRegistry as any).tools.clear();
-
-    mockContext = {
-      client: {} as any,
-      fieldTranslator: {} as any,
-      tableResolver: {} as any,
-      auditLogger: {} as any,
-    };
   });
 
   describe('Tool Registration', () => {
@@ -77,7 +68,6 @@ describe('Tool Definitions', () => {
       };
 
       // ACT & ASSERT: Should execute without throwing
-      const mockHandleQuery = vi.fn().mockResolvedValue({ items: [] });
       // We can't easily mock the handler here, but we can verify schema access
       const schema = defaultToolRegistry.getValidationSchema('smartsuite_query');
       expect(schema).toBeDefined();
@@ -263,3 +253,4 @@ describe('Tool Definitions', () => {
     });
   });
 });
+

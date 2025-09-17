@@ -4,8 +4,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { z } from 'zod';
 
 import { McpValidationError } from '../validation/input-validator.js';
-import type { ToolContext } from './types.js';
+
 import { ToolRegistry, type Tool } from './tool-registry.js';
+import type { ToolContext } from './types.js';
 
 describe('ToolRegistry', () => {
   let registry: ToolRegistry;
@@ -47,7 +48,7 @@ describe('ToolRegistry', () => {
     it('should throw error for unknown tool execution', async () => {
       // ACT & ASSERT: Should throw for unknown tool
       await expect(
-        registry.execute('unknown_tool', mockContext, {})
+        registry.execute('unknown_tool', mockContext, {}),
       ).rejects.toThrow('Unknown tool: unknown_tool');
     });
 
@@ -72,7 +73,7 @@ describe('ToolRegistry', () => {
 
       // ASSERT: Second registration should throw
       expect(() => registry.register(duplicateTool)).toThrow(
-        "Tool 'duplicate_tool' is already registered. Duplicate registration is not allowed."
+        "Tool 'duplicate_tool' is already registered. Duplicate registration is not allowed.",
       );
     });
 
@@ -97,7 +98,7 @@ describe('ToolRegistry', () => {
       // ACT & ASSERT: Should throw for each malicious tool name
       maliciousTools.forEach(tool => {
         expect(() => registry.register(tool)).toThrow(
-          `Invalid tool name: ${tool.name}. Tool names cannot contain prototype pollution vectors.`
+          `Invalid tool name: ${tool.name}. Tool names cannot contain prototype pollution vectors.`,
         );
       });
     });
@@ -110,8 +111,9 @@ describe('ToolRegistry', () => {
       };
 
       // ACT & ASSERT: Should throw for incomplete tool
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       expect(() => registry.register(incompleteTool as any)).toThrow(
-        "Tool 'incomplete_tool' is missing required properties (schema, execute, or description)."
+        "Tool 'incomplete_tool' is missing required properties (schema, execute, or description).",
       );
     });
   });
@@ -141,7 +143,7 @@ describe('ToolRegistry', () => {
       };
 
       await expect(
-        registry.execute('strict_tool', mockContext, invalidInput)
+        registry.execute('strict_tool', mockContext, invalidInput),
       ).rejects.toThrow(McpValidationError);
     });
 

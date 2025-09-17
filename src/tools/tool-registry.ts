@@ -4,6 +4,7 @@
 import { z, ZodType } from 'zod';
 
 import { validateMcpToolInput } from '../validation/input-validator.js';
+
 import type { ToolContext } from './types.js';
 
 // Type-safe tool contract interface
@@ -51,6 +52,7 @@ export class ToolRegistry {
     }
 
     // Use existing validation infrastructure to preserve McpValidationError structure
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const validatedArgs = validateMcpToolInput(toolName, tool.schema, rawArgs);
 
     // Observability wrapper for production monitoring

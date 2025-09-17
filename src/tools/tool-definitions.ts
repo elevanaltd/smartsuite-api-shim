@@ -197,7 +197,7 @@ export function registerAllTools(): void {
     const failedToolNames = failedRegistrations.map(f => f.toolName).join(', ');
     throw new Error(
       `Failed to register ${failedRegistrations.length} tool(s): ${failedToolNames}. ` +
-      `Tool system is in an inconsistent state and cannot start safely.`
+      'Tool system is in an inconsistent state and cannot start safely.',
     );
   }
 

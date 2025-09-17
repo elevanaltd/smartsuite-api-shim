@@ -2,7 +2,7 @@
 // CRITICAL: MCP tool parameter validation to prevent invalid API calls
 // Context7: consulted for vitest
 // Context7: consulted for zod
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 
 import { validateMcpToolInput, McpValidationError } from './input-validator.js';

@@ -54,7 +54,9 @@ vi.mock('../src/smartsuite-client.js', () => ({
 vi.mock('../src/validation/input-validator.js', () => ({
   validateMcpToolInput: vi.fn(),
   McpValidationError: class McpValidationError extends Error {
-    constructor(message, toolName, validationErrors) {
+    toolName: string;
+    validationErrors: string[];
+    constructor(message: string, toolName: string, validationErrors: string[]) {
       super(message);
       this.toolName = toolName;
       this.validationErrors = validationErrors;
@@ -120,12 +122,12 @@ describe('Validation Integration Tests', () => {
       expect(mockValidateToolInput).toHaveBeenCalledWith(
         'smartsuite_query',
         expect.any(Object), // schema
-        originalArgs
+        originalArgs,
       );
 
       // ASSERT: Handler should receive VALIDATED arguments, not original
       expect(mockHandleQuery).toHaveBeenCalledTimes(1);
-      const [context, receivedArgs] = mockHandleQuery.mock.calls[0];
+      const [_context, receivedArgs] = mockHandleQuery.mock.calls[0] || [];
 
       // This test WILL FAIL because current implementation passes original args
       // The handler should receive the validated args with the __validated marker
@@ -169,12 +171,12 @@ describe('Validation Integration Tests', () => {
       expect(mockValidateToolInput).toHaveBeenCalledWith(
         'smartsuite_record',
         expect.any(Object), // schema
-        originalArgs
+        originalArgs,
       );
 
       // ASSERT: Handler should receive VALIDATED arguments with transformations
       expect(mockHandleRecord).toHaveBeenCalledTimes(1);
-      const [context, receivedArgs] = mockHandleRecord.mock.calls[0];
+      const [_context, receivedArgs] = mockHandleRecord.mock.calls[0] || [];
 
       // This test WILL FAIL because current implementation passes original args
       expect(receivedArgs).toHaveProperty('__validated', true);
@@ -211,12 +213,12 @@ describe('Validation Integration Tests', () => {
       expect(mockValidateToolInput).toHaveBeenCalledWith(
         'smartsuite_schema',
         expect.any(Object), // schema
-        originalArgs
+        originalArgs,
       );
 
       // ASSERT: Handler should receive validated args (architectural requirement)
       expect(mockHandleSchema).toHaveBeenCalledTimes(1);
-      const [context, receivedArgs] = mockHandleSchema.mock.calls[0];
+      const [_context, receivedArgs, _cache] = mockHandleSchema.mock.calls[0] || [];
 
       // This test WILL FAIL because current implementation ignores validation result
       expect(receivedArgs).toHaveProperty('__validated', true);
