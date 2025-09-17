@@ -90,7 +90,15 @@ export class ToolRegistry {
     };
 
     if (error) {
-      logData.error = error instanceof Error ? error.message : String(error);
+      if (error instanceof Error) {
+        logData.error = error.message;
+      } else if (typeof error === 'string') {
+        logData.error = error;
+      } else if (typeof error === 'object' && error !== null) {
+        logData.error = JSON.stringify(error);
+      } else {
+        logData.error = String(error);
+      }
     }
 
     // Use console for now (can be replaced with proper logger)
