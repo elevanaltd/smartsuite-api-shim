@@ -5,6 +5,7 @@
 
 // Load environment variables for integration tests that need real connections
 import { config } from 'dotenv';
+
 import path from 'path';
 
 // Determine which env file to load based on environment
@@ -18,7 +19,7 @@ config({ path: envPath });
 const requiredVars = [
   'KNOWLEDGE_SUPABASE_URL',
   'KNOWLEDGE_SUPABASE_SERVICE_KEY',
-  'KNOWLEDGE_DB_SCHEMA'
+  'KNOWLEDGE_DB_SCHEMA',
 ];
 
 // In CI, these might be dummy values, which is OK for build validation
