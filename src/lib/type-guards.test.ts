@@ -15,12 +15,14 @@ import {
   createToolArgumentGuard,
   isQueryToolArgs,
   isRecordToolArgs,
+  isSchemaToolArgs,
   isSmartSuiteFilter,
   transformToSmartSuiteFilter,
   type SmartSuiteApiResponse,
   type SmartSuiteRecordGuarded,
   type QueryToolArgs,
   type RecordToolArgs,
+  type SchemaToolArgs,
   type SmartSuiteFilter,
 } from './type-guards.js';
 
@@ -274,6 +276,48 @@ describe('Tool Argument Guards', () => {
         dry_run: 'true', // string instead of boolean
       };
       expect(isRecordToolArgs(args)).toBe(false);
+    });
+  });
+
+  describe('isSchemaToolArgs', () => {
+    it('should validate valid schema arguments', () => {
+      const args: SchemaToolArgs = {
+        appId: '68a8ff5237fde0bf797c05b3',
+        output_mode: 'detailed',
+      };
+      expect(isSchemaToolArgs(args)).toBe(true);
+    });
+
+    it('should validate required fields only', () => {
+      const args = {
+        appId: '68a8ff5237fde0bf797c05b3',
+        // output_mode is optional
+      };
+      expect(isSchemaToolArgs(args)).toBe(true);
+    });
+
+    it('should reject invalid output_mode', () => {
+      const args = {
+        appId: '68a8ff5237fde0bf797c05b3',
+        output_mode: 'invalid',
+      };
+      expect(isSchemaToolArgs(args)).toBe(false);
+    });
+
+    it('should accept valid output_mode values', () => {
+      const validModes = ['summary', 'fields', 'detailed'];
+      for (const mode of validModes) {
+        const args = {
+          appId: '68a8ff5237fde0bf797c05b3',
+          output_mode: mode,
+        };
+        expect(isSchemaToolArgs(args)).toBe(true);
+      }
+    });
+
+    it('should reject missing required fields', () => {
+      expect(isSchemaToolArgs({})).toBe(false); // missing appId
+      expect(isSchemaToolArgs({ output_mode: 'summary' })).toBe(false); // missing appId
     });
   });
 });

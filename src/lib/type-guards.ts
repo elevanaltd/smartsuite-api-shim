@@ -116,11 +116,16 @@ export function createToolArgumentGuard<T = Record<string, unknown>>(
     // Check required fields exist
     for (const field of requiredFields) {
       if (!(field in args)) return false;
+    }
 
-      // Apply field-specific validators if provided
-      const validator = validators?.[field];
-      if (validator && !validator(args[field as string])) {
-        return false;
+    // Check all fields with validators (both required and optional)
+    if (validators) {
+      for (const fieldKey of Object.keys(validators)) {
+        const field = fieldKey as keyof T;
+        const validator = validators[field];
+        if (field in args && validator && !validator(args[field as string])) {
+          return false;
+        }
       }
     }
 
@@ -165,6 +170,21 @@ export const isRecordToolArgs = createToolArgumentGuard<RecordToolArgs>(
     appId: (v): v is string => typeof v === 'string',
     dry_run: (v): v is boolean => typeof v === 'boolean',
     recordId: (v): v is string => v === undefined || typeof v === 'string',
+  },
+);
+
+export interface SchemaToolArgs {
+  appId: string;
+  output_mode?: 'summary' | 'fields' | 'detailed';
+  [key: string]: unknown;
+}
+
+export const isSchemaToolArgs = createToolArgumentGuard<SchemaToolArgs>(
+  ['appId'],
+  {
+    appId: (v): v is string => typeof v === 'string',
+    output_mode: (v): v is SchemaToolArgs['output_mode'] =>
+      v === undefined || (typeof v === 'string' && ['summary', 'fields', 'detailed'].includes(v)),
   },
 );
 
