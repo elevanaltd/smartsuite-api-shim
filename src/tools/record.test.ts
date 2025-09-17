@@ -241,6 +241,20 @@ describe('handleRecord Tool Function', () => {
     );
 
     });
+
+    it('should validate missing operation field with type guard', async () => {
+      const args = {
+        // Missing operation field
+        appId: 'test-app-id',
+        data: { title: 'Test' },
+        dry_run: true,
+      };
+
+      await expect(handleRecord(mockContext, args)).rejects.toThrow(
+        'Invalid record arguments: missing required fields or invalid types',
+      );
+    });
+
     it('should require prior validation for actual execution', async () => {
       const args = {
         operation: 'create',

@@ -2,6 +2,9 @@
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 // Technical-Architect: function module pattern for tool extraction
 
+import {
+  isRecordToolArgs,
+} from '../lib/type-guards.js';
 import type { ToolContext } from './types.js';
 
 // Validation cache for dry-run enforcement
@@ -334,19 +337,30 @@ async function performDryRunValidation(
  * Handle SmartSuite record operations (create, update, delete)
  * Extracted from SmartSuiteMCPServer.handleRecord()
  */
-export async function handleRecord(context: ToolContext, args: Record<string, unknown>): Promise<unknown> {
-  // DRY-RUN pattern enforcement for mutations (North Star requirement)
-  if (args.dry_run === undefined) {
+export async function handleRecord(context: ToolContext, args: unknown): Promise<unknown> {
+  // CRITICAL SAFETY CHECK: dry_run requirement takes precedence for mutation tools
+  // This specific error message is part of the API contract and must be preserved
+  if (typeof args === 'object' && args !== null && 'dry_run' in args === false) {
     throw new Error('Dry-run pattern required: mutation tools must specify dry_run parameter');
   }
 
+  // TYPE SAFETY: Validate arguments using type guards (after critical safety checks)
+  if (!isRecordToolArgs(args)) {
+    throw new Error('Invalid record arguments: missing required fields or invalid types');
+  }
+
   // FIELD TRANSLATION: Convert human-readable field names to API codes
-  const operation = args.operation as string;
-  let appId = args.appId as string;
-  const recordId = args.recordId as string;
-  const inputData = args.data as Record<string, unknown>;
-  const dry_run = args.dry_run as boolean;
-  const priorValidation = args.priorValidation as boolean; // For testing
+  const { operation, recordId, data: inputData, dry_run } = args;
+  let { appId } = args;
+  const priorValidation = (args as Record<string, unknown>).priorValidation as boolean; // For testing
+
+  // OPERATION VALIDATION: Ensure required fields for specific operations
+  if (['update', 'delete'].includes(operation) && !recordId) {
+    throw new Error(`Operation '${operation}' requires recordId parameter`);
+  }
+  if (['create', 'update'].includes(operation) && !inputData) {
+    throw new Error(`Operation '${operation}' requires data parameter`);
+  }
 
   // TABLE RESOLUTION: Convert table name to ID if needed
   const resolvedId = context.tableResolver.resolveTableId(appId);
@@ -442,7 +456,8 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
   let beforeData: unknown;
   if (operation === 'update' || operation === 'delete') {
     try {
-      beforeData = await context.client.getRecord(appId, recordId);
+      // recordId is guaranteed to exist for these operations due to validation above
+      beforeData = await context.client.getRecord(appId, recordId!);
     } catch (error) {
       // If we can't get beforeData, continue but log without it
       console.warn(`Failed to fetch beforeData for ${operation} audit: ${String(error)}`);
@@ -451,14 +466,15 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
 
   let result: unknown;
   switch (operation) {
-    case 'create':
-      result = await context.client.createRecord(appId, translatedData);
+    case 'create': {
+      // translatedData is guaranteed to exist for create operations due to validation above
+      result = await context.client.createRecord(appId, translatedData!);
       // AUDIT LOGGING: Create operation
       await context.auditLogger.logMutation({
         operation: 'create',
         tableId: appId,
         recordId: (result as any)?.id || recordId,
-        payload: translatedData,
+        payload: translatedData!,
         result: result as Record<string, unknown>,
         reversalInstructions: {
           operation: 'delete',
@@ -467,32 +483,36 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
         },
       });
       break;
-    case 'update':
-      result = await context.client.updateRecord(appId, recordId, translatedData);
+    }
+    case 'update': {
+      // recordId and translatedData are guaranteed to exist for update operations due to validation above
+      result = await context.client.updateRecord(appId, recordId!, translatedData!);
       // AUDIT LOGGING: Update operation
       await context.auditLogger.logMutation({
         operation: 'update',
         tableId: appId,
-        recordId,
-        payload: translatedData,
+        recordId: recordId!,
+        payload: translatedData!,
         result: result as Record<string, unknown>,
         beforeData: beforeData as Record<string, unknown>,
         reversalInstructions: {
           operation: 'update',
           tableId: appId,
-          recordId,
+          recordId: recordId!,
           payload: beforeData as Record<string, unknown>,
         },
       });
       break;
-    case 'delete':
-      await context.client.deleteRecord(appId, recordId);
-      result = { deleted: recordId };
+    }
+    case 'delete': {
+      // recordId is guaranteed to exist for delete operations due to validation above
+      await context.client.deleteRecord(appId, recordId!);
+      result = { deleted: recordId! };
       // AUDIT LOGGING: Delete operation
       await context.auditLogger.logMutation({
         operation: 'delete',
         tableId: appId,
-        recordId,
+        recordId: recordId!,
         result: result as Record<string, unknown>,
         beforeData: beforeData as Record<string, unknown>,
         reversalInstructions: {
@@ -502,6 +522,7 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
         },
       });
       break;
+    }
     case 'bulk_update':
       // Bulk update uses PATCH to /records/bulk/ with items array
       result = await context.client.request({
