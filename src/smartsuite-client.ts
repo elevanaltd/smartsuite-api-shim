@@ -4,6 +4,11 @@
 // GREEN phase implementation to make authentication tests pass
 
 import { FilterValidator } from './lib/filter-validator.js';
+import {
+  isSmartSuiteRecord,
+  isSmartSuiteRecordArray,
+  type SmartSuiteRecordGuarded
+} from './lib/type-guards.js';
 import logger from './logger.js';
 
 export interface SmartSuiteClientConfig {
@@ -508,4 +513,106 @@ export async function createAuthenticatedClient(
   };
 
   return client;
+}
+
+// ============================================================================
+// TYPE-SAFE CLIENT WRAPPER
+// Following docs/412-DOC-TYPE-SAFETY-PATTERN-DESIGN.md
+// ============================================================================
+
+export interface TypeSafeSmartSuiteClient extends SmartSuiteClient {
+  // Type-safe list records
+  listRecordsSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+    appId: string,
+    options?: SmartSuiteListOptions
+  ): Promise<{ items: T[]; total: number; offset: number; limit: number }>;
+
+  // Type-safe get record
+  getRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+    appId: string,
+    recordId: string
+  ): Promise<T>;
+
+  // Type-safe create with validation
+  createRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+    appId: string,
+    data: Omit<T, 'id' | 'application_id' | 'created_at' | 'updated_at'>
+  ): Promise<T>;
+
+  // Type-safe update with partial data
+  updateRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+    appId: string,
+    recordId: string,
+    data: Partial<Omit<T, 'id' | 'application_id'>>
+  ): Promise<T>;
+}
+
+export function createTypeSafeClient(client: SmartSuiteClient): TypeSafeSmartSuiteClient {
+  return {
+    ...client,
+
+    async listRecordsSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+      appId: string,
+      options?: SmartSuiteListOptions
+    ) {
+      const response = await client.listRecords(appId, options);
+
+      // Validate response structure with type guards
+      if (!response || typeof response !== 'object') {
+        throw new TypeError('Invalid list response format: expected object');
+      }
+
+      const { items, total, offset, limit } = response;
+
+      if (!isSmartSuiteRecordArray(items)) {
+        throw new TypeError('Invalid items in list response: expected array of SmartSuite records');
+      }
+
+      if (typeof total !== 'number' || typeof offset !== 'number' || typeof limit !== 'number') {
+        throw new TypeError('Invalid pagination data in list response');
+      }
+
+      return { items: items as T[], total, offset, limit };
+    },
+
+    async getRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+      appId: string,
+      recordId: string
+    ) {
+      const response = await client.getRecord(appId, recordId);
+
+      if (!isSmartSuiteRecord(response)) {
+        throw new TypeError('Invalid record response format: expected SmartSuite record');
+      }
+
+      return response as T;
+    },
+
+    async createRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+      appId: string,
+      data: Omit<T, 'id' | 'application_id' | 'created_at' | 'updated_at'>
+    ) {
+      const response = await client.createRecord(appId, data as Record<string, unknown>);
+
+      if (!isSmartSuiteRecord(response)) {
+        throw new TypeError('Invalid create response format: expected SmartSuite record');
+      }
+
+      return response as T;
+    },
+
+    async updateRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+      appId: string,
+      recordId: string,
+      data: Partial<Omit<T, 'id' | 'application_id'>>
+    ) {
+      const response = await client.updateRecord(appId, recordId, data as Record<string, unknown>);
+
+      if (!isSmartSuiteRecord(response)) {
+        throw new TypeError('Invalid update response format: expected SmartSuite record');
+      }
+
+      return response as T;
+    },
+  };
 }
