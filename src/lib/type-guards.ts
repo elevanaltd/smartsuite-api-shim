@@ -149,6 +149,25 @@ export const isQueryToolArgs = createToolArgumentGuard<QueryToolArgs>(
   },
 );
 
+export interface RecordToolArgs extends ToolArguments {
+  operation: 'create' | 'update' | 'delete' | 'bulk_update' | 'bulk_delete';
+  appId: string;
+  recordId?: string;
+  data?: Record<string, unknown>;
+  dry_run: boolean; // Required for record mutations
+}
+
+export const isRecordToolArgs = createToolArgumentGuard<RecordToolArgs>(
+  ['operation', 'appId', 'dry_run'],
+  {
+    operation: (v): v is RecordToolArgs['operation'] =>
+      typeof v === 'string' && ['create', 'update', 'delete', 'bulk_update', 'bulk_delete'].includes(v),
+    appId: (v): v is string => typeof v === 'string',
+    dry_run: (v): v is boolean => typeof v === 'boolean',
+    recordId: (v): v is string => v === undefined || typeof v === 'string',
+  },
+);
+
 // ============================================================================
 // FILTER GUARDS
 // ============================================================================

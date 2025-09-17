@@ -14,11 +14,13 @@ import {
   extractRecordData,
   createToolArgumentGuard,
   isQueryToolArgs,
+  isRecordToolArgs,
   isSmartSuiteFilter,
   transformToSmartSuiteFilter,
   type SmartSuiteApiResponse,
   type SmartSuiteRecordGuarded,
   type QueryToolArgs,
+  type RecordToolArgs,
   type SmartSuiteFilter,
 } from './type-guards.js';
 
@@ -226,6 +228,52 @@ describe('Tool Argument Guards', () => {
     it('should reject missing required fields', () => {
       expect(isQueryToolArgs({ operation: 'list' })).toBe(false);
       expect(isQueryToolArgs({ appId: '123' })).toBe(false);
+    });
+  });
+
+  describe('isRecordToolArgs', () => {
+    it('should validate valid record arguments', () => {
+      const args: RecordToolArgs = {
+        operation: 'create',
+        appId: '68a8ff5237fde0bf797c05b3',
+        dry_run: true,
+        data: { name: 'Test Record' },
+      };
+      expect(isRecordToolArgs(args)).toBe(true);
+    });
+
+    it('should validate required fields only', () => {
+      const args = {
+        operation: 'delete',
+        appId: '68a8ff5237fde0bf797c05b3',
+        dry_run: false,
+        recordId: '64f8b12e5c7d8a9b12345678',
+      };
+      expect(isRecordToolArgs(args)).toBe(true);
+    });
+
+    it('should reject invalid operations', () => {
+      const args = {
+        operation: 'invalid',
+        appId: '68a8ff5237fde0bf797c05b3',
+        dry_run: true,
+      };
+      expect(isRecordToolArgs(args)).toBe(false);
+    });
+
+    it('should reject missing required fields', () => {
+      expect(isRecordToolArgs({ operation: 'create', appId: '123' })).toBe(false); // missing dry_run
+      expect(isRecordToolArgs({ operation: 'create', dry_run: true })).toBe(false); // missing appId
+      expect(isRecordToolArgs({ appId: '123', dry_run: true })).toBe(false); // missing operation
+    });
+
+    it('should reject invalid dry_run type', () => {
+      const args = {
+        operation: 'create',
+        appId: '68a8ff5237fde0bf797c05b3',
+        dry_run: 'true', // string instead of boolean
+      };
+      expect(isRecordToolArgs(args)).toBe(false);
     });
   });
 });
