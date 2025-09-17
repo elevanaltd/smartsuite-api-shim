@@ -292,3 +292,88 @@ export function transformToSmartSuiteFilter(input: unknown): SmartSuiteFilter | 
 
   return null;
 }
+
+// ============================================================================
+// AUDIT LOG ENTRY GUARDS
+// ============================================================================
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: Date;
+  operation: 'create' | 'update' | 'delete';
+  tableId: string;
+  recordId: string;
+  payload?: Record<string, unknown>;
+  result?: Record<string, unknown>;
+  beforeData?: Record<string, unknown>;
+  reversalInstructions: {
+    operation: 'create' | 'update' | 'delete';
+    tableId: string;
+    recordId?: string;
+    payload?: Record<string, unknown>;
+  };
+  hash: string;
+  authContext?: {
+    userId: string;
+    sessionId: string;
+    requestId: string;
+    ipAddress: string;
+    timestamp: Date;
+  };
+}
+
+export function isAuditLogEntry(value: unknown): value is AuditLogEntry {
+  if (!isObject(value)) return false;
+
+  const entry = value as Record<string, unknown>;
+
+  // Check required fields
+  if (typeof entry.id !== 'string') return false;
+  if (!(entry.timestamp instanceof Date) && typeof entry.timestamp !== 'string') return false;
+  if (!['create', 'update', 'delete'].includes(entry.operation as string)) return false;
+  if (typeof entry.tableId !== 'string') return false;
+  if (typeof entry.recordId !== 'string') return false;
+  if (typeof entry.hash !== 'string') return false;
+
+  // Check reversalInstructions structure
+  if (!isObject(entry.reversalInstructions)) return false;
+  const reversal = entry.reversalInstructions as Record<string, unknown>;
+  if (!['create', 'update', 'delete'].includes(reversal.operation as string)) return false;
+  if (typeof reversal.tableId !== 'string') return false;
+
+  // Check optional authContext structure if present
+  if (entry.authContext !== undefined) {
+    if (!isObject(entry.authContext)) return false;
+    const authCtx = entry.authContext as Record<string, unknown>;
+    if (typeof authCtx.userId !== 'string') return false;
+    if (typeof authCtx.sessionId !== 'string') return false;
+    if (typeof authCtx.requestId !== 'string') return false;
+    if (typeof authCtx.ipAddress !== 'string') return false;
+    if (!(authCtx.timestamp instanceof Date) && typeof authCtx.timestamp !== 'string') return false;
+  }
+
+  return true;
+}
+
+export function parseAuditLogEntry(jsonString: string): AuditLogEntry | null {
+  try {
+    const parsed = JSON.parse(jsonString) as unknown;
+    if (!isAuditLogEntry(parsed)) return null;
+
+    // Convert string dates to Date objects if needed
+    const entry = parsed as AuditLogEntry;
+    if (typeof entry.timestamp === 'string') {
+      (entry as unknown as Record<string, unknown>).timestamp = new Date(entry.timestamp);
+    }
+    if (entry.authContext && isObject(entry.authContext)) {
+      const authCtx = entry.authContext as unknown as Record<string, unknown>;
+      if (typeof authCtx.timestamp === 'string') {
+        authCtx.timestamp = new Date(authCtx.timestamp);
+      }
+    }
+
+    return entry;
+  } catch {
+    return null;
+  }
+}
