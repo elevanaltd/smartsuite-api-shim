@@ -1,7 +1,27 @@
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 // Technical-Architect: function module pattern for tool extraction
 
+import { createToolArgumentGuard } from '../lib/type-guards.js';
 import type { ToolContext } from './types.js';
+
+// ============================================================================
+// TYPE DEFINITIONS & GUARDS
+// ============================================================================
+
+export interface DiscoverToolArgs {
+  scope: 'tables' | 'fields';
+  tableId?: string;
+  [key: string]: unknown;
+}
+
+export const isDiscoverToolArgs = createToolArgumentGuard<DiscoverToolArgs>(
+  ['scope'],
+  {
+    scope: (v): v is DiscoverToolArgs['scope'] =>
+      typeof v === 'string' && ['tables', 'fields'].includes(v),
+    tableId: (v): v is string => v === undefined || typeof v === 'string',
+  },
+);
 
 /**
  * Handle discovery of tables and fields
@@ -11,9 +31,13 @@ export async function handleDiscover(
   context: ToolContext,
   args: Record<string, unknown>,
 ): Promise<unknown> {
+  // Type-safe argument validation
+  if (!isDiscoverToolArgs(args)) {
+    throw new Error('Invalid arguments for discover operation');
+  }
+
   const { tableResolver, fieldTranslator } = context;
-  const scope = args.scope as string;
-  const tableId = args.tableId as string | undefined;
+  const { scope, tableId } = args;
 
   if (scope === 'tables') {
     // Return all available tables
