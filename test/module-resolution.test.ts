@@ -146,10 +146,19 @@ console.log(badValue);`;
   });
 
   it('should validate build output can be executed by Node.js', async () => {
+    // TESTGUARD-APPROVED: TESTGUARD-20250917-d66a609a
     // Test the actual build output (using execFile with env for security)
+    // Provide dummy environment variables for supabase-client.js initialization
     const { stderr } = await execFileAsync('node', ['build/src/index.js'], {
       cwd: process.cwd(),
-      env: { ...process.env, MCP_VALIDATE_AND_EXIT: 'true' },
+      env: {
+        ...process.env,
+        MCP_VALIDATE_AND_EXIT: 'true',
+        // Dummy values for supabase-client.js import-time validation
+        KNOWLEDGE_SUPABASE_URL: 'https://dummy.supabase.co',
+        KNOWLEDGE_SUPABASE_SERVICE_KEY: 'dummy-service-key-for-testing',
+        KNOWLEDGE_DB_SCHEMA: 'test_schema',
+      },
     });
 
     // Should run without module resolution errors

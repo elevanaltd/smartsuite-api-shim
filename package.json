@@ -7,7 +7,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "_approval_token": "TECHNICAL-ARCHITECT-20250915-arch-175",
+  "_approval_token": "CRITICAL-ENGINEER-20250117-ci-env-fix",
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "dev": "tsx watch src/index.ts",
@@ -16,7 +16,7 @@
     "prebuild": "npm run clean",
     "postbuild": "npm run copy-assets && npm run validate-build",
     "copy-assets": "copyfiles \"config/**/*.yaml\" \"config/**/*.yml\" \"src/knowledge/**/*.json\" build/",
-    "validate-build": "MCP_VALIDATE_AND_EXIT=true node build/src/index.js",
+    "validate-build": "dotenv -e .env.ci -- node build/src/index.js",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
@@ -72,6 +72,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "better-npm-audit": "^3.11.0",
     "copyfiles": "^2.4.1",
+    "dotenv-cli": "^10.0.0",
     "eslint": "^9.35.0",
     "eslint-plugin-import": "^2.29.0",
     "eslint-plugin-promise": "^6.1.1",
