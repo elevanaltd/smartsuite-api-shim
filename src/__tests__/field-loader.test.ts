@@ -62,7 +62,7 @@ describe('EnhancedFieldLoader', () => {
       const baseDir = '/test/mappings';
       const mockMapping = { field1: 'Field One', field2: 'Field Two' };
       mockExistsSync.mockReturnValue(true);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      
       mockReaddir.mockResolvedValue(['table1.yaml', 'table2.json'] as any);
       mockReadFile.mockResolvedValue('field1: Field One\nfield2: Field Two');
       mockYamlLoad.mockReturnValue(mockMapping);
@@ -89,7 +89,7 @@ describe('EnhancedFieldLoader', () => {
       // Local returns no YAML files, examples has files
       mockReaddir
         .mockResolvedValueOnce([])                                    // local: no .yaml files
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        
         .mockResolvedValueOnce(['table1.example.yaml'] as any);      // examples: has .example.yaml
       mockReadFile.mockResolvedValue('field1: Example Field');
       mockYamlLoad.mockReturnValue(mockMapping);
@@ -108,7 +108,7 @@ describe('EnhancedFieldLoader', () => {
       const baseDir = '/test/mappings';
 
       mockExistsSync.mockReturnValue(true);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      
       mockReaddir.mockResolvedValue(['corrupted.yaml'] as any);
       mockReadFile.mockRejectedValue(new Error('Permission denied'));
 

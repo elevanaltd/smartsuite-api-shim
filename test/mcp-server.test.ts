@@ -99,14 +99,12 @@ describe('SmartSuiteShimServer', () => {
   // NEW FAILING TESTS - These will fail until methods are implemented
   it('should have executeTool method', () => {
     const server = new SmartSuiteShimServer();
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(server.executeTool).toBeDefined();
     expect(typeof server.executeTool).toBe('function');
   });
 
   it('should have authenticate method', () => {
     const server = new SmartSuiteShimServer();
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(server.authenticate).toBeDefined();
     expect(typeof server.authenticate).toBe('function');
   });
