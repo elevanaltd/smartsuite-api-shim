@@ -176,8 +176,18 @@ export async function handleUndo(
   context: ToolContext,
   args: Record<string, unknown>,
 ): Promise<UndoResponse> {
-  // Type-safe argument validation
+  // Type-safe argument validation with specific error handling
   if (!isUndoToolArgs(args)) {
+    // Provide specific errors for common cases
+    if (!args.transaction_id) {
+      throw new Error('Transaction ID is required');
+    }
+    if (typeof args.transaction_id === 'string' && args.transaction_id === '') {
+      throw new Error('Transaction ID is required');
+    }
+    if (typeof args.transaction_id === 'string' && !/^audit-\d{13}-[a-f0-9]{8}$/.test(args.transaction_id)) {
+      throw new Error('Invalid transaction ID format');
+    }
     throw new Error('Invalid arguments for undo operation');
   }
 

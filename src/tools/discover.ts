@@ -31,8 +31,12 @@ export async function handleDiscover(
   context: ToolContext,
   args: Record<string, unknown>,
 ): Promise<unknown> {
-  // Type-safe argument validation
+  // Type-safe argument validation with specific error handling
   if (!isDiscoverToolArgs(args)) {
+    // Provide specific error for invalid scope
+    if (typeof args.scope === 'string' && !['tables', 'fields'].includes(args.scope)) {
+      throw new Error(`Invalid scope: ${args.scope}. Must be 'tables' or 'fields'`);
+    }
     throw new Error('Invalid arguments for discover operation');
   }
 
