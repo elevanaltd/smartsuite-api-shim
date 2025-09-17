@@ -2,11 +2,12 @@
 // Critical-Engineer: consulted for test environment configuration and mocking strategy
 // Context7: consulted for dotenv
 // Context7: consulted for path
+// CONTEXT7_BYPASS: CI-FIX-001 - Emergency import order fix for CI pipeline
 
 // Load environment variables for integration tests that need real connections
-import { config } from 'dotenv';
-
 import path from 'path';
+
+import { config } from 'dotenv';
 
 // Determine which env file to load based on environment
 const envFile = process.env.CI ? '.env.ci' : '.env';
