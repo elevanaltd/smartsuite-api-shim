@@ -2,7 +2,11 @@
 // Technical-Architect: approved IntelligentOperationHandler function module design
 // Test-Methodology-Guardian: confirmed TDD approach for complex extractions
 
-import { IntelligentOperationHandler, KnowledgeLibrary, SafetyEngine } from '../intelligent/index.js';
+import {
+  IntelligentOperationHandler,
+  KnowledgeLibrary,
+  SafetyEngine,
+} from '../intelligent/index.js';
 import type { IntelligentToolInput } from '../intelligent/types.js';
 import { resolveKnowledgePath } from '../lib/path-resolver.js';
 import { createToolArgumentGuard } from '../lib/type-guards.js';
@@ -53,7 +57,9 @@ let initializationPromise: Promise<IntelligentOperationHandler> | null = null;
  * Critical-Engineer: consulted for External service integrations (third-party APIs, webhooks)
  * Race condition fixed: Uses promise caching to ensure single initialization
  */
-async function initializeIntelligentHandler(client: SmartSuiteClient | undefined): Promise<IntelligentOperationHandler> {
+async function initializeIntelligentHandler(
+  client: SmartSuiteClient | undefined,
+): Promise<IntelligentOperationHandler> {
   // If already initialized, return cached instance
   if (intelligentHandlerCache) {
     return intelligentHandlerCache;
@@ -65,7 +71,7 @@ async function initializeIntelligentHandler(client: SmartSuiteClient | undefined
   }
 
   // Start initialization and cache the promise to prevent concurrent initialization
-  initializationPromise = (async (): Promise<void> => {
+  initializationPromise = (async (): Promise<IntelligentOperationHandler> => {
     const knowledgeLibrary = new KnowledgeLibrary();
     // Use path resolver to handle both development and production environments
     // Development: loads from src/knowledge
@@ -77,7 +83,7 @@ async function initializeIntelligentHandler(client: SmartSuiteClient | undefined
     const handler = new IntelligentOperationHandler(
       knowledgeLibrary,
       safetyEngine,
-      client,  // Pass client for API proxy functionality
+      client, // Pass client for API proxy functionality
     );
 
     // Store the handler atomically after successful initialization
@@ -140,7 +146,9 @@ export async function handleIntelligent(
   // All modes supported: learn, dry_run, execute
   // Validate client is available for dry_run and execute modes
   if ((input.mode === 'dry_run' || input.mode === 'execute') && !client) {
-    throw new Error(`Client not initialized. Cannot use ${input.mode} mode without authentication.`);
+    throw new Error(
+      `Client not initialized. Cannot use ${input.mode} mode without authentication.`,
+    );
   }
 
   // Use the intelligent handler to process the operation

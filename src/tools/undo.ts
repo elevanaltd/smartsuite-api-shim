@@ -16,15 +16,10 @@ export interface UndoToolArgs {
   [key: string]: unknown;
 }
 
-export const isUndoToolArgs = createToolArgumentGuard<UndoToolArgs>(
-  ['transaction_id'],
-  {
-    transaction_id: (v): v is string =>
-      typeof v === 'string' &&
-      v.length > 0 &&
-      /^audit-\d{13}-[a-f0-9]{8}$/.test(v),
-  },
-);
+export const isUndoToolArgs = createToolArgumentGuard<UndoToolArgs>(['transaction_id'], {
+  transaction_id: (v): v is string =>
+    typeof v === 'string' && v.length > 0 && /^audit-\d{13}-[a-f0-9]{8}$/.test(v),
+});
 
 /**
  * Response format for undo operations
@@ -63,7 +58,7 @@ function validateTransactionId(transactionId: string): void {
 function checkTransactionExpiry(entry: AuditLogEntry): void {
   const now = new Date();
   const transactionDate = entry.timestamp;
-  const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   if (transactionDate < thirtyDaysAgo) {
     throw new Error(`Transaction ${entry.id} has expired (older than 30 days)`);
@@ -82,10 +77,7 @@ function validateReversalInstructions(entry: AuditLogEntry): void {
 /**
  * Execute undo operation based on reversal instructions
  */
-async function executeUndoOperation(
-  context: ToolContext,
-  entry: AuditLogEntry,
-): Promise<unknown> {
+async function executeUndoOperation(context: ToolContext, entry: AuditLogEntry): Promise<unknown> {
   const { client } = context;
   const { reversalInstructions } = entry;
 
@@ -141,9 +133,7 @@ async function logUndoOperation(
     recordId: reversalInstructions.recordId ?? entry.recordId,
     result: result as Record<string, unknown>,
     reversalInstructions: {
-      operation: 'delete' as const,  // Use delete as a placeholder for undo-undo
-      originalTransactionId: entry.id,
-      message: 'This undo operation cannot be undone',
+      operation: 'delete' as const, // Use delete as a placeholder for undo-undo
       tableId: reversalInstructions.tableId,
       recordId: reversalInstructions.recordId ?? entry.recordId,
     },
@@ -187,7 +177,10 @@ export async function handleUndo(
     if (typeof args.transaction_id === 'string' && args.transaction_id === '') {
       throw new Error('Transaction ID is required');
     }
-    if (typeof args.transaction_id === 'string' && !/^audit-\d{13}-[a-f0-9]{8}$/.test(args.transaction_id)) {
+    if (
+      typeof args.transaction_id === 'string' &&
+      !/^audit-\d{13}-[a-f0-9]{8}$/.test(args.transaction_id)
+    ) {
       throw new Error('Invalid transaction ID format');
     }
     throw new Error('Invalid arguments for undo operation');
@@ -210,7 +203,7 @@ export async function handleUndo(
   }
 
   // Find the transaction by ID
-  const entry = entries.find(e => e.id === transactionId);
+  const entry = entries.find((e) => e.id === transactionId);
   if (!entry) {
     throw new Error(`Transaction ${transactionId} not found`);
   }
