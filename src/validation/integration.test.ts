@@ -4,8 +4,8 @@
 // Context7: consulted for zod
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { SmartSuiteShimServer } from '../mcp-server.js';
 import { createAuthenticatedTestServer } from '../../test/helpers/test-server.js';
+import { SmartSuiteShimServer } from '../mcp-server.js';
 
 describe('Validation Integration with MCP Server', () => {
   let server: SmartSuiteShimServer;
