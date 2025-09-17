@@ -87,3 +87,34 @@ WORKFLOW::[
     README→setup_requirement_updates
   ]
 ]
+
+CI_VALIDATION_MANDATE::[
+  BEFORE_CLAIMING_COMPLETE::[
+    MANDATORY_SEQUENCE::[
+      "npm run lint"→MUST_PASS[all_formatting_and_style_checks],
+      "npm run typecheck"→MUST_PASS[all_TypeScript_files_including_tests],
+      "npm run test"→MUST_PASS[all_test_suites]
+    ]
+    NEVER_JUST::"npm run build"→INSUFFICIENT[only_checks_src_not_tests]
+  ]
+
+  COMMON_AGENT_FAILURES::[
+    BUILD_ONLY::FAILS[only_checks_src_not_tests]
+    PARTIAL_TYPECHECK::FAILS[misses_test_file_errors]
+    NO_LINT::FAILS[misses_formatting_issues]
+    TEST_WITHOUT_TYPES::FAILS[runtime_passes_but_types_broken]
+  ]
+
+  VERIFICATION_EVIDENCE::[
+    MUST_SHOW::"All three commands passing with actual output"
+    NOT_ENOUGH::"Build successful" | "Tests pass" | "TypeScript clean"
+    AUDIT_TRAIL::"Copy actual command outputs as evidence"
+  ]
+
+  FALSE_COMPLETION_PREVENTION::[
+    IMPLEMENTATION_LEAD::MUST[run_all_three_before_reporting]
+    ERROR_ARCHITECT::MUST[verify_all_three_in_fixes]
+    CODE_REVIEW::MUST[confirm_CI_parity]
+    ANY_AGENT::CANNOT[claim_complete_without_all_three]
+  ]
+]
