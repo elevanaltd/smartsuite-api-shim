@@ -67,6 +67,15 @@ SMARTSUITE_CRITICAL::[
 ]
 
 WORKFLOW::[
+  PRE_BUILD_CHECKS::[
+    DEPENDENCY_VALIDATION::[
+      "npx tsc --version"→RECORD_TYPESCRIPT_VERSION,
+      "npm ls @typescript-eslint/parser"→CHECK_PARSER_VERSION,
+      VERIFY→"Parser supports TypeScript version",
+      FIX_IF_NEEDED→"npm update @typescript-eslint/parser @typescript-eslint/eslint-plugin"
+    ]
+  ]
+
   PRE_CHANGE::[
     READ→docs/000-NORTH-STAR.md[vision_alignment]
     READ→docs/001-ARCHITECTURE.md[system_constraints]

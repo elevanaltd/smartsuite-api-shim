@@ -153,6 +153,31 @@ Systematic stabilization approach focusing on reliability, monitoring, and produ
 
 **Impact**: Improved role clarity and prevented capability boundary violations that could lead to suboptimal outcomes.
 
+### CI Validation Requirements (Day 3-4 Learning)
+
+**Critical Discovery**: Implementation-Lead reported "TypeScript compilation clean" but CI had 20 errors
+
+**Root Cause Analysis**:
+- Agent ran only `npm run build` which checks src/ but not test files
+- Missed all ESLint formatting issues
+- Missed TypeScript errors in test files
+- Created false confidence about completion
+
+**Corrective Actions Taken**:
+1. Updated project CLAUDE.md with CI_VALIDATION_MANDATE
+2. Updated global CLAUDE.md with CI_QUALITY_GATES
+3. Created docs/411-DOC-CI-VALIDATION-CHECKLIST.md
+4. Updated BUILD.oct.md and error.md commands
+
+**Mandatory Validation Sequence**:
+```bash
+npm run lint       # Must have zero errors
+npm run typecheck  # Must check ALL .ts files
+npm run test       # Must pass all suites
+```
+
+**Key Learning**: "Build successful" ≠ "CI ready". Must run exact CI commands locally.
+
 ## Dependencies and Blockers
 
 ### External Dependencies
