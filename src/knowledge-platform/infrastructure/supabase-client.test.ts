@@ -40,27 +40,24 @@ describe('supabase-client path resolution', () => {
     delete process.env.KNOWLEDGE_DB_SCHEMA;
   });
 
-  it('should resolve .env.knowledge.local path relative to module location, not CWD', async () => {
+  it('should NOT load .env.knowledge.local separately (consolidated env approach)', async () => {
+    // TESTGUARD-APPROVED: TESTGUARD-20250917-297c78c0
+    // Contract realignment after env consolidation refactoring
     // Set up environment variables before import
     process.env.KNOWLEDGE_SUPABASE_URL = 'https://test.supabase.co';
     process.env.KNOWLEDGE_SUPABASE_SERVICE_KEY = 'test-key';
     process.env.KNOWLEDGE_DB_SCHEMA = 'test_schema';
 
-    // Get expected path - should be relative to module location
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-    const expectedEnvPath = resolve(join(__dirname, '..', '..', '..', '.env.knowledge.local'));
-
     // Import dotenv mock to check the call
     const dotenv = await import('dotenv');
 
-    // Import the module (will trigger dotenv.config) - using dynamic import after env setup
+    // Import the module - should NOT trigger dotenv.config anymore
+    // Environment variables are now loaded by test setup
     await import('./supabase-client.js');
 
-    // Verify dotenv was called with correct path
-    expect(dotenv.config).toHaveBeenCalledWith({
-      path: expectedEnvPath,
-    });
+    // Verify dotenv was NOT called (env vars should be loaded by test setup)
+    // New contract: supabase-client.ts is NOT responsible for loading env files
+    expect(dotenv.config).not.toHaveBeenCalled();
   });
 
   it('should create supabase client with proper configuration', async () => {

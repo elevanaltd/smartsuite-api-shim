@@ -12,6 +12,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    // Load environment variables for tests
+    setupFiles: ['./test/setup-integration-env.ts'],
     // TESTGUARD ENFORCEMENT: Explicit test inclusion/exclusion
     // Only run TypeScript source files, never compiled JS
     include: [
