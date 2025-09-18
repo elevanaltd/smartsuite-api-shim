@@ -15,7 +15,6 @@ import * as path from 'path';
 // Context7: consulted for url
 import { fileURLToPath } from 'url';
 
-
 // ERROR-ARCHITECT-APPROVED: ARCH-REFACTOR-APPROVED-2025-09-12-FUNCTION-MODULES
 import { AuditLogger } from './audit/audit-logger.js';
 import { FieldTranslator } from './lib/field-translator.js';
@@ -27,7 +26,8 @@ import {
   SmartSuiteClientConfig,
   createAuthenticatedClient,
 } from './smartsuite-client.js';
-import { defaultToolRegistry, registerAllTools } from './tools/tool-definitions.js';
+// Technical-Architect: Switch to Sentinel Architecture registration
+import { defaultToolRegistry, registerSentinelTools } from './tools/tool-definitions.js';
 import type { ToolContext } from './tools/types.js';
 import { McpValidationError } from './validation/input-validator.js';
 
@@ -52,7 +52,6 @@ export class SmartSuiteShimServer {
     // Constructor remains fast and non-blocking - no I/O operations here
   }
 
-
   /**
    * Initialize the server with auto-authentication if environment variables are present
    * This is a blocking operation that ensures the server is ready before accepting connections
@@ -62,9 +61,13 @@ export class SmartSuiteShimServer {
     // Critical-Engineer: consulted for Architecture pattern selection (Tool Registry)
     // Register all tools with error-resistant implementation and fail-fast pattern
     try {
-      registerAllTools();
+      // Technical-Architect: Activate Sentinel Architecture with only 2 tools
+      registerSentinelTools();
     } catch (error) {
-      logger.error('FATAL: Tool registration failed:', error instanceof Error ? error.message : String(error));
+      logger.error(
+        'FATAL: Tool registration failed:',
+        error instanceof Error ? error.message : String(error),
+      );
       throw new Error('Cannot start server: Tool system failed to initialize properly.');
     }
 
@@ -73,7 +76,6 @@ export class SmartSuiteShimServer {
     const skipAutoAuth = process.env.SKIP_AUTO_AUTH === 'true';
 
     if (apiToken && workspaceId && !skipAutoAuth) {
-
       logger.info('Auto-authenticating from environment variables...');
       this.authConfig = {
         apiKey: apiToken,
@@ -86,7 +88,6 @@ export class SmartSuiteShimServer {
 
         logger.info('Authentication successful.');
       } catch (error) {
-
         logger.error('FATAL: Auto-authentication failed.', error);
         // Re-throw to prevent the server from starting
         throw new Error('Could not authenticate server with environment credentials.');
@@ -126,18 +127,73 @@ export class SmartSuiteShimServer {
     description?: string;
     inputSchema: { type: string; properties: Record<string, unknown>; required?: string[] };
   }> {
-    // Return tools in MCP protocol-compliant format with proper schemas
+    // Technical-Architect: SENTINEL ARCHITECTURE ACTIVATED
+    // Reduced tool surface from 9 tools to 2 tools (facade + undo)
+    // All query, record, schema, discover, and knowledge operations route through the facade
+    logger.info('Sentinel Architecture: Exposing 2 tools (facade + undo) instead of 9');
+
+    // SENTINEL ARCHITECTURE: Return only the 2 facade tools
     return [
       {
-        name: 'smartsuite_query',
-        description: 'Query SmartSuite records with filtering, sorting, and pagination',
+        name: 'smartsuite_intelligent',
+        description:
+          'Unified SmartSuite operations interface - handles all queries, records, schemas, and discovery through intelligent routing',
         inputSchema: {
           type: 'object',
           properties: {
+            // Deterministic routing field (recommended for agent clarity)
+            tool_name: {
+              type: 'string',
+              enum: [
+                'smartsuite_query',
+                'smartsuite_record',
+                'smartsuite_schema',
+                'smartsuite_undo',
+                'smartsuite_discover',
+                'smartsuite_intelligent',
+                'smartsuite_knowledge_events',
+                'smartsuite_knowledge_field_mappings',
+                'smartsuite_knowledge_refresh_views',
+              ],
+              description: 'Explicit tool routing - use this for deterministic behavior',
+            },
+            // Core intelligent tool fields
+            endpoint: {
+              type: 'string',
+              description: 'SmartSuite API endpoint',
+            },
+            method: {
+              type: 'string',
+              enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+              description: 'HTTP method for the operation',
+            },
+            operation_description: {
+              type: 'string',
+              description: 'Human-readable description of what you want to accomplish',
+            },
+            payload: {
+              type: 'object',
+              description: 'Request payload',
+            },
+            tableId: {
+              type: 'string',
+              description: 'SmartSuite table/application ID',
+            },
+            mode: {
+              type: 'string',
+              enum: ['learn', 'dry_run', 'execute'],
+              description: 'Operation mode',
+              default: 'learn',
+            },
+            confirmed: {
+              type: 'boolean',
+              description: 'Confirmation for dangerous operations',
+              default: false,
+            },
+            // Additional routing fields for comprehensive operations
             operation: {
               type: 'string',
-              enum: ['list', 'get', 'search', 'count'],
-              description: 'The query operation to perform',
+              description: 'Operation type (for query/record tools)',
             },
             appId: {
               type: 'string',
@@ -145,7 +201,7 @@ export class SmartSuiteShimServer {
             },
             recordId: {
               type: 'string',
-              description: 'Record ID (required for get operation)',
+              description: 'Record ID (for get/update/delete operations)',
             },
             filters: {
               type: 'object',
@@ -157,34 +213,11 @@ export class SmartSuiteShimServer {
             },
             limit: {
               type: 'number',
-              description: 'Maximum number of records to return (default 5 for MCP context optimization, max 1000)',
+              description: 'Maximum number of records to return',
             },
             offset: {
               type: 'number',
-              description: 'Starting offset for pagination (default 0)',
-            },
-          },
-          required: ['operation', 'appId'],
-        },
-      },
-      {
-        name: 'smartsuite_record',
-        description: 'Create, update, or delete SmartSuite records with DRY-RUN safety',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            operation: {
-              type: 'string',
-              enum: ['create', 'update', 'delete', 'bulk_update', 'bulk_delete'],
-              description: 'The record operation to perform',
-            },
-            appId: {
-              type: 'string',
-              description: 'SmartSuite application ID (24-char hex)',
-            },
-            recordId: {
-              type: 'string',
-              description: 'Record ID (required for update/delete)',
+              description: 'Starting offset for pagination',
             },
             data: {
               type: 'object',
@@ -192,31 +225,36 @@ export class SmartSuiteShimServer {
             },
             dry_run: {
               type: 'boolean',
+              description: 'Preview changes without executing',
               default: true,
-              description: 'Preview changes without executing (safety default)',
-            },
-          },
-          required: ['operation', 'appId'],
-        },
-      },
-      {
-        name: 'smartsuite_schema',
-        description: 'Get SmartSuite application schema and field definitions',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            appId: {
-              type: 'string',
-              description: 'SmartSuite application ID (24-char hex)',
             },
             output_mode: {
               type: 'string',
-              enum: ['summary', 'fields', 'detailed'],
-              description: 'Output mode: summary (table info only), fields (field names/types), detailed (full schema)',
-              default: 'summary',
+              description: 'Schema output mode (summary/fields/detailed)',
+            },
+            scope: {
+              type: 'string',
+              description: 'Discovery scope (tables/fields)',
+            },
+            transaction_id: {
+              type: 'string',
+              description: 'Transaction ID for undo operations',
+            },
+            aggregateId: {
+              type: 'string',
+              description: 'Aggregate ID for knowledge events',
+            },
+            event: {
+              type: 'object',
+              description: 'Event data for knowledge operations',
+            },
+            views: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Views to refresh',
             },
           },
-          required: ['appId'],
+          required: ['operation_description'],
         },
       },
       {
@@ -231,122 +269,6 @@ export class SmartSuiteShimServer {
             },
           },
           required: ['transaction_id'],
-        },
-      },
-      {
-        name: 'smartsuite_discover',
-        description: 'Discover available tables and their fields',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            scope: {
-              type: 'string',
-              enum: ['tables', 'fields'],
-              description: 'What to discover: tables or fields for a specific table',
-            },
-            tableId: {
-              type: 'string',
-              description: 'Table name or ID (required for fields scope)',
-            },
-          },
-          required: ['scope'],
-        },
-      },
-      {
-        name: 'smartsuite_intelligent',
-        description: 'AI-guided access to any SmartSuite API with knowledge-driven safety',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            mode: {
-              type: 'string',
-              enum: ['learn', 'dry_run', 'execute'],
-              description: 'Operation mode: learn (analyze), dry_run (validate), execute (perform)',
-              default: 'learn',
-            },
-            endpoint: {
-              type: 'string',
-              description: 'SmartSuite API endpoint (e.g., /applications/{id}/records/list/)',
-            },
-            method: {
-              type: 'string',
-              enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-              description: 'HTTP method for the operation',
-            },
-            payload: {
-              type: 'object',
-              description: 'Request payload (validated against knowledge base)',
-            },
-            tableId: {
-              type: 'string',
-              description: 'SmartSuite table/application ID for context',
-            },
-            operation_description: {
-              type: 'string',
-              description: 'Human-readable description of what you want to accomplish',
-            },
-            confirmed: {
-              type: 'boolean',
-              description: 'Confirmation for dangerous operations (required for RED level)',
-              default: false,
-            },
-          },
-          required: ['endpoint', 'method', 'operation_description'],
-        },
-      },
-      {
-        name: 'smartsuite_knowledge_events',
-        description: 'Knowledge Platform event operations (append/get events)',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            operation: {
-              type: 'string',
-              enum: ['append', 'get'],
-              description: 'Event operation to perform',
-            },
-            aggregateId: {
-              type: 'string',
-              description: 'Aggregate ID for event operations',
-            },
-            event: {
-              type: 'object',
-              description: 'Event data for append operations',
-            },
-            limit: {
-              type: 'number',
-              description: 'Maximum number of events to retrieve (for get operations)',
-            },
-          },
-          required: ['operation'],
-        },
-      },
-      {
-        name: 'smartsuite_knowledge_field_mappings',
-        description: 'Get field mappings from Knowledge Platform',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            tableId: {
-              type: 'string',
-              description: 'SmartSuite table ID to get field mappings for',
-            },
-          },
-          required: ['tableId'],
-        },
-      },
-      {
-        name: 'smartsuite_knowledge_refresh_views',
-        description: 'Refresh Knowledge Platform materialized views',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            views: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'List of views to refresh (default: field_mappings)',
-            },
-          },
         },
       },
     ];
@@ -410,7 +332,6 @@ export class SmartSuiteShimServer {
         throw new Error('No valid field mappings directory found');
       }
 
-
       logger.info('Loading field mappings from:', configPath);
 
       // Use MappingService for centralized collision detection
@@ -432,7 +353,9 @@ export class SmartSuiteShimServer {
       // GRACEFUL DEGRADATION: Don't fail startup if field mappings are missing
       // This allows the server to work with raw API codes as fallback
       // eslint-disable-next-line no-console
-      console.warn('Field mappings not available - server will use raw API field codes and hex IDs');
+      console.warn(
+        'Field mappings not available - server will use raw API field codes and hex IDs',
+      );
 
       // CRITICAL FIX: Don't replace working instances with empty ones on failure
       // Keep the original empty instances but don't mark as initialized if we couldn't load anything
@@ -503,7 +426,6 @@ export class SmartSuiteShimServer {
       auditLogger: this.auditLogger,
     };
   }
-
 
   async executeTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
     // AUTO-AUTHENTICATION: Ensure authentication is complete FIRST
