@@ -32,4 +32,10 @@ for (const varName of requiredVars) {
   }
 }
 
+// Set TEST_MODE to use all tools for backward compatibility in tests
+// This allows tests to continue using direct tool names like 'smartsuite_record'
+// while production uses the Sentinel Architecture with only 2 tools
+process.env.TEST_MODE = 'all-tools';
+
 console.log(`Integration test environment loaded from: ${envPath}`);
+console.log(`TEST_MODE set to: ${process.env.TEST_MODE} (enabling all 9 tools for tests)`);

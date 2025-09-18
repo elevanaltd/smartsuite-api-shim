@@ -61,8 +61,16 @@ export class SmartSuiteShimServer {
     // Critical-Engineer: consulted for Architecture pattern selection (Tool Registry)
     // Register all tools with error-resistant implementation and fail-fast pattern
     try {
-      // Technical-Architect: Activate Sentinel Architecture with only 2 tools
-      registerSentinelTools();
+      // Check if we're in test mode and should use all tools for backward compatibility
+      if (process.env.TEST_MODE === 'all-tools') {
+        // Import dynamically to avoid circular dependency
+        const { registerAllTools } = await import('./tools/tool-definitions.js');
+        logger.info('TEST MODE: Registering all 9 tools for backward compatibility');
+        registerAllTools();
+      } else {
+        // Technical-Architect: Activate Sentinel Architecture with only 2 tools
+        registerSentinelTools();
+      }
     } catch (error) {
       logger.error(
         'FATAL: Tool registration failed:',
