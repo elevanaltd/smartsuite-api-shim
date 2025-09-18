@@ -166,8 +166,8 @@ function convertToLegacyArgs(
     case 'smartsuite_query':
       return {
         operation: extractQueryOperation(args),
-        appId: tableId || extractAppIdFromEndpoint(args.endpoint),
-        filters: payload?.filters || payload?.filter,
+        appId: tableId ?? extractAppIdFromEndpoint(args.endpoint),
+        filters: payload?.filters ?? payload?.filter,
         sort: payload?.sort,
         limit: payload?.limit,
         offset: payload?.offset,
@@ -177,37 +177,37 @@ function convertToLegacyArgs(
     case 'smartsuite_record':
       return {
         operation: extractRecordOperation(args),
-        appId: tableId || extractAppIdFromEndpoint(args.endpoint),
-        recordId: payload?.recordId || payload?.id,
-        data: payload || {},
+        appId: tableId ?? extractAppIdFromEndpoint(args.endpoint),
+        recordId: payload?.recordId ?? payload?.id,
+        data: payload ?? {},
         dry_run: mode !== 'execute', // Default to dry_run unless execute mode
       };
 
     case 'smartsuite_schema':
       return {
-        appId: tableId || extractAppIdFromEndpoint(args.endpoint),
-        output_mode: payload?.output_mode || 'summary',
+        appId: tableId ?? extractAppIdFromEndpoint(args.endpoint),
+        output_mode: payload?.output_mode ?? 'summary',
       };
 
     case 'smartsuite_undo':
       return {
-        transaction_id: payload?.transaction_id || payload?.transactionId,
+        transaction_id: payload?.transaction_id ?? payload?.transactionId,
       };
 
     case 'smartsuite_discover':
       return {
-        scope: payload?.scope || detectDiscoverScope(args),
-        tableId: payload?.tableId || tableId || undefined,
+        scope: payload?.scope ?? detectDiscoverScope(args),
+        tableId: payload?.tableId ?? tableId ?? undefined,
       };
 
     case 'smartsuite_knowledge_field_mappings':
       return {
-        tableId: tableId || extractAppIdFromEndpoint(args.endpoint),
+        tableId: tableId ?? extractAppIdFromEndpoint(args.endpoint),
       };
 
     case 'smartsuite_knowledge_events':
       return {
-        operation: payload?.operation || detectKnowledgeEventOperation(args),
+        operation: payload?.operation ?? detectKnowledgeEventOperation(args),
         aggregateId: payload?.aggregateId,
         event: payload?.event,
         limit: payload?.limit,
@@ -219,7 +219,7 @@ function convertToLegacyArgs(
       };
 
     default:
-      return payload || {};
+      return payload ?? {};
   }
 }
 
@@ -307,7 +307,7 @@ export async function handleIntelligentFacade(
     });
   } else {
     // Priority 3: Fallback to detection with warning
-    targetTool = detectLegacyToolRouting(validatedArgs.operation_description) || undefined;
+    targetTool = detectLegacyToolRouting(validatedArgs.operation_description) ?? undefined;
     if (targetTool) {
       logger.warn(
         'Using fallback routing detection - consider using tool_name for deterministic behavior',
