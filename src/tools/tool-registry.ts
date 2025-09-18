@@ -50,7 +50,7 @@ export class ToolRegistry {
       );
     }
 
-    this.tools.set(tool.name, tool as Tool<ZodType>);
+    this.tools.set(tool.name, tool as unknown as Tool<ZodType>);
   }
 
   /**

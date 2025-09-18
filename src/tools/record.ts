@@ -2,20 +2,21 @@
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 // Technical-Architect: function module pattern for tool extraction
 
-import {
-  isRecordToolArgs,
-} from '../lib/type-guards.js';
+import { isRecordToolArgs } from '../lib/type-guards.js';
 
 import type { ToolContext } from './types.js';
 
 // Validation cache for dry-run enforcement
 // Global state maintained across function calls - necessary for validation cache persistence
-const validationCache = new Map<string, {
-  timestamp: number;
-  dataHash: string;
-  validated: boolean;
-  errors?: string[];
-}>();
+const validationCache = new Map<
+  string,
+  {
+    timestamp: number;
+    dataHash: string;
+    validated: boolean;
+    errors?: string[];
+  }
+>();
 
 // Constants
 const VALIDATION_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
@@ -251,7 +252,9 @@ async function performDryRunValidation(
       }
 
       if (itemCount > 25) {
-        validationErrors.push(`Bulk operation exceeds SmartSuite's 25-record limit (${itemCount} records)`);
+        validationErrors.push(
+          `Bulk operation exceeds SmartSuite's 25-record limit (${itemCount} records)`,
+        );
       } else if (itemCount === 0) {
         validationErrors.push('Bulk operation requires at least one record');
       } else {
@@ -279,7 +282,8 @@ async function performDryRunValidation(
   }
 
   // Determine overall validation status
-  const validationPassed = connectivityPassed && schemaValidationPassed && validationErrors.length === 0;
+  const validationPassed =
+    connectivityPassed && schemaValidationPassed && validationErrors.length === 0;
 
   // Store validation result in cache for enforcement
   const dataHash = generateDataHash(translatedData as Record<string, unknown> | undefined);
@@ -331,7 +335,11 @@ async function performDryRunValidation(
     fieldMappingsUsed: context.fieldTranslator.hasMappings(appId),
     validationChecks: {
       connectivity: connectivityPassed ? 'passed' : 'failed',
-      schema: schemaValidationPassed ? 'passed' : validationWarnings.length > 0 ? 'skipped' : 'failed',
+      schema: schemaValidationPassed
+        ? 'passed'
+        : validationWarnings.length > 0
+          ? 'skipped'
+          : 'failed',
     },
     ...(validationErrors.length > 0 && { errors: validationErrors }),
     ...(validationWarnings.length > 0 && { warnings: validationWarnings }),
@@ -378,10 +386,9 @@ export async function handleRecord(context: ToolContext, args: unknown): Promise
     const availableTables = context.tableResolver.getAllTableNames();
     throw new Error(
       `Unknown table '${appId}'. ` +
-      (suggestions.length > 0
-        ? `Did you mean: ${suggestions.join(', ')}?`
-        : `Available tables: ${availableTables.join(', ')}`
-      ),
+        (suggestions.length > 0
+          ? `Did you mean: ${suggestions.join(', ')}?`
+          : `Available tables: ${availableTables.join(', ')}`),
     );
   }
   appId = resolvedId;
@@ -392,7 +399,6 @@ export async function handleRecord(context: ToolContext, args: unknown): Promise
   if (inputData && context.fieldTranslator.hasMappings(appId)) {
     if (operation === 'bulk_update' && Array.isArray(inputData)) {
       translatedData = inputData.map((item: Record<string, unknown>) =>
-
         context.fieldTranslator.humanToApi(appId, item, true),
       ) as unknown as Record<string, unknown>;
     } else if (operation !== 'bulk_delete') {
@@ -403,7 +409,14 @@ export async function handleRecord(context: ToolContext, args: unknown): Promise
 
   if (dry_run) {
     // Perform proper validation with actual API checks
-    const result = await performDryRunValidation(context, operation, appId, recordId, inputData ?? {}, translatedData ?? {});
+    const result = await performDryRunValidation(
+      context,
+      operation,
+      appId,
+      recordId,
+      inputData ?? {},
+      translatedData ?? {},
+    );
 
     return result;
   }
@@ -423,8 +436,8 @@ export async function handleRecord(context: ToolContext, args: unknown): Promise
     if (!priorValidationEntry) {
       throw new Error(
         'Validation required: No dry-run found for this operation. ' +
-        'You must perform a dry-run (dry_run: true) before executing. ' +
-        'This ensures the operation is validated before execution.',
+          'You must perform a dry-run (dry_run: true) before executing. ' +
+          'This ensures the operation is validated before execution.',
       );
     }
 
@@ -433,7 +446,7 @@ export async function handleRecord(context: ToolContext, args: unknown): Promise
       validationCache.delete(operationKey);
       throw new Error(
         'Validation expired: The dry-run for this operation has expired (>5 minutes old). ' +
-        'Please perform a new dry-run before executing.',
+          'Please perform a new dry-run before executing.',
       );
     }
 
@@ -442,8 +455,8 @@ export async function handleRecord(context: ToolContext, args: unknown): Promise
       validationCache.delete(operationKey);
       throw new Error(
         'Data mismatch: The data has changed since the dry-run validation. ' +
-        'The data must be identical between dry-run and execution. ' +
-        'Please perform a new dry-run with the current data.',
+          'The data must be identical between dry-run and execution. ' +
+          'Please perform a new dry-run with the current data.',
       );
     }
 
@@ -453,7 +466,7 @@ export async function handleRecord(context: ToolContext, args: unknown): Promise
       const errors = priorValidationEntry.errors?.join(', ') ?? 'Validation failed';
       throw new Error(
         `Cannot execute: The dry-run validation failed with errors: ${errors}. ` +
-        'Please fix the issues and perform a new dry-run.',
+          'Please fix the issues and perform a new dry-run.',
       );
     }
 
@@ -480,16 +493,17 @@ export async function handleRecord(context: ToolContext, args: unknown): Promise
       result = await context.client.createRecord(appId, translatedData!);
       // AUDIT LOGGING: Create operation
       const createdRecord = result as { id?: string } | null;
+      const newRecordId = createdRecord?.id ?? recordId ?? '';
       await context.auditLogger.logMutation({
         operation: 'create',
         tableId: appId,
-        recordId: createdRecord?.id ?? recordId,
+        recordId: newRecordId,
         payload: translatedData!,
         result: result as Record<string, unknown>,
         reversalInstructions: {
           operation: 'delete',
           tableId: appId,
-          recordId: createdRecord?.id ?? recordId,
+          recordId: newRecordId,
         },
       });
       break;

@@ -133,9 +133,13 @@ async function logUndoOperation(
     recordId: reversalInstructions.recordId ?? entry.recordId,
     result: result as Record<string, unknown>,
     reversalInstructions: {
-      operation: 'delete' as const, // Use delete as a placeholder for undo-undo
+      operation: 'delete' as const, // This undo cannot be undone
       tableId: reversalInstructions.tableId,
       recordId: reversalInstructions.recordId ?? entry.recordId,
+      payload: {
+        originalTransactionId: entry.id,
+        message: 'This undo operation cannot be undone',
+      },
     },
   });
 }

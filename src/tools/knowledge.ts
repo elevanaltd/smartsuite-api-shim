@@ -42,7 +42,8 @@ export async function handleKnowledgeEvents(
       if (!args.aggregateId || !args.type || !args.data) {
         return {
           success: false,
-          error: 'Missing required fields: aggregateId, type, and data are required for append operation',
+          error:
+            'Missing required fields: aggregateId, type, and data are required for append operation',
         };
       }
     } else if (args.operation === 'get') {
@@ -55,7 +56,7 @@ export async function handleKnowledgeEvents(
     }
 
     // Get or create event store
-    const eventStore = context.eventStore ?? await createEventStore();
+    const eventStore = context.eventStore ?? (await createEventStore());
 
     if (args.operation === 'append') {
       const event: DomainEvent = {
@@ -117,7 +118,7 @@ export async function handleKnowledgeFieldMappings(
     const aggregateId = `field-mappings-${tableId}`;
 
     // Get or create event store
-    const eventStore = context.eventStore ?? await createEventStore();
+    const eventStore = context.eventStore ?? (await createEventStore());
 
     try {
       // Try to get snapshot from event store
@@ -192,7 +193,7 @@ export async function handleKnowledgeRefreshViews(
     });
 
     const results = await Promise.all(refreshPromises);
-    const errors = results.filter(result => result.error !== null).map(result => result.error);
+    const errors = results.filter((result) => result.error !== null).map((result) => result.error);
 
     if (errors.length > 0) {
       return {
@@ -258,7 +259,7 @@ async function loadFieldMappingsFromYaml(
     interface FieldMappingResult {
       success: boolean;
       tableId: string;
-      fields: Record<string, string>;
+      fields: Record<string, { displayName: string; type: string }>;
       source: string;
       fallbackReason?: string;
     }
