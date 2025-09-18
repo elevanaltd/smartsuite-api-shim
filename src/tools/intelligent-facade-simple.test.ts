@@ -4,8 +4,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import type { ToolContext } from './types.js';
 import { handleIntelligentFacade } from './intelligent-facade.js';
+import type { ToolContext } from './types.js';
 
 // Mock handlers
 vi.mock('./query.js', () => ({

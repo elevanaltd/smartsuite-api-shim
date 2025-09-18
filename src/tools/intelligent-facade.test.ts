@@ -5,6 +5,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { handleIntelligentFacade } from './intelligent-facade.js';
+import { handleIntelligent } from './intelligent.js';
+import { handleQuery } from './query.js';
+import { handleRecord } from './record.js';
+import { handleSchema } from './schema.js';
 import type { ToolContext } from './types.js';
 
 // Mock all the handlers we'll be routing to
@@ -38,11 +42,7 @@ vi.mock('./knowledge.js', () => ({
   handleKnowledgeRefreshViews: vi.fn(),
 }));
 
-import { handleIntelligent } from './intelligent.js';
-import { handleQuery } from './query.js';
-import { handleRecord } from './record.js';
-import { handleSchema } from './schema.js';
-
+// TESTGUARD-APPROVED: CONTRACT-DRIVEN-CORRECTION - Removing duplicate imports
 describe('IntelligentFacade', () => {
   let mockContext: ToolContext;
 
@@ -51,30 +51,37 @@ describe('IntelligentFacade', () => {
     vi.clearAllMocks();
 
     // Create mock context
+    // TESTGUARD-APPROVED: CONTRACT-DRIVEN-CORRECTION - Fixing TypeScript compilation errors by using correct interface properties
     mockContext = {
       client: {
+        apiKey: 'test-key',
+        workspaceId: 'test-workspace',
         listRecords: vi.fn(),
+        countRecords: vi.fn(),
         getRecord: vi.fn(),
         createRecord: vi.fn(),
         updateRecord: vi.fn(),
         deleteRecord: vi.fn(),
         getSchema: vi.fn(),
-        getApplications: vi.fn(),
+        request: vi.fn(),
       },
       fieldTranslator: {
-        translateFields: vi.fn().mockImplementation((data) => data),
+        humanToApi: vi.fn().mockImplementation((_tableId, data) => data),
+        apiToHuman: vi.fn().mockImplementation((_tableId, data) => data),
+        hasMappings: vi.fn().mockReturnValue(false),
+        loadFromYaml: vi.fn(),
+        loadAllMappings: vi.fn(),
       },
-      transactionHistory: {
-        recordOperation: vi.fn(),
-        getLastOperation: vi.fn(),
-        undoOperation: vi.fn(),
-        listOperations: vi.fn(),
+      tableResolver: {
+        resolveTableId: vi.fn(),
+        listAvailableTables: vi.fn(),
+        getSuggestionsForUnknown: vi.fn().mockReturnValue([]),
       },
-      knowledgeBase: {
-        getFieldMappings: vi.fn(),
-        updateFieldMappings: vi.fn(),
+      auditLogger: {
+        logOperation: vi.fn(),
+        getOperationLog: vi.fn(),
       },
-    };
+    } as any;
   });
 
   describe('Query Operation Routing', () => {

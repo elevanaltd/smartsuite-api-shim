@@ -93,27 +93,54 @@ function detectLegacyToolRouting(operationDescription: string): string | null {
   }
 
   // Keyword-based routing (more specific patterns first)
-  if (normalized.includes('get') && (normalized.includes('record') || normalized.includes('by id') || normalized.includes('specific'))) {
+  if (
+    normalized.includes('get') &&
+    (normalized.includes('record') ||
+      normalized.includes('by id') ||
+      normalized.includes('specific'))
+  ) {
     return 'smartsuite_query';
   }
 
-  if (normalized.includes('query') || normalized.includes('search') || normalized.includes('list') || normalized.includes('filter')) {
+  if (
+    normalized.includes('query') ||
+    normalized.includes('search') ||
+    normalized.includes('list') ||
+    normalized.includes('filter')
+  ) {
     return 'smartsuite_query';
   }
 
-  if (normalized.includes('create') || normalized.includes('update') || normalized.includes('delete') || normalized.includes('modify')) {
+  if (
+    normalized.includes('create') ||
+    normalized.includes('update') ||
+    normalized.includes('delete') ||
+    normalized.includes('modify')
+  ) {
     return 'smartsuite_record';
   }
 
-  if (normalized.includes('schema') || normalized.includes('structure') || normalized.includes('fields')) {
+  if (
+    normalized.includes('schema') ||
+    normalized.includes('structure') ||
+    normalized.includes('fields')
+  ) {
     return 'smartsuite_schema';
   }
 
-  if (normalized.includes('undo') || normalized.includes('rollback') || normalized.includes('revert')) {
+  if (
+    normalized.includes('undo') ||
+    normalized.includes('rollback') ||
+    normalized.includes('revert')
+  ) {
     return 'smartsuite_undo';
   }
 
-  if (normalized.includes('discover') || normalized.includes('tables') || normalized.includes('available')) {
+  if (
+    normalized.includes('discover') ||
+    normalized.includes('tables') ||
+    normalized.includes('available')
+  ) {
     return 'smartsuite_discover';
   }
 
@@ -123,7 +150,10 @@ function detectLegacyToolRouting(operationDescription: string): string | null {
 /**
  * Convert intelligent tool arguments to legacy tool format
  */
-function convertToLegacyArgs(targetTool: string, args: z.infer<typeof IntelligentFacadeSchema>): Record<string, unknown> {
+function convertToLegacyArgs(
+  targetTool: string,
+  args: z.infer<typeof IntelligentFacadeSchema>,
+): Record<string, unknown> {
   // If legacy args are provided explicitly, use them
   if (args._legacy_args) {
     return args._legacy_args;
@@ -228,7 +258,7 @@ function extractRecordOperation(args: z.infer<typeof IntelligentFacadeSchema>): 
 function extractAppIdFromEndpoint(endpoint: string): string {
   // Match patterns like /applications/{id}/ or /apps/{id}/
   const match = endpoint.match(/\/(?:applications|apps)\/([a-f0-9]{24})/i);
-  return match ? match[1] : 'unknown-app-id';
+  return match?.[1] ?? 'unknown-app-id';
 }
 
 /**
@@ -242,7 +272,9 @@ function detectDiscoverScope(args: z.infer<typeof IntelligentFacadeSchema>): 'fi
 /**
  * Detect knowledge event operation type
  */
-function detectKnowledgeEventOperation(args: z.infer<typeof IntelligentFacadeSchema>): 'append' | 'get' {
+function detectKnowledgeEventOperation(
+  args: z.infer<typeof IntelligentFacadeSchema>,
+): 'append' | 'get' {
   const desc = args.operation_description.toLowerCase();
   return desc.includes('append') || desc.includes('create') ? 'append' : 'get';
 }
@@ -277,10 +309,13 @@ export async function handleIntelligentFacade(
     // Priority 3: Fallback to detection with warning
     targetTool = detectLegacyToolRouting(validatedArgs.operation_description) || undefined;
     if (targetTool) {
-      logger.warn('Using fallback routing detection - consider using tool_name for deterministic behavior', {
-        detected_tool: targetTool,
-        operation: validatedArgs.operation_description,
-      });
+      logger.warn(
+        'Using fallback routing detection - consider using tool_name for deterministic behavior',
+        {
+          detected_tool: targetTool,
+          operation: validatedArgs.operation_description,
+        },
+      );
     }
   }
 
@@ -319,13 +354,19 @@ export async function handleIntelligentFacade(
           return await handleDiscover(context, legacyArgs);
 
         case 'smartsuite_knowledge_field_mappings':
-          return await handleKnowledgeFieldMappings(legacyArgs as unknown as KnowledgeFieldMappingsArgs, context);
+          return await handleKnowledgeFieldMappings(
+            legacyArgs as unknown as KnowledgeFieldMappingsArgs,
+            context,
+          );
 
         case 'smartsuite_knowledge_events':
           return await handleKnowledgeEvents(legacyArgs as unknown as KnowledgeEventsArgs, context);
 
         case 'smartsuite_knowledge_refresh_views':
-          return await handleKnowledgeRefreshViews(legacyArgs as KnowledgeRefreshViewsArgs, context);
+          return await handleKnowledgeRefreshViews(
+            legacyArgs as KnowledgeRefreshViewsArgs,
+            context,
+          );
 
         default:
           throw new Error(`Unknown routing target: ${targetTool}`);
@@ -339,7 +380,6 @@ export async function handleIntelligentFacade(
     });
 
     return await handleIntelligent(context, args);
-
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Facade routing failed:', {
@@ -357,7 +397,8 @@ export async function handleIntelligentFacade(
 // Export the facade tool definition
 export const IntelligentFacadeTool: Tool<typeof IntelligentFacadeSchema> = {
   name: 'smartsuite_intelligent',
-  description: 'AI-guided access to any SmartSuite API with knowledge-driven safety and automatic tool routing',
+  description:
+    'AI-guided access to any SmartSuite API with knowledge-driven safety and automatic tool routing',
   schema: IntelligentFacadeSchema,
   execute: async (context: ToolContext, args) => {
     return handleIntelligentFacade(context, args as Record<string, unknown>);
