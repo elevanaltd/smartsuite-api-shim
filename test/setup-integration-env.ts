@@ -10,7 +10,8 @@ import path from 'path';
 import { config } from 'dotenv';
 
 // Determine which env file to load based on environment
-const envFile = process.env.CI ? '.env.ci' : '.env';
+// Updated to use .env.local as per security requirements
+const envFile = process.env.CI ? '.env.ci' : '.env.local';
 const envPath = path.resolve(process.cwd(), envFile);
 
 // Load the environment file
