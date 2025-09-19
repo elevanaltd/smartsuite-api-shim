@@ -453,7 +453,15 @@ function generateDefaultEndpoint(args: z.infer<typeof IntelligentFacadeSchema>):
   if (desc.includes('record') && (args.payload?.recordId || args.recordId)) {
     // Single record operations
     const recordIdValue = args.payload?.recordId ?? args.recordId ?? 'record-id';
-    const recordId = typeof recordIdValue === 'string' ? recordIdValue : String(recordIdValue);
+    // Ensure we have a string recordId, handling various input types
+    let recordId: string;
+    if (typeof recordIdValue === 'string') {
+      recordId = recordIdValue;
+    } else if (typeof recordIdValue === 'number') {
+      recordId = recordIdValue.toString();
+    } else {
+      recordId = 'record-id';
+    }
     return `/applications/${appId}/records/${recordId}/`;
   } else if (desc.includes('schema') || desc.includes('field')) {
     // Schema operations
