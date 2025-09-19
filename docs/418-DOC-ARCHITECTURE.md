@@ -20,6 +20,12 @@ Bridge between Claude MCP protocol and SmartSuite API, providing safe data opera
 - Backward compatible fallback routing
 - Located in `src/tools/intelligent-facade.ts`
 
+**Current Status** (2025-09-19):
+
+- Facade expects `endpoint` parameter but receives `operation_description`
+- Integration tests failing correctly, defining contracts for routing logic
+- Routing logic needs enhancement to parse descriptions into operations
+
 ### Layer Structure
 
 ```
@@ -93,28 +99,37 @@ MCP Interface → Intelligent Facade → Legacy Tool Handlers → SmartSuite Cli
 
 ## Testing Strategy
 
-### TEST_MODE Design (Solo Project Decision - 2025-09-19)
+### Stratified Testing Model (Refactored 2025-09-19)
 
-**Current State**: PERMANENT dual-interface design
+**Current State**: Production parity with stratified test architecture
 
 - **Production**: 2-tool Sentinel facade (smartsuite_intelligent + smartsuite_undo)
-- **Tests**: 9-tool interface via TEST_MODE=all-tools
+- **Unit Tests (\*.unit.test.ts)**: Direct imports of individual tool functions, mocked dependencies
+- **Integration Tests (\*.integration.test.ts)**: Test through 2-tool production interface
 
-**Decision**: TEST_MODE is a permanent testing interface, not technical debt
+**Architecture Decision**: TEST_MODE removed for test/production parity
 
 **Rationale**:
 
-- Different interfaces serve different purposes appropriately
-- Production optimized for AI agent cognitive load (89% reduction)
-- Tests validate comprehensive operations of underlying tools
-- Zero maintenance burden - it works and needs no changes
-- Appropriate for solo developer project without team coordination needs
+- Tests must validate actual production system, not fictional 9-tool environment
+- CONTRACT-DRIVEN-CORRECTION: Failing integration tests define requirements for facade
+- Truth over convenience: Facade complexity exposed through tests, not hidden
+- Unit tests validate individual components in isolation
+- Integration tests validate facade routing and system contracts
 
-### Integration Tests
+### Test Structure
 
-- `test/integration/field-translation-manual.test.ts`: Field mapping validation
-- `test/mcp-server.test.ts`: MCP protocol compliance
-- `test/mcp-server-auth.test.ts`: Authentication flows
+**Unit Tests** (\*.unit.test.ts):
+
+- `src/tools/*.unit.test.ts`: Individual tool function validation
+- Direct imports, mocked dependencies, fast execution
+
+**Integration Tests** (\*.integration.test.ts):
+
+- `test/mcp-server.integration.test.ts`: Production 2-tool interface validation
+- `test/audit.integration.test.ts`: Facade routing and audit trail
+- `test/mcp-server-auth.integration.test.ts`: Authentication flows
+- All test through facade, validate contracts
 
 ### Manual Validation Tables
 
@@ -153,5 +168,5 @@ MCP Interface → Intelligent Facade → Legacy Tool Handlers → SmartSuite Cli
 
 ---
 
-_Last Updated_: Context of current session
-_Next Review_: When adding bulk operations support
+_Last Updated_: 2025-09-19 - Test architecture refactored for production parity
+_Next Review_: When facade routing is fixed to handle operation_description
