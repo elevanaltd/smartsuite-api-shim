@@ -32,14 +32,11 @@ for (const varName of requiredVars) {
   }
 }
 
-// ARCHITECTURAL-DEBT: TEST_MODE creates test/production divergence
-// Technical-Architect Decision: Phase out by 2025-10-01
-// Migration tracking: 0/20 test files migrated to facade pattern
-// Registry blocked: 44aba1f6-4554-40bc-a59a-c21c40290e1d
-//
-// Set TEST_MODE to use all tools for backward compatibility in tests
-// This allows tests to continue using direct tool names like 'smartsuite_record'
-// while production uses the Sentinel Architecture with only 2 tools
+// TEST INTERFACE DESIGN (Solo Project Decision):
+// - Production: 2-tool Sentinel facade (optimized for AI agent cognitive load)
+// - Tests: 9-tool interface (comprehensive validation of all operations)
+// This divergence is intentional and permanent - not technical debt.
+// Tests validate the underlying operations that the facade routes to.
 process.env.TEST_MODE = 'all-tools';
 
 console.log(`Integration test environment loaded from: ${envPath}`);
