@@ -2,66 +2,106 @@
 
 ## System Purpose
 
-Bridge between Claude MCP protocol and SmartSuite API, providing safe data operations with dry-run defaults.
+Transform SmartSuite's complex API into a **simple, powerful data pipe** that speaks human language, not field codes. Intelligence lives in the LLM agents, infrastructure stays reliable and protective.
 
 ## Core Architecture
 
-### Sentinel Architecture (Activated 2025-09-19)
+### Sentinel Architecture (Production Reality)
 
 **Production Interface**: 2 tools only
 
-- `smartsuite_intelligent`: Unified facade handling all operations via intelligent routing
-- `smartsuite_undo`: Separate for safety and direct transaction rollback
+- `smartsuite_intelligent`: Unified facade accepting natural language operations
+- `smartsuite_undo`: Transaction rollback capability
 
-**Implementation**: Strangler Fig Pattern
+**Implementation**: Protective Facade Pattern
 
-- Facade routes to 8 underlying legacy tools
-- Deterministic routing via `tool_name` enum field
-- Backward compatible fallback routing
+- Accepts natural language and simple parameters from LLM agents
+- Routes internally to 8 specialized tool handlers
+- Protects against SmartSuite API quirks automatically
 - Located in `src/tools/intelligent-facade.ts`
 
-**Current Status** (2025-09-19):
+**B3 Integration Status** (2025-09-19):
 
-- Facade expects `endpoint` parameter but receives `operation_description`
-- Integration tests failing correctly, defining contracts for routing logic
-- Routing logic needs enhancement to parse descriptions into operations
+- ✅ Facade routing fixed - endpoint now optional
+- ✅ TypeScript compilation clean
+- ⚠️ Integration tests need update to use 2-tool interface
+- 🔄 Implementing protective intelligence for API quirks
 
 ### Layer Structure
 
 ```
-MCP Interface → Intelligent Facade → Legacy Tool Handlers → SmartSuite Client
-                      ↓                      ↓                    ↓
-                Tool Registry          Knowledge Base      Transaction History
+LLM Agent Request → MCP Interface → Intelligent Facade → Internal Routing → SmartSuite API
+                                            ↓                    ↓              ↓
+                                    Protective Logic     Knowledge Base   API Quirk Handler
+                                            ↓                    ↓              ↓
+                                    Field Discovery      Field Mappings   Format Correction
+```
+
+### Facade Input Contract (Planned)
+
+```typescript
+interface IntelligentFacadeInput {
+  // Natural language intent (required)
+  operation_description: string;
+
+  // Human-readable parameters (optional)
+  table?: string; // "projects" not cryptic IDs
+  recordId?: string; // When operating on specific record
+  data?: any; // Mutation data (auto-protected)
+  filters?: any; // Query filters (auto-corrected)
+  fields?: string[]; // Token optimization
+  limit?: number; // Default: 2 (token safety)
+
+  // Routing hints (optional)
+  tool_name?: string; // Explicit tool selection
+  operation?: string; // Explicit operation type
+
+  // Safety (optional)
+  mode?: 'dry_run' | 'execute'; // Default: dry_run
+}
 ```
 
 ### Critical Dependencies
 
-- **MCP Protocol**: Tool definitions, parameter validation
-- **SmartSuite API**: Real-time data operations
-- **Knowledge Base**: Field mapping intelligence
-- **Transaction History**: Undo capability
+- **MCP Protocol**: Standardized tool interface for LLM agents
+- **SmartSuite API**: Target system with specific quirks
+- **Knowledge Base**: JSON configurations for field mappings and API patterns
+- **Protective Intelligence**: Auto-corrections for API requirements
 
 ## Key Architectural Decisions
 
-### 1. Dry-Run Safety Pattern
+### 1. Protective Intelligence Layer
 
-- ALL mutations default to dry_run=true
-- Explicit confirmation required for writes
-- Transaction history for rollback capability
+The facade automatically protects LLM agents from SmartSuite API quirks:
 
-### 2. Field Discovery First
+- **Endpoint Generation**: Creates proper endpoints with trailing slashes
+- **Method Inference**: Uses PATCH for updates, POST for creates
+- **Array Wrapping**: Converts single linked records to arrays
+- **Filter Correction**: Changes `is` to `has_any_of` for linked records
+- **Field Validation**: Ensures required fields based on knowledge base
 
-- ALWAYS use discover tool before operations
-- Field mappings are non-obvious (cryptic IDs)
-- Knowledge base provides format requirements
+### 2. Dry-Run Safety Pattern
 
-### 3. Format Requirements (CRITICAL)
+- ALL mutations default to `dry_run=true`
+- Explicit `mode: 'execute'` required for actual writes
+- Transaction IDs provided for all mutations
+- Full audit trail in NDJSON format
 
-- **Checklist Fields**: MUST use SmartDoc rich text format
-  - Simple arrays FAIL silently (API 200 but no save)
-  - See: api-patterns.json:704
-- **Linked Records**: Always arrays, even single values
-- **Date Ranges**: from_date/to_date structure required
+### 3. Natural Language First
+
+- LLM agents use `operation_description` with natural language
+- Technical parameters (endpoint, method) generated automatically
+- Human-readable table names preferred over IDs
+- Field discovery provides mapping between display names and codes
+
+### 4. Knowledge-Driven Validation
+
+The system uses JSON knowledge bases (`src/knowledge/*.json`) to:
+
+- **api-patterns.json**: SmartSuite API quirks and requirements
+- **field-mappings.json**: Human-readable to field code translations
+- **safety-protocols.json**: Risk assessment and validation rules
+- **operation-templates.json**: Common operation patterns
 
 ## Integration Points
 
@@ -77,25 +117,40 @@ MCP Interface → Intelligent Facade → Legacy Tool Handlers → SmartSuite Cli
 - Changes to tool signatures break clients
 - Knowledge base updates affect all operations
 
-## Common Failure Modes
+## Common Failure Modes (Auto-Protected)
 
-### 1. Silent Data Loss
+### 1. Silent Data Loss → PREVENTED
 
-- **Symptom**: API returns 200 but data not saved
-- **Cause**: Incorrect field format (especially checklists)
-- **Prevention**: ALWAYS use discover first, check knowledge base
+- **Old Problem**: API returns 200 but data not saved
+- **Root Cause**: Incorrect field format (especially checklists)
+- **Protection**: Facade validates against knowledge base patterns
+- **Auto-Correction**: SmartDoc format enforced for checklist fields
 
-### 2. Field Not Found
+### 2. Field Not Found → MITIGATED
 
-- **Symptom**: "Field 'name' not found" errors
-- **Cause**: Using display names instead of field IDs
-- **Prevention**: discover tool provides actual field codes
+- **Old Problem**: "Field 'name' not found" errors
+- **Root Cause**: Using display names instead of field IDs
+- **Protection**: Field discovery provides automatic mapping
+- **Fallback**: Facade suggests correct field names on error
 
-### 3. Filter Operator Mismatch
+### 3. Filter Operator Mismatch → AUTO-CORRECTED
 
-- **Symptom**: Linked record queries return empty
-- **Cause**: Using 'is' instead of 'has_any_of'
-- **Prevention**: Check field type in schema
+- **Old Problem**: Linked record queries return empty
+- **Root Cause**: Using 'is' instead of 'has_any_of'
+- **Protection**: Facade detects linked fields and corrects operators
+- **Transparent**: LLM doesn't need to know about this quirk
+
+### 4. Missing Trailing Slash → AUTO-FIXED
+
+- **Old Problem**: Silent failures on certain endpoints
+- **Root Cause**: SmartSuite requires trailing slashes
+- **Protection**: Facade always adds trailing slash to endpoints
+
+### 5. Wrong HTTP Method → AUTO-INFERRED
+
+- **Old Problem**: Using POST for updates fails
+- **Root Cause**: SmartSuite requires PATCH for updates
+- **Protection**: Facade infers correct method from operation
 
 ## Testing Strategy
 
@@ -166,7 +221,74 @@ MCP Interface → Intelligent Facade → Legacy Tool Handlers → SmartSuite Cli
 - Batch operations where possible
 - Limit default query sizes (2-5 records)
 
+## Planned Improvements (B3 Integration)
+
+### Immediate (Current Sprint)
+
+1. **Facade Enhancement** ✅ DONE
+   - Make `endpoint` optional (generate from context)
+   - Add intelligent endpoint generation with trailing slashes
+
+2. **Protective Intelligence** 🔄 IN PROGRESS
+   - Auto-wrap single values in arrays for linked records
+   - Correct filter operators for linked record queries
+   - Infer HTTP method from operation type
+   - Add required fields based on operation context
+
+3. **Test Migration** ⏳ PENDING
+   - Update integration tests to use 2-tool interface
+   - Add API quirk protection tests
+   - Validate Oracle contract patterns
+
+### Future Enhancements
+
+1. **Token Optimization**
+   - Implement field selection to return only requested fields
+   - Remove empty/null fields from responses
+   - Compress metadata for smaller payloads
+
+2. **Error Intelligence**
+   - Provide `retry_with` suggestions on errors
+   - Map cryptic API errors to helpful messages
+   - Include field validation hints
+
+3. **Performance Monitoring**
+   - Track operation latencies
+   - Identify slow queries
+   - Cache frequently used schemas
+
+## Example Usage (Target State)
+
+### LLM Agent Request (Natural Language)
+
+```javascript
+await mcp.callTool('smartsuite_intelligent', {
+  operation_description: 'Find all videos in production for project EAV042',
+  table: 'Videos',
+  filters: {
+    project_code: 'EAV042',
+    status: 'in_production',
+  },
+  fields: ['title', 'editor', 'due_date'],
+  limit: 5,
+});
+```
+
+### What Happens Behind the Scenes
+
+```javascript
+// 1. Facade receives request
+// 2. Discovers field mappings for Videos table
+// 3. Translates human-readable fields to API codes
+// 4. Generates endpoint: /api/v1/applications/68b2437a8f1755b055e0a124/records/list/
+// 5. Infers method: POST
+// 6. Corrects filter operator for linked fields
+// 7. Executes with dry_run first
+// 8. Returns cleaned response with only requested fields
+```
+
 ---
 
-_Last Updated_: 2025-09-19 - Test architecture refactored for production parity
-_Next Review_: When facade routing is fixed to handle operation_description
+_Last Updated_: 2025-09-19 - Architecture updated with protective intelligence design
+_Status_: B3 Integration Phase - Implementing protective facade enhancements
+_North Star Alignment_: ✅ Verified - Frictionless API access with safety first

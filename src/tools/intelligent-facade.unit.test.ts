@@ -335,4 +335,59 @@ describe('IntelligentFacade', () => {
       expect(result).toEqual(mockQueryResponse);
     });
   });
+
+  describe('Optional Endpoint Support', () => {
+    it('should work when endpoint is not provided (B3 integration contract)', async () => {
+      // RED: This test will fail because endpoint is currently required
+      const mockQueryResponse = { items: [], total: 0 };
+      (handleQuery as any).mockResolvedValue(mockQueryResponse);
+
+      const args = {
+        // endpoint: omitted - this is the B3 integration contract
+        method: 'GET' as const,
+        operation_description: 'list records from table',
+        tableId: '68a8ff5237fde0bf797c05b3',
+      };
+
+      const result = await handleIntelligentFacade(mockContext, args);
+
+      expect(handleQuery).toHaveBeenCalledWith(mockContext, {
+        operation: 'list',
+        appId: '68a8ff5237fde0bf797c05b3',
+        filters: undefined,
+        sort: undefined,
+        limit: undefined,
+        offset: undefined,
+        recordId: undefined,
+      });
+
+      expect(result).toEqual(mockQueryResponse);
+    });
+
+    it('should generate default endpoint from tableId when endpoint is missing', async () => {
+      const mockRecordResponse = { dry_run: true, preview: 'would create record' };
+      (handleRecord as any).mockResolvedValue(mockRecordResponse);
+
+      const args = {
+        // endpoint: omitted
+        method: 'POST' as const,
+        operation_description: 'create new record',
+        tableId: '68a8ff5237fde0bf797c05b3',
+        payload: { name: 'Test Record' },
+      };
+
+      // This should route to record handler and generate a default endpoint internally
+      const result = await handleIntelligentFacade(mockContext, args);
+
+      expect(handleRecord).toHaveBeenCalledWith(mockContext, {
+        operation: 'create',
+        appId: '68a8ff5237fde0bf797c05b3',
+        recordId: undefined,
+        data: { name: 'Test Record' },
+        dry_run: true, // Default when mode is not 'execute'
+      });
+
+      expect(result).toEqual(mockRecordResponse);
+    });
+  });
 });

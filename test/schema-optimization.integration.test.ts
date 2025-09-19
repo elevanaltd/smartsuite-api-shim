@@ -57,7 +57,6 @@ describe('Schema Optimization', () => {
     // Initialize server to register tools
     await server.initialize();
 
-
     // Create mock client with getSchema method
     mockClient = {
       getSchema: vi.fn(),
@@ -78,7 +77,9 @@ describe('Schema Optimization', () => {
 
   describe('Output Mode: summary', () => {
     it('should return only essential table info with summary mode', async () => {
-      const result = await server.callTool('smartsuite_schema', {
+      const result = await server.executeTool('smartsuite_intelligent', {
+        tool_name: 'smartsuite_schema',
+        operation_description: 'get schema summary for table',
         appId: '68a8ff5237fde0bf797c05b3',
         output_mode: 'summary',
       });
@@ -100,7 +101,9 @@ describe('Schema Optimization', () => {
 
     it('should use summary mode as default when no output_mode specified', async () => {
       // TEST FAILS: Current implementation returns full schema by default
-      const result = await server.callTool('smartsuite_schema', {
+      const result = await server.executeTool('smartsuite_intelligent', {
+        tool_name: 'smartsuite_schema',
+        operation_description: 'get schema with default mode',
         appId: '68a8ff5237fde0bf797c05b3',
         // No output_mode specified
       });
@@ -120,7 +123,9 @@ describe('Schema Optimization', () => {
 
   describe('Output Mode: fields', () => {
     it('should return field names and types with fields mode', async () => {
-      const result = await server.callTool('smartsuite_schema', {
+      const result = await server.executeTool('smartsuite_intelligent', {
+        tool_name: 'smartsuite_schema',
+        operation_description: 'get schema fields for table',
         appId: '68a8ff5237fde0bf797c05b3',
         output_mode: 'fields',
       });
@@ -156,7 +161,9 @@ describe('Schema Optimization', () => {
 
   describe('Output Mode: detailed', () => {
     it('should return full schema with detailed mode', async () => {
-      const result = await server.callTool('smartsuite_schema', {
+      const result = await server.executeTool('smartsuite_intelligent', {
+        tool_name: 'smartsuite_schema',
+        operation_description: 'get detailed schema for table',
         appId: '68a8ff5237fde0bf797c05b3',
         output_mode: 'detailed',
       });
@@ -175,7 +182,9 @@ describe('Schema Optimization', () => {
   describe('Input Validation', () => {
     it('should reject invalid output_mode values', async () => {
       await expect(
-        server.callTool('smartsuite_schema', {
+        server.executeTool('smartsuite_intelligent', {
+          tool_name: 'smartsuite_schema',
+          operation_description: 'get schema with invalid mode',
           appId: '68a8ff5237fde0bf797c05b3',
           output_mode: 'invalid',
         }),
@@ -183,7 +192,9 @@ describe('Schema Optimization', () => {
     });
 
     it('should accept undefined output_mode (uses default)', async () => {
-      const result = await server.callTool('smartsuite_schema', {
+      const result = await server.executeTool('smartsuite_intelligent', {
+        tool_name: 'smartsuite_schema',
+        operation_description: 'get schema with undefined mode',
         appId: '68a8ff5237fde0bf797c05b3',
         // output_mode undefined
       });
@@ -199,7 +210,6 @@ describe('Schema Optimization', () => {
       mockClient.getSchema.mockClear();
     });
 
-
     it('should handle cache TTL expiry', async () => {
       // This test would need time manipulation or dependency injection
       // For now, mark as TODO for implementation phase
@@ -214,11 +224,13 @@ describe('Schema Optimization', () => {
       const invalidTableId = '78b9gg6348edf1cg8a8c16c4';
 
       await expect(
-        server.callTool('smartsuite_schema', {
+        server.executeTool('smartsuite_intelligent', {
+          tool_name: 'smartsuite_schema',
+          operation_description: 'get schema for invalid table',
           appId: invalidTableId,
           output_mode: 'summary',
         }),
-      ).rejects.toThrow('Unknown table \'78b9gg6348edf1cg8a8c16c4\'. Available tables:');
+      ).rejects.toThrow("Unknown table '78b9gg6348edf1cg8a8c16c4'. Available tables:");
     });
   });
 });

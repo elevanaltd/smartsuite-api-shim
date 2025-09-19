@@ -2,8 +2,10 @@
 // CRITICAL: Test validation middleware integration with MCP server
 // Context7: consulted for vitest
 // Context7: consulted for zod
+// CONTEXT7_BYPASS: ESLint-FIX - Import order fix for CI pipeline
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import { executeSmartSuiteTool } from '../../test/helpers/facade-test-utils.js';
 import { createAuthenticatedTestServer } from '../../test/helpers/test-server.js';
 import { SmartSuiteShimServer } from '../mcp-server.js';
 
@@ -20,9 +22,7 @@ describe('Validation Integration with MCP Server', () => {
       getSchema: vi.fn().mockResolvedValue({
         id: 'test-app',
         name: 'Test App',
-        structure: [
-          { slug: 'checklist_field', field_type: 'checklist', params: {} },
-        ],
+        structure: [{ slug: 'checklist_field', field_type: 'checklist', params: {} }],
       }),
     };
   });
@@ -31,7 +31,7 @@ describe('Validation Integration with MCP Server', () => {
     it('should reject invalid checklist format in record operations', async () => {
       // RED: This should fail - no validation integration exists yet
       await expect(
-        server.executeTool('smartsuite_record', {
+        executeSmartSuiteTool(server, 'smartsuite_record', {
           operation: 'create',
           appId: 'test-app',
           data: {
@@ -48,7 +48,7 @@ describe('Validation Integration with MCP Server', () => {
       // The test validates that invalid table IDs are caught
       // Table validation happens before operation validation
       await expect(
-        server.executeTool('smartsuite_query', {
+        executeSmartSuiteTool(server, 'smartsuite_query', {
           operation: 'invalid_operation', // Invalid enum value
           appId: 'test-app', // Invalid table ID format
         }),

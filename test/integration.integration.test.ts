@@ -63,7 +63,10 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
     it('should require authentication before tool execution', async () => {
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'list', appId: '68a8ff5237fde0bf797c05b3' }),
+        server.executeTool('smartsuite_query', {
+          operation: 'list',
+          appId: '68a8ff5237fde0bf797c05b3',
+        }),
       ).rejects.toThrow('Authentication required');
     });
   });
@@ -81,7 +84,9 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       // Fixed field name: projects table uses 'projectName' not 'name'
       // Attempt mutation without dry_run
       await expect(
-        server.executeTool('smartsuite_record', {
+        server.executeTool('smartsuite_intelligent', {
+          operation_description: 'create a new record',
+          tool_name: 'smartsuite_record',
           operation: 'create',
           appId: '68a8ff5237fde0bf797c05b3',
           data: { projectName: 'test' },
@@ -97,11 +102,11 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-
-
       // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250909-7cf66e12
       // Fixed field name: projects table uses 'projectName' not 'name'
-      const result = (await server.executeTool('smartsuite_record', {
+      const result = (await server.executeTool('smartsuite_intelligent', {
+        operation_description: 'create a new record with dry run',
+        tool_name: 'smartsuite_record',
         operation: 'create',
         appId: '68a8ff5237fde0bf797c05b3',
         data: { projectName: 'test' },
@@ -122,8 +127,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-
-
       await expect(server.executeTool('unknown_tool', {})).rejects.toThrow(
         'Unknown tool: unknown_tool',
       );
@@ -137,10 +140,10 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-
-
       await expect(
-        server.executeTool('smartsuite_query', {
+        server.executeTool('smartsuite_intelligent', {
+          operation_description: 'perform unknown query operation',
+          tool_name: 'smartsuite_query',
           operation: 'unknown_op',
           appId: '68a8ff5237fde0bf797c05b3',
         }),
@@ -150,7 +153,9 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     it('should handle authentication errors gracefully', async () => {
       // TESTGUARD-APPROVED: Correctly mocking authentication failure for error handling test
       // Override the global mock for this specific test to simulate auth failure
-      vi.mocked(createAuthenticatedClient).mockRejectedValueOnce(new Error('Authentication failed: Invalid token'));
+      vi.mocked(createAuthenticatedClient).mockRejectedValueOnce(
+        new Error('Authentication failed: Invalid token'),
+      );
 
       await expect(
         server.authenticate({
@@ -177,8 +182,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-
-
       // Mock the client methods by replacing the private client
       // This is testing the tool execution pipeline, not the client itself
       // TEST-METHODOLOGY-GUARDIAN-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250912-94f6ff5e
@@ -198,7 +201,9 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     });
 
     it('should execute query operations correctly', async () => {
-      const result = await server.executeTool('smartsuite_query', {
+      const result = await server.executeTool('smartsuite_intelligent', {
+        operation_description: 'list records from table',
+        tool_name: 'smartsuite_query',
         operation: 'list',
         appId: '68b2437a8f1755b055e0a124',
       });
@@ -211,11 +216,16 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         offset: 0,
       });
       // Updated to use correct videos table ID from field-mappings
-      expect((server as any).client.listRecords).toHaveBeenCalledWith('68b2437a8f1755b055e0a124', {});
+      expect((server as any).client.listRecords).toHaveBeenCalledWith(
+        '68b2437a8f1755b055e0a124',
+        {},
+      );
     });
 
     it('should execute count operations correctly', async () => {
-      const result = await server.executeTool('smartsuite_query', {
+      const result = await server.executeTool('smartsuite_intelligent', {
+        operation_description: 'count records in table',
+        tool_name: 'smartsuite_query',
         operation: 'count',
         appId: '68b2437a8f1755b055e0a124',
       });
@@ -224,7 +234,9 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     });
 
     it('should execute schema operations correctly', async () => {
-      const result = await server.executeTool('smartsuite_schema', {
+      const result = await server.executeTool('smartsuite_intelligent', {
+        operation_description: 'get table schema',
+        tool_name: 'smartsuite_schema',
         appId: '68b2437a8f1755b055e0a124',
       });
 
@@ -251,7 +263,12 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     it('should have appropriate error messages for single-user context', async () => {
       // Not authenticated
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'list', appId: '68a8ff5237fde0bf797c05b3' }),
+        server.executeTool('smartsuite_intelligent', {
+          operation_description: 'list records',
+          tool_name: 'smartsuite_query',
+          operation: 'list',
+          appId: '68a8ff5237fde0bf797c05b3',
+        }),
       ).rejects.toThrow(/Authentication required.*authenticate\(\) first/);
 
       // Invalid operation
@@ -266,10 +283,13 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-
-
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'invalid', appId: '68a8ff5237fde0bf797c05b3' }),
+        server.executeTool('smartsuite_intelligent', {
+          operation_description: 'invalid operation',
+          tool_name: 'smartsuite_query',
+          operation: 'invalid',
+          appId: '68a8ff5237fde0bf797c05b3',
+        }),
       ).rejects.toThrow(/Unknown query operation: invalid/);
     });
 
@@ -286,11 +306,11 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-
-
       // Bulk operations not needed for personal automation
       await expect(
-        server.executeTool('smartsuite_record', {
+        server.executeTool('smartsuite_intelligent', {
+          operation_description: 'bulk update records',
+          tool_name: 'smartsuite_record',
           operation: 'bulk_update',
           appId: '68a8ff5237fde0bf797c05b3',
           data: [],

@@ -1,11 +1,13 @@
 // Test-Methodology-Guardian: approved Strangler Fig Pattern implementation
 // Implementation-Lead: Sentinel Architecture facade for tool consolidation
 // Critical-Engineer: consulted for routing architecture and error handling
+// Critical-Engineer: consulted for Test migration strategy and facade maintainability
 // Context7: consulted for zod
 
 import { z } from 'zod';
 
 import logger from '../logger.js';
+import { SmartDocValidationError } from '../validation/smartdoc-validator.js';
 
 import { handleDiscover } from './discover.js';
 import { handleIntelligent } from './intelligent.js';
@@ -43,13 +45,18 @@ const IntelligentFacadeSchema = z.object({
     .describe('Explicit tool routing - use this for deterministic behavior'),
 
   // Original intelligent tool fields
-  endpoint: z.string().min(1),
-  method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']),
+  endpoint: z.string().min(1).optional(),
+  method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']).optional(), // B3 Integration: Allow method inference
   operation_description: z.string().min(1),
   payload: z.record(z.unknown()).optional(),
   tableId: z.string().optional(),
+  appId: z.string().optional(), // Backward compatibility with legacy tests
   mode: z.enum(['learn', 'dry_run', 'execute']).optional(),
   confirmed: z.boolean().optional(),
+
+  // Additional fields for routing compatibility
+  recordId: z.string().optional(), // For direct record operations
+  operation: z.string().optional(), // Explicit operation type
 
   // Routing extension for legacy tool support (deprecated in favor of tool_name)
   _route_to_legacy: z.string().optional(), // Internal routing hint
@@ -78,6 +85,41 @@ const OPERATION_ROUTING_MAP = {
   'get events': 'smartsuite_knowledge_events',
   'refresh views': 'smartsuite_knowledge_refresh_views',
 } as const;
+
+// B3 Integration: Protective Intelligence Knowledge Base
+const LINKED_RECORD_FIELDS = [
+  'projects_link',
+  'assigned_to',
+  'batch_alloc',
+  'parent_task',
+  'linked_records',
+  'project',
+  'user',
+  'team_members',
+  'dependencies',
+  'subtasks',
+];
+
+const CHECKLIST_FIELD_PATTERNS = ['checklist', 'tasks', 'items', 'todo', 'requirements'];
+
+/**
+ * Check if a field name indicates a linked record field
+ */
+function isLinkedRecordField(fieldName: string): boolean {
+  const normalized = fieldName.toLowerCase();
+  return LINKED_RECORD_FIELDS.some(
+    (pattern) =>
+      normalized.includes(pattern) || normalized.endsWith('_link') || normalized.endsWith('_id'),
+  );
+}
+
+/**
+ * Check if a field name indicates a checklist field
+ */
+function isChecklistField(fieldName: string): boolean {
+  const normalized = fieldName.toLowerCase();
+  return CHECKLIST_FIELD_PATTERNS.some((pattern) => normalized.includes(pattern));
+}
 
 /**
  * Analyze operation description and determine routing target
@@ -148,6 +190,106 @@ function detectLegacyToolRouting(operationDescription: string): string | null {
 }
 
 /**
+ * Apply protective intelligence to data fields
+ * B3 Integration: Auto-wrap linked records, validate SmartDoc formats
+ */
+function applyProtectiveIntelligence(data: Record<string, unknown>): Record<string, unknown> {
+  const protectedData = { ...data };
+
+  for (const [fieldName, value] of Object.entries(protectedData)) {
+    // Array Wrapping Protection: Wrap single linked record values
+    if (isLinkedRecordField(fieldName) && value != null && !Array.isArray(value)) {
+      logger.info(
+        `Protective Intelligence: Wrapping single linked record value for field ${fieldName}`,
+      );
+      protectedData[fieldName] = [value];
+    }
+
+    // SmartDoc Validation: Detect dangerous formats that cause silent data loss
+    if (
+      isChecklistField(fieldName) &&
+      Array.isArray(value) &&
+      value.length > 0 &&
+      typeof value[0] === 'string'
+    ) {
+      throw new SmartDocValidationError(
+        `Invalid checklist format for field ${fieldName}: Simple arrays ["item1", "item2"] cause silent data loss in SmartSuite API. Use proper SmartDoc rich text structure.`,
+        'checklist',
+        value,
+      );
+    }
+  }
+
+  return protectedData;
+}
+
+/**
+ * Apply protective intelligence to filter operators
+ * B3 Integration: Auto-correct "is" to "has_any_of" for linked records
+ */
+function applyFilterProtection(filters: unknown): unknown {
+  // Type guard for filter structure
+  if (!filters || typeof filters !== 'object' || !('fields' in filters)) {
+    return filters;
+  }
+
+  const filterObj = filters as { fields?: unknown[]; [key: string]: unknown };
+  if (!filterObj.fields || !Array.isArray(filterObj.fields)) {
+    return filters;
+  }
+
+  const protectedFilters = { ...filterObj };
+  protectedFilters.fields = filterObj.fields.map((field) => {
+    // Type guard for field structure
+    if (!field || typeof field !== 'object') {
+      return field;
+    }
+
+    const fieldObj = field as { field?: string; comparison?: string; [key: string]: unknown };
+    if (fieldObj.field && isLinkedRecordField(fieldObj.field) && fieldObj.comparison === 'is') {
+      logger.info(
+        `Protective Intelligence: Correcting filter operator for linked field ${fieldObj.field}: is → has_any_of`,
+      );
+      return { ...fieldObj, comparison: 'has_any_of' };
+    }
+    return field;
+  });
+
+  return protectedFilters;
+}
+
+/**
+ * Infer HTTP method from operation context
+ * B3 Integration: Smart method inference when not explicitly provided
+ */
+function inferHttpMethod(args: z.infer<typeof IntelligentFacadeSchema>): string {
+  // If method is explicitly provided, use it
+  if (args.method) {
+    return args.method;
+  }
+
+  const desc = args.operation_description.toLowerCase();
+  const hasRecordId = args.recordId || args.payload?.recordId || args.payload?.id;
+
+  // Method inference based on operation and context
+  if (desc.includes('delete') || desc.includes('remove')) return 'DELETE';
+  if (desc.includes('update') || desc.includes('edit') || desc.includes('modify')) return 'PATCH';
+  if (desc.includes('create') || desc.includes('add') || desc.includes('new')) return 'POST';
+  if (hasRecordId && (desc.includes('get') || desc.includes('fetch'))) return 'GET';
+
+  // Smart default: PATCH for updates (when recordId present), POST for creates
+  return hasRecordId ? 'PATCH' : 'POST';
+}
+
+/**
+ * Add trailing slash to endpoint if missing
+ * B3 Integration: Ensure all endpoints have trailing slashes
+ */
+function ensureTrailingSlash(endpoint: string): string {
+  return endpoint.endsWith('/') ? endpoint : `${endpoint}/`;
+}
+
+/**
  * Convert intelligent tool arguments to legacy tool format
  */
 function convertToLegacyArgs(
@@ -159,33 +301,40 @@ function convertToLegacyArgs(
     return args._legacy_args;
   }
 
-  // Extract common fields
-  const { tableId, payload, mode } = args;
+  // Extract common fields - prioritize appId for legacy compatibility
+  const { tableId, appId, payload, mode } = args;
+  const effectiveTableId = appId ?? tableId;
+
+  // B3 Integration: Generate endpoint if not provided and ensure trailing slash
+  const effectiveEndpoint = ensureTrailingSlash(args.endpoint ?? generateDefaultEndpoint(args));
+
+  // B3 Integration: Apply protective intelligence to payload data
+  const protectedPayload = payload ? applyProtectiveIntelligence(payload) : payload;
 
   switch (targetTool) {
     case 'smartsuite_query':
       return {
         operation: extractQueryOperation(args),
-        appId: tableId ?? extractAppIdFromEndpoint(args.endpoint),
-        filters: payload?.filters ?? payload?.filter,
-        sort: payload?.sort,
-        limit: payload?.limit,
-        offset: payload?.offset,
-        recordId: payload?.recordId,
+        appId: effectiveTableId ?? extractAppIdFromEndpoint(effectiveEndpoint),
+        filters: applyFilterProtection(protectedPayload?.filters ?? protectedPayload?.filter),
+        sort: protectedPayload?.sort,
+        limit: protectedPayload?.limit,
+        offset: protectedPayload?.offset,
+        recordId: protectedPayload?.recordId,
       };
 
     case 'smartsuite_record':
       return {
         operation: extractRecordOperation(args),
-        appId: tableId ?? extractAppIdFromEndpoint(args.endpoint),
-        recordId: payload?.recordId ?? payload?.id,
-        data: payload ?? {},
+        appId: effectiveTableId ?? extractAppIdFromEndpoint(effectiveEndpoint),
+        recordId: protectedPayload?.recordId ?? protectedPayload?.id,
+        data: protectedPayload ?? {},
         dry_run: mode !== 'execute', // Default to dry_run unless execute mode
       };
 
     case 'smartsuite_schema':
       return {
-        appId: tableId ?? extractAppIdFromEndpoint(args.endpoint),
+        appId: effectiveTableId ?? extractAppIdFromEndpoint(effectiveEndpoint),
         output_mode: payload?.output_mode ?? 'summary',
       };
 
@@ -197,12 +346,14 @@ function convertToLegacyArgs(
     case 'smartsuite_discover':
       return {
         scope: payload?.scope ?? detectDiscoverScope(args),
-        tableId: payload?.tableId ?? tableId ?? undefined,
+        tableId: payload?.tableId ?? effectiveTableId ?? undefined,
       };
 
     case 'smartsuite_knowledge_field_mappings':
       return {
-        tableId: tableId ?? extractAppIdFromEndpoint(args.endpoint),
+        tableId:
+          effectiveTableId ??
+          (effectiveEndpoint ? extractAppIdFromEndpoint(effectiveEndpoint) : 'unknown'),
       };
 
     case 'smartsuite_knowledge_events':
@@ -226,13 +377,16 @@ function convertToLegacyArgs(
 /**
  * Extract query operation from intelligent args
  * Technical-Architect: Added single record GET detection via endpoint pattern
+ * B3 Integration: Handle optional endpoint gracefully
  */
 function extractQueryOperation(args: z.infer<typeof IntelligentFacadeSchema>): string {
   const desc = args.operation_description.toLowerCase();
-  const endpoint = args.endpoint.toLowerCase();
 
-  // Check for single record GET pattern in endpoint first
-  if (endpoint.match(/\/records\/[a-f0-9]{24}\/?$/)) return 'get';
+  // Check for single record GET pattern in endpoint first (if endpoint exists)
+  if (args.endpoint) {
+    const endpoint = args.endpoint.toLowerCase();
+    if (endpoint.match(/\/records\/[a-f0-9]{24}\/?$/)) return 'get';
+  }
 
   // Check for recordId in various places
   if (args.recordId || args.payload?.recordId || args.payload?.id) return 'get';
@@ -248,9 +402,10 @@ function extractQueryOperation(args: z.infer<typeof IntelligentFacadeSchema>): s
 /**
  * Extract record operation from intelligent args
  * Technical-Architect: Fixed operation detection logic to properly handle UPDATE/DELETE
+ * B3 Integration: Use inferred method when not explicitly provided
  */
 function extractRecordOperation(args: z.infer<typeof IntelligentFacadeSchema>): string {
-  const method = args.method.toUpperCase();
+  const method = (args.method ?? inferHttpMethod(args)).toUpperCase();
   const desc = args.operation_description.toLowerCase();
 
   // Check explicit operation field first (if provided)
@@ -284,6 +439,28 @@ function extractRecordOperation(args: z.infer<typeof IntelligentFacadeSchema>): 
   }
 
   return 'create'; // Final fallback
+}
+
+/**
+ * Generate default endpoint from tableId and operation description
+ * B3 Integration: Handle missing endpoint by creating appropriate defaults
+ */
+function generateDefaultEndpoint(args: z.infer<typeof IntelligentFacadeSchema>): string {
+  const appId = args.appId ?? args.tableId ?? 'unknown-app-id';
+  const desc = args.operation_description.toLowerCase();
+
+  // Generate appropriate endpoint based on operation
+  if (desc.includes('record') && (args.payload?.recordId || args.recordId)) {
+    // Single record operations
+    const recordId = args.payload?.recordId || args.recordId || 'record-id';
+    return `/applications/${appId}/records/${recordId}/`;
+  } else if (desc.includes('schema') || desc.includes('field')) {
+    // Schema operations
+    return `/applications/${appId}/`;
+  } else {
+    // Default to records collection endpoint
+    return `/applications/${appId}/records/`;
+  }
 }
 
 /**
@@ -424,7 +601,15 @@ export async function handleIntelligentFacade(
       legacy_args: legacyArgs, // HIGH FIX: Include generated args for debugging (code-review-specialist)
       original_args: args, // Include original args for complete context
     });
-    throw error;
+    // Critical-Engineer: Enhanced error messages for test debugging
+    const contextualError = new Error(
+      `Facade dispatch to '${targetTool ?? 'unknown-tool'}' failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    // Preserve original stack trace
+    if (error instanceof Error && error.stack) {
+      contextualError.stack = error.stack;
+    }
+    throw contextualError;
   }
 }
 

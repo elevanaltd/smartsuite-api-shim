@@ -1,11 +1,11 @@
 // TESTGUARD: Production parity integration test - validates 2-tool interface
 // Context7: consulted for vitest
 // Technical-Architect: Testing actual production configuration
-import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
 
-import { setupTestAuthentication, isRealAuthAvailable, describeWithAuth } from './helpers/auth-setup.js';
+import { setupTestAuthentication, isRealAuthAvailable } from './helpers/auth-setup.js';
 
 // Set up test authentication before all tests
 beforeAll(() => {
@@ -25,10 +25,7 @@ describe('SmartSuiteShimServer - Production Parity Tests', () => {
 
       // CONTRACT: Production system exposes exactly 2 tools
       expect(tools).toHaveLength(2);
-      expect(tools.map((t: any) => t.name)).toEqual([
-        'smartsuite_intelligent',
-        'smartsuite_undo',
-      ]);
+      expect(tools.map((t: any) => t.name)).toEqual(['smartsuite_intelligent', 'smartsuite_undo']);
     });
 
     it('should route all operations through intelligent facade', async () => {
@@ -40,7 +37,7 @@ describe('SmartSuiteShimServer - Production Parity Tests', () => {
       const facadeTool = tools.find((t: any) => t.name === 'smartsuite_intelligent');
 
       expect(facadeTool).toBeDefined();
-      expect(facadeTool.description).toContain('Unified SmartSuite operations interface');
+      expect(facadeTool?.description).toContain('Unified SmartSuite operations interface');
     });
 
     it('should provide undo capability as second tool', async () => {
@@ -52,7 +49,7 @@ describe('SmartSuiteShimServer - Production Parity Tests', () => {
       const undoTool = tools.find((t: any) => t.name === 'smartsuite_undo');
 
       expect(undoTool).toBeDefined();
-      expect(undoTool.description).toContain('Undo a previous SmartSuite operation');
+      expect(undoTool?.description).toContain('Undo a previous SmartSuite operation');
     });
   });
 
@@ -74,9 +71,7 @@ describe('SmartSuiteShimServer - Production Parity Tests', () => {
       ];
 
       for (const toolName of individualTools) {
-        await expect(
-          server.executeTool(toolName, {}),
-        ).rejects.toThrow(`Unknown tool: ${toolName}`);
+        await expect(server.executeTool(toolName, {})).rejects.toThrow(`Unknown tool: ${toolName}`);
       }
     });
 
@@ -107,6 +102,7 @@ describe('SmartSuiteShimServer - Production Parity Tests', () => {
       const createRequest = {
         operation_description: 'create a new record',
         tableId: '68ab34b30b1e05e11a8ba87f',
+        method: 'POST',
         mode: 'dry_run',
         payload: {
           title: 'Test Record',

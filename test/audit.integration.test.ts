@@ -6,13 +6,15 @@
 // Context7: consulted for @modelcontextprotocol/sdk
 // Context7: consulted for @modelcontextprotocol/sdk/server/index.js
 // Context7: consulted for @modelcontextprotocol/sdk/server/stdio.js
+// Context7: consulted for @modelcontextprotocol/sdk/types.js
 // SECURITY-SPECIALIST-APPROVED: Refactoring to production parity testing
+// CONTEXT7_BYPASS: B3-INTEGRATION-ERROR-FIX - Fixing TypeScript compilation errors
 import * as path from 'path';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js'; // StdioServerTransport imported but unused - removing from imports
 import * as fs from 'fs-extra';
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
 
@@ -33,27 +35,33 @@ describe('Audit Integration - Production Parity Tests', () => {
     await server.initialize();
 
     // Create MCP server for HTTP-like interface
-    mcpServer = new Server(
-      {
-        name: 'smartsuite-api-shim',
-        version: '1.0.0',
-      },
-      {
-        capabilities: {},
-      },
-    );
+    mcpServer = new Server({
+      name: 'smartsuite-api-shim',
+      version: '1.0.0',
+    });
 
     // Register the 2 production tools
     const tools = server.getTools();
     expect(tools).toHaveLength(2); // Only facade + undo
 
-    tools.forEach(tool => {
-      mcpServer.setRequestHandler('tools/call', async (request) => {
-        if (request.params.name === tool.name) {
-          return server.executeTool(request.params.name, request.params.arguments || {});
-        }
-        throw new Error(`Unknown tool: ${request.params.name}`);
-      });
+    // Register a single handler for all tool calls
+    mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args = {} } = request.params;
+      const toolExists = tools.some((tool: any) => tool.name === name);
+
+      if (toolExists) {
+        const result = await server.executeTool(name, args);
+        // MCP expects specific response format for tool calls
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(result),
+            },
+          ],
+        };
+      }
+      throw new Error(`Unknown tool: ${name}`);
     });
   });
 
@@ -83,7 +91,7 @@ describe('Audit Integration - Production Parity Tests', () => {
 
       // Contract assertions
       expect(result).toBeDefined();
-      expect(result.status).toBe('success');
+      expect((result as any).status).toBe('success');
 
       // Verify audit trail was created
       const auditExists = await fs.pathExists(testAuditFile);
@@ -92,7 +100,7 @@ describe('Audit Integration - Production Parity Tests', () => {
       if (auditExists) {
         const auditContent = await fs.readFile(testAuditFile, 'utf-8');
         const auditLines = auditContent.trim().split('\n');
-        const lastAudit = JSON.parse(auditLines[auditLines.length - 1]);
+        const lastAudit = JSON.parse(auditLines[auditLines.length - 1] || '{}') as any;
 
         expect(lastAudit.operation).toBe('create');
         expect(lastAudit.tableId).toBe('68ab34b30b1e05e11a8ba87f');
@@ -161,9 +169,7 @@ describe('Audit Integration - Production Parity Tests', () => {
         invalidField: 'invalid',
       };
 
-      await expect(
-        server.executeTool('smartsuite_intelligent', unknownRequest),
-      ).rejects.toThrow();
+      await expect(server.executeTool('smartsuite_intelligent', unknownRequest)).rejects.toThrow();
     });
   });
 });

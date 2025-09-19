@@ -1,5 +1,6 @@
 // Tests for validation integration - GREEN phase after fixing
 // Context7: consulted for vitest
+// Critical-Engineer: consulted for Test migration strategy and facade maintainability
 // CONTEXT7_BYPASS: CI-FIX - ESLint import order fix for CI pipeline
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
@@ -73,6 +74,8 @@ import { handleSchema } from '../src/tools/schema.js';
 import { defaultToolRegistry } from '../src/tools/tool-registry.js';
 import { validateMcpToolInput } from '../src/validation/input-validator.js';
 
+import { SmartSuiteTestTools } from './helpers/facade-test-utils.js';
+
 // Get reference to the mocked functions
 const mockValidateToolInput = vi.mocked(validateMcpToolInput);
 const mockHandleQuery = vi.mocked(handleQuery);
@@ -123,8 +126,8 @@ describe('Validation Integration Tests', () => {
 
       mockValidateToolInput.mockReturnValue(validatedArgs);
 
-      // ACT: Execute tool
-      await server.executeTool('smartsuite_query', originalArgs);
+      // ACT: Execute tool via facade
+      await SmartSuiteTestTools.query(server, originalArgs);
 
       // ASSERT: Validation should have been called
       expect(mockValidateToolInput).toHaveBeenCalledWith(
@@ -172,8 +175,8 @@ describe('Validation Integration Tests', () => {
 
       mockValidateToolInput.mockReturnValue(validatedArgs);
 
-      // ACT: Execute tool
-      await server.executeTool('smartsuite_record', originalArgs);
+      // ACT: Execute tool via facade
+      await SmartSuiteTestTools.record(server, originalArgs);
 
       // ASSERT: Validation should have been called
       expect(mockValidateToolInput).toHaveBeenCalledWith(
@@ -214,8 +217,8 @@ describe('Validation Integration Tests', () => {
 
       mockValidateToolInput.mockReturnValue(validatedArgs);
 
-      // ACT: Execute tool
-      await server.executeTool('smartsuite_schema', originalArgs);
+      // ACT: Execute tool via facade
+      await SmartSuiteTestTools.schema(server, originalArgs);
 
       // ASSERT: Validation pipeline should have been invoked
       expect(mockValidateToolInput).toHaveBeenCalledWith(

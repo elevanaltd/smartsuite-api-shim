@@ -1,8 +1,11 @@
 // Tests for SmartSuite MCP Server authentication and initialization
 // Context7: consulted for vitest
+// CONTEXT7_BYPASS: ESLint-FIX - Import order fix for CI pipeline
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
+
+import { executeSmartSuiteTool } from './helpers/facade-test-utils.js';
 
 // Mock the createAuthenticatedClient to avoid real API calls in tests
 vi.mock('../src/smartsuite-client.js', () => ({
@@ -99,7 +102,7 @@ describe('SmartSuiteShimServer - Authentication & Initialization', () => {
 
       // ASSERT: Tool execution should require authentication
       await expect(
-        server.executeTool('smartsuite_schema', {
+        executeSmartSuiteTool(server, 'smartsuite_schema', {
           appId: '6613bedd1889d8deeaef8b0e',
         }),
       ).rejects.toThrow('Authentication required: call authenticate() first');
@@ -116,7 +119,7 @@ describe('SmartSuiteShimServer - Authentication & Initialization', () => {
 
       // ASSERT: Tool execution should work without throwing authentication error
       await expect(
-        server.executeTool('smartsuite_schema', {
+        executeSmartSuiteTool(server, 'smartsuite_schema', {
           appId: '6613bedd1889d8deeaef8b0e',
         }),
       ).resolves.not.toThrow();
