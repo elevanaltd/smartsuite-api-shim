@@ -6,12 +6,26 @@ Bridge between Claude MCP protocol and SmartSuite API, providing safe data opera
 
 ## Core Architecture
 
+### Sentinel Architecture (Activated 2025-09-19)
+
+**Production Interface**: 2 tools only
+
+- `smartsuite_intelligent`: Unified facade handling all operations via intelligent routing
+- `smartsuite_undo`: Separate for safety and direct transaction rollback
+
+**Implementation**: Strangler Fig Pattern
+
+- Facade routes to 8 underlying legacy tools
+- Deterministic routing via `tool_name` enum field
+- Backward compatible fallback routing
+- Located in `src/tools/intelligent-facade.ts`
+
 ### Layer Structure
 
 ```
-MCP Interface → Request Validation → SmartSuite Client → Response Formatting
-                      ↓                    ↓
-                Knowledge Base      Transaction History
+MCP Interface → Intelligent Facade → Legacy Tool Handlers → SmartSuite Client
+                      ↓                      ↓                    ↓
+                Tool Registry          Knowledge Base      Transaction History
 ```
 
 ### Critical Dependencies
@@ -79,25 +93,22 @@ MCP Interface → Request Validation → SmartSuite Client → Response Formatti
 
 ## Testing Strategy
 
-### Sentinel Architecture Migration (2025-09-19)
+### TEST_MODE Design (Solo Project Decision - 2025-09-19)
 
-**TECHNICAL-ARCHITECT-APPROVED: TECHNICAL-ARCHITECT-20250919-44aba1f6**
+**Current State**: PERMANENT dual-interface design
 
-**Current State**: Tests use TEST_MODE=all-tools for backward compatibility while production uses Sentinel Architecture (2 tools: facade + undo).
+- **Production**: 2-tool Sentinel facade (smartsuite_intelligent + smartsuite_undo)
+- **Tests**: 9-tool interface via TEST_MODE=all-tools
 
-**Decision**: Phased migration to facade pattern
-
-- **Phase 1** (Current): TEST_MODE remains with deprecation marker
-- **Phase 2** (Next Sprint): Create migration helper utilities
-- **Phase 3** (2-3 Sprints): Gradual test file migration (0/20 complete)
-- **Phase 4** (2025-10-01): Remove TEST_MODE, full facade adoption
+**Decision**: TEST_MODE is a permanent testing interface, not technical debt
 
 **Rationale**:
 
-- Maintains CI stability during migration
-- Ensures tests validate actual production behavior
-- Reduces architectural divergence systematically
-- Tracking: See `test/setup-integration-env.ts` for migration progress
+- Different interfaces serve different purposes appropriately
+- Production optimized for AI agent cognitive load (89% reduction)
+- Tests validate comprehensive operations of underlying tools
+- Zero maintenance burden - it works and needs no changes
+- Appropriate for solo developer project without team coordination needs
 
 ### Integration Tests
 
