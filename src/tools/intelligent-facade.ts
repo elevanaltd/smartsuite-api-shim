@@ -269,7 +269,7 @@ function inferHttpMethod(args: z.infer<typeof IntelligentFacadeSchema>): string 
   }
 
   const desc = args.operation_description.toLowerCase();
-  const hasRecordId = args.recordId || args.payload?.recordId || args.payload?.id;
+  const hasRecordId = args.recordId ?? args.payload?.recordId ?? args.payload?.id;
 
   // Method inference based on operation and context
   if (desc.includes('delete') || desc.includes('remove')) return 'DELETE';
@@ -452,7 +452,8 @@ function generateDefaultEndpoint(args: z.infer<typeof IntelligentFacadeSchema>):
   // Generate appropriate endpoint based on operation
   if (desc.includes('record') && (args.payload?.recordId || args.recordId)) {
     // Single record operations
-    const recordId = args.payload?.recordId || args.recordId || 'record-id';
+    const recordIdValue = args.payload?.recordId ?? args.recordId ?? 'record-id';
+    const recordId = typeof recordIdValue === 'string' ? recordIdValue : String(recordIdValue);
     return `/applications/${appId}/records/${recordId}/`;
   } else if (desc.includes('schema') || desc.includes('field')) {
     // Schema operations
