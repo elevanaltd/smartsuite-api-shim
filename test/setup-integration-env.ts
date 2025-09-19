@@ -1,5 +1,6 @@
 // Integration test environment setup
 // Critical-Engineer: consulted for test environment configuration and mocking strategy
+// Technical-Architect: Replaced mocks with real authentication
 // Context7: consulted for dotenv
 // Context7: consulted for path
 // CONTEXT7_BYPASS: CI-FIX-001 - Emergency import order fix for CI pipeline
@@ -9,6 +10,8 @@ import path from 'path';
 
 import { config } from 'dotenv';
 
+import { setupTestAuthentication, getAuthConfigDescription } from './helpers/auth-setup.js';
+
 // Determine which env file to load based on environment
 // Updated to use .env.local as per security requirements
 const envFile = process.env.CI ? '.env.ci' : '.env.local';
@@ -16,6 +19,9 @@ const envPath = path.resolve(process.cwd(), envFile);
 
 // Load the environment file
 config({ path: envPath });
+
+// Set up test authentication (maps TEST tokens to standard vars)
+setupTestAuthentication();
 
 // Verify critical environment variables are loaded for integration tests
 const requiredVars = [
@@ -32,12 +38,6 @@ for (const varName of requiredVars) {
   }
 }
 
-// TEST INTERFACE DESIGN (Solo Project Decision):
-// - Production: 2-tool Sentinel facade (optimized for AI agent cognitive load)
-// - Tests: 9-tool interface (comprehensive validation of all operations)
-// This divergence is intentional and permanent - not technical debt.
-// Tests validate the underlying operations that the facade routes to.
-process.env.TEST_MODE = 'all-tools';
-
 console.log(`Integration test environment loaded from: ${envPath}`);
-console.log(`TEST_MODE set to: ${process.env.TEST_MODE} (enabling all 9 tools for tests)`);
+console.log(`Authentication mode: ${getAuthConfigDescription()}`);
+console.log('Production mode: 2 tools (intelligent facade + undo)');

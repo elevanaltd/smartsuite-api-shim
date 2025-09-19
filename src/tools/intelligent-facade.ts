@@ -225,31 +225,65 @@ function convertToLegacyArgs(
 
 /**
  * Extract query operation from intelligent args
+ * Technical-Architect: Added single record GET detection via endpoint pattern
  */
 function extractQueryOperation(args: z.infer<typeof IntelligentFacadeSchema>): string {
   const desc = args.operation_description.toLowerCase();
+  const endpoint = args.endpoint.toLowerCase();
 
+  // Check for single record GET pattern in endpoint first
+  if (endpoint.match(/\/records\/[a-f0-9]{24}\/?$/)) return 'get';
+
+  // Check for recordId in various places
+  if (args.recordId || args.payload?.recordId || args.payload?.id) return 'get';
+
+  // Description-based detection
   if (desc.includes('count')) return 'count';
   if (desc.includes('search')) return 'search';
-  if (desc.includes('get') && args.payload?.recordId) return 'get';
+  if (desc.includes('get') && (args.payload?.recordId || args.recordId)) return 'get';
+
   return 'list';
 }
 
 /**
  * Extract record operation from intelligent args
+ * Technical-Architect: Fixed operation detection logic to properly handle UPDATE/DELETE
  */
 function extractRecordOperation(args: z.infer<typeof IntelligentFacadeSchema>): string {
   const method = args.method.toUpperCase();
   const desc = args.operation_description.toLowerCase();
 
-  if (method === 'POST' || desc.includes('create')) return 'create';
-  if (method === 'PUT' || method === 'PATCH' || desc.includes('update')) return 'update';
-  if (method === 'DELETE' || desc.includes('delete')) return 'delete';
-  if (desc.includes('bulk')) {
-    return desc.includes('delete') ? 'bulk_delete' : 'bulk_update';
+  // Check explicit operation field first (if provided)
+  if (args.operation) {
+    return args.operation;
   }
 
-  return 'create'; // Default fallback
+  // Method-based detection (priority) - DELETE must be checked first
+  if (method === 'DELETE') return 'delete';
+  if (method === 'PATCH' || method === 'PUT') return 'update';
+  if (method === 'POST' && (args.recordId || args.payload?.recordId || args.payload?.id)) {
+    return 'update'; // POST with ID = update
+  }
+  if (method === 'POST') return 'create';
+
+  // Description-based fallback
+  if (desc.includes('delete') || desc.includes('remove')) return 'delete';
+  if (desc.includes('update') || desc.includes('edit') || desc.includes('modify')) return 'update';
+  if (desc.includes('create') || desc.includes('add') || desc.includes('new')) return 'create';
+
+  // Bulk operations
+  if (desc.includes('bulk')) {
+    if (desc.includes('delete')) return 'bulk_delete';
+    if (desc.includes('update')) return 'bulk_update';
+    return 'bulk_update'; // Default bulk to update
+  }
+
+  // Smart default based on presence of recordId
+  if (args.payload?.recordId || args.payload?.id || args.recordId) {
+    return 'update'; // If record ID present, likely update
+  }
+
+  return 'create'; // Final fallback
 }
 
 /**

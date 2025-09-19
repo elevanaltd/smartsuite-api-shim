@@ -111,6 +111,14 @@ export async function handleQuery(
   context: ToolContext,
   args: unknown,
 ): Promise<unknown> {
+  // Technical-Architect: Check for invalid operation before type guard to provide specific error
+  if (args && typeof args === 'object' && 'operation' in args) {
+    const operation = (args as any).operation;
+    if (typeof operation === 'string' && !['list', 'get', 'search', 'count'].includes(operation)) {
+      throw new Error(`Unknown query operation: ${operation}`);
+    }
+  }
+
   // TYPE SAFETY: Validate arguments using type guards
   if (!isQueryToolArgs(args)) {
     throw new Error('Invalid query arguments: missing required fields or invalid types');
