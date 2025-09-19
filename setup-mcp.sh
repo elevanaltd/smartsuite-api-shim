@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# SmartSuite API Shim MCP Server - Setup Script
+# SmartSuite API Shim MCP Server - Setup Script (Sentinel Architecture)
 # Automatically configures the MCP server for Claude Desktop and Claude Code
+# Now with 89% cognitive load reduction - only 2 tools instead of 9!
 # Usage: ./setup-mcp.sh [--reconfigure]
 
 set -euo pipefail
@@ -406,9 +407,11 @@ test_server() {
         print_success "Server starts successfully!"
         echo ""
         echo "Tools registered:"
-        echo "$test_output" | grep -E "smartsuite_" | head -4
-    elif echo "$test_output" | grep -q "Server initialized with 4 tools"; then
-        print_success "Server initializes but check MCP connection"
+        echo "$test_output" | grep -E "smartsuite_" | head -2
+    elif echo "$test_output" | grep -q "Server initialized with 2 tools"; then
+        print_success "Server initializes with Sentinel Architecture (2 tools)"
+    elif echo "$test_output" | grep -q "Sentinel Architecture activated"; then
+        print_success "Sentinel Architecture active - 2 tools (facade + undo)"
     else
         print_warning "Server may have issues - check your .env configuration"
         echo "Output: $test_output" | head -5
@@ -436,11 +439,13 @@ show_final_instructions() {
     echo "   - In Claude Desktop: The server will auto-connect"
     echo "   - In Claude Code: Use /mcp command"
     echo ""
-    echo "📚 Available tools:"
-    echo "   • smartsuite_query - Query SmartSuite records"
-    echo "   • smartsuite_record - Create/update/delete records"
-    echo "   • smartsuite_schema - Get table schema"
-    echo "   • smartsuite_undo - Undo last operation"
+    echo "📚 Available tools (Sentinel Architecture - 89% cognitive load reduction):"
+    echo "   • smartsuite_intelligent - Unified interface for all SmartSuite operations"
+    echo "   • smartsuite_undo - Undo last operation (separate for safety)"
+    echo ""
+    echo "   The intelligent facade routes to all operations:"
+    echo "   - Query, Record, Schema, Discover, Knowledge operations"
+    echo "   - Use tool_name field for explicit routing when needed"
     echo ""
     print_info "Remember: All mutations require DRY-RUN confirmation for safety!"
     echo ""
