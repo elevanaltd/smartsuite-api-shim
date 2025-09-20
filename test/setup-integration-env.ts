@@ -11,6 +11,10 @@ import path from 'path';
 import { config } from 'dotenv';
 
 import { setupTestAuthentication, getAuthConfigDescription } from './helpers/auth-setup.js';
+import { setupCIMockAuthentication } from './helpers/ci-auth-mock.js';
+
+// Setup CI mock if in CI environment
+setupCIMockAuthentication();
 
 // Determine which env file to load based on environment
 // Updated to use .env.local as per security requirements
