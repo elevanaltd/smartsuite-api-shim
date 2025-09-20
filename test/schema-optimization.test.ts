@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach, vi, MockedFunction } from 'vitest';
 
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
+import { executeSmartSuiteTool } from './helpers/facade-test-utils.js';
 
 // Mock the SmartSuite client
 vi.mock('../src/smartsuite-client.js', () => ({
@@ -78,7 +79,7 @@ describe('Schema Optimization', () => {
 
   describe('Output Mode: summary', () => {
     it('should return only essential table info with summary mode', async () => {
-      const result = await server.callTool('smartsuite_schema', {
+      const result = await executeSmartSuiteTool(server, 'smartsuite_schema', {
         appId: '68a8ff5237fde0bf797c05b3',
         output_mode: 'summary',
       });
@@ -100,7 +101,7 @@ describe('Schema Optimization', () => {
 
     it('should use summary mode as default when no output_mode specified', async () => {
       // TEST FAILS: Current implementation returns full schema by default
-      const result = await server.callTool('smartsuite_schema', {
+      const result = await executeSmartSuiteTool(server, 'smartsuite_schema', {
         appId: '68a8ff5237fde0bf797c05b3',
         // No output_mode specified
       });
@@ -120,7 +121,7 @@ describe('Schema Optimization', () => {
 
   describe('Output Mode: fields', () => {
     it('should return field names and types with fields mode', async () => {
-      const result = await server.callTool('smartsuite_schema', {
+      const result = await executeSmartSuiteTool(server, 'smartsuite_schema', {
         appId: '68a8ff5237fde0bf797c05b3',
         output_mode: 'fields',
       });
@@ -156,7 +157,7 @@ describe('Schema Optimization', () => {
 
   describe('Output Mode: detailed', () => {
     it('should return full schema with detailed mode', async () => {
-      const result = await server.callTool('smartsuite_schema', {
+      const result = await executeSmartSuiteTool(server, 'smartsuite_schema', {
         appId: '68a8ff5237fde0bf797c05b3',
         output_mode: 'detailed',
       });
@@ -175,7 +176,7 @@ describe('Schema Optimization', () => {
   describe('Input Validation', () => {
     it('should reject invalid output_mode values', async () => {
       await expect(
-        server.callTool('smartsuite_schema', {
+        executeSmartSuiteTool(server, 'smartsuite_schema', {
           appId: '68a8ff5237fde0bf797c05b3',
           output_mode: 'invalid',
         }),
@@ -183,7 +184,7 @@ describe('Schema Optimization', () => {
     });
 
     it('should accept undefined output_mode (uses default)', async () => {
-      const result = await server.callTool('smartsuite_schema', {
+      const result = await executeSmartSuiteTool(server, 'smartsuite_schema', {
         appId: '68a8ff5237fde0bf797c05b3',
         // output_mode undefined
       });
@@ -214,7 +215,7 @@ describe('Schema Optimization', () => {
       const invalidTableId = '78b9gg6348edf1cg8a8c16c4';
 
       await expect(
-        server.callTool('smartsuite_schema', {
+        executeSmartSuiteTool(server, 'smartsuite_schema', {
           appId: invalidTableId,
           output_mode: 'summary',
         }),

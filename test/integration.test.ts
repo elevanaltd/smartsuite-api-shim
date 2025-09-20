@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
 // Mock SmartSuite client creation - can be overridden per test
 import { createAuthenticatedClient } from '../src/smartsuite-client.js';
+import { executeSmartSuiteTool } from './helpers/facade-test-utils.js';
 
 vi.mock('../src/smartsuite-client.js', () => ({
   createAuthenticatedClient: vi.fn().mockResolvedValue({
@@ -63,7 +64,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
     it('should require authentication before tool execution', async () => {
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'list', appId: '68a8ff5237fde0bf797c05b3' }),
+        executeSmartSuiteTool(server, 'smartsuite_query', { operation: 'list', appId: '68a8ff5237fde0bf797c05b3' }),
       ).rejects.toThrow('Authentication required');
     });
   });
@@ -81,7 +82,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
       // Fixed field name: projects table uses 'projectName' not 'name'
       // Attempt mutation without dry_run
       await expect(
-        server.executeTool('smartsuite_record', {
+        executeSmartSuiteTool(server, 'smartsuite_record', {
           operation: 'create',
           appId: '68a8ff5237fde0bf797c05b3',
           data: { projectName: 'test' },
@@ -101,7 +102,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
       // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250909-7cf66e12
       // Fixed field name: projects table uses 'projectName' not 'name'
-      const result = (await server.executeTool('smartsuite_record', {
+      const result = (await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'create',
         appId: '68a8ff5237fde0bf797c05b3',
         data: { projectName: 'test' },
@@ -140,7 +141,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
 
       await expect(
-        server.executeTool('smartsuite_query', {
+        executeSmartSuiteTool(server, 'smartsuite_query', {
           operation: 'unknown_op',
           appId: '68a8ff5237fde0bf797c05b3',
         }),
@@ -198,7 +199,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     });
 
     it('should execute query operations correctly', async () => {
-      const result = await server.executeTool('smartsuite_query', {
+      const result = await executeSmartSuiteTool(server, 'smartsuite_query', {
         operation: 'list',
         appId: '68b2437a8f1755b055e0a124',
       });
@@ -215,7 +216,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     });
 
     it('should execute count operations correctly', async () => {
-      const result = await server.executeTool('smartsuite_query', {
+      const result = await executeSmartSuiteTool(server, 'smartsuite_query', {
         operation: 'count',
         appId: '68b2437a8f1755b055e0a124',
       });
@@ -224,7 +225,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     });
 
     it('should execute schema operations correctly', async () => {
-      const result = await server.executeTool('smartsuite_schema', {
+      const result = await executeSmartSuiteTool(server, 'smartsuite_schema', {
         appId: '68b2437a8f1755b055e0a124',
       });
 
@@ -251,7 +252,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     it('should have appropriate error messages for single-user context', async () => {
       // Not authenticated
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'list', appId: '68a8ff5237fde0bf797c05b3' }),
+        executeSmartSuiteTool(server, 'smartsuite_query', { operation: 'list', appId: '68a8ff5237fde0bf797c05b3' }),
       ).rejects.toThrow(/Authentication required.*authenticate\(\) first/);
 
       // Invalid operation
@@ -269,7 +270,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
 
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'invalid', appId: '68a8ff5237fde0bf797c05b3' }),
+        executeSmartSuiteTool(server, 'smartsuite_query', { operation: 'invalid', appId: '68a8ff5237fde0bf797c05b3' }),
       ).rejects.toThrow(/Unknown query operation: invalid/);
     });
 
@@ -290,7 +291,7 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
       // Bulk operations not needed for personal automation
       await expect(
-        server.executeTool('smartsuite_record', {
+        executeSmartSuiteTool(server, 'smartsuite_record', {
           operation: 'bulk_update',
           appId: '68a8ff5237fde0bf797c05b3',
           data: [],

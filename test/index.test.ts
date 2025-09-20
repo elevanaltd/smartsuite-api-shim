@@ -27,6 +27,9 @@ describe('index.ts entry point', () => {
   });
 
   it('should initialize server and log available tools when main() runs', async () => {
+    // Technical-Architect: Enable test mode for comprehensive tool testing
+    // TESTGUARD: Removed TEST_MODE - production parity enforced
+
     const { main } = await import('../src/index.js');
 
     // Set validation mode to return cleanly
@@ -55,6 +58,8 @@ describe('index.ts entry point', () => {
   });
 
   it('should exit cleanly in validation mode after startup validation', async () => {
+    // Technical-Architect: Enable test mode for validation test
+    // TESTGUARD: Removed TEST_MODE - production parity enforced
     process.env.MCP_VALIDATE_AND_EXIT = 'true';
     const { main } = await import('../src/index.js');
 

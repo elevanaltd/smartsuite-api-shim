@@ -29,54 +29,16 @@ export class AuthManager {
   private authenticated: boolean = false;
   private lastValidation: AuthValidationResult | null = null;
 
-  /**
-   * Initialize AuthManager with explicit configuration or environment fallback
-   *
-   * @param config - Complete authentication config or undefined for environment fallback
-   * @throws {Error} When partial configuration is provided - prevents silent failures
-   *
-   * Critical-Engineer: explicit fail-fast validation for partial configurations
-   * TestGuard-Approved: CONTRACT-DRIVEN-CORRECTION implementation
-   */
   constructor(config?: Partial<AuthConfig>) {
-    const configStatus = this.validateConfigurationInput(config);
-
-    if (configStatus === 'complete') {
-      // Valid complete configuration provided
+    // Initialize with provided config or environment variables
+    if (config?.apiKey && config?.workspaceId) {
       this.authConfig = {
-        apiKey: config!.apiKey!.trim(),
-        workspaceId: config!.workspaceId!.trim(),
-        baseUrl: config!.baseUrl ?? 'https://app.smartsuite.com',
+        apiKey: config.apiKey,
+        workspaceId: config.workspaceId,
+        baseUrl: config.baseUrl ?? 'https://app.smartsuite.com',
       };
-    } else if (configStatus === 'partial') {
-      // FAIL LOUDLY: Partial configuration detected
-      // This prevents the silent fallback bug that causes "Cannot read properties of undefined"
-      throw new Error(
-        'AuthManager received a partial configuration. Either provide both apiKey and workspaceId, ' +
-        'or provide neither to use SMARTSUITE_API_TOKEN and SMARTSUITE_WORKSPACE_ID environment variables.',
-      );
     } else {
-      // No configuration provided - use environment variables
       this.loadFromEnvironment();
-    }
-  }
-
-  /**
-   * Validate configuration input to determine initialization strategy
-   *
-   * @param config - Configuration object to validate
-   * @returns 'complete' if both apiKey and workspaceId are valid, 'partial' if only one is provided, 'none' if neither
-   */
-  private validateConfigurationInput(config?: Partial<AuthConfig>): 'complete' | 'partial' | 'none' {
-    const hasPartialConfig = config?.apiKey !== undefined || config?.workspaceId !== undefined;
-    const hasFullConfig = config?.apiKey?.trim() && config?.workspaceId?.trim();
-
-    if (hasFullConfig) {
-      return 'complete';
-    } else if (hasPartialConfig) {
-      return 'partial';
-    } else {
-      return 'none';
     }
   }
 

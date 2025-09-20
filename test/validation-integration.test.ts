@@ -67,7 +67,7 @@ vi.mock('../src/validation/input-validator.js', () => ({
 
 // Now import the server and mocked functions after mocks are set up
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
-import { handleQuery } from '../src/tools/query.js';
+import { executeSmartSuiteTool } from './helpers/facade-test-utils.js';import { handleQuery } from '../src/tools/query.js';
 import { handleRecord } from '../src/tools/record.js';
 import { handleSchema } from '../src/tools/schema.js';
 import { defaultToolRegistry } from '../src/tools/tool-registry.js';
@@ -124,7 +124,7 @@ describe('Validation Integration Tests', () => {
       mockValidateToolInput.mockReturnValue(validatedArgs);
 
       // ACT: Execute tool
-      await server.executeTool('smartsuite_query', originalArgs);
+      await executeSmartSuiteTool(server, 'smartsuite_query', originalArgs);
 
       // ASSERT: Validation should have been called
       expect(mockValidateToolInput).toHaveBeenCalledWith(
@@ -173,7 +173,7 @@ describe('Validation Integration Tests', () => {
       mockValidateToolInput.mockReturnValue(validatedArgs);
 
       // ACT: Execute tool
-      await server.executeTool('smartsuite_record', originalArgs);
+      await executeSmartSuiteTool(server, 'smartsuite_record', originalArgs);
 
       // ASSERT: Validation should have been called
       expect(mockValidateToolInput).toHaveBeenCalledWith(
@@ -215,7 +215,7 @@ describe('Validation Integration Tests', () => {
       mockValidateToolInput.mockReturnValue(validatedArgs);
 
       // ACT: Execute tool
-      await server.executeTool('smartsuite_schema', originalArgs);
+      await executeSmartSuiteTool(server, 'smartsuite_schema', originalArgs);
 
       // ASSERT: Validation pipeline should have been invoked
       expect(mockValidateToolInput).toHaveBeenCalledWith(
