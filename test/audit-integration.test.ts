@@ -14,6 +14,7 @@ import { SmartSuiteShimServer } from '../src/mcp-server.js';
 // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250910-c1d32fb5
 import * as smartsuiteClient from '../src/smartsuite-client.js';
 import type { SmartSuiteClient } from '../src/smartsuite-client.js';
+import { executeSmartSuiteTool } from './helpers/facade-test-utils.js';
 
 // Mock the createAuthenticatedClient to avoid real API calls
 vi.mock('../src/smartsuite-client.js', () => ({
@@ -103,7 +104,7 @@ describe('Audit Integration', () => {
   describe('Create Operation Auditing', () => {
     it('should audit create operations through MCP server', async () => {
       // First perform a dry-run to satisfy validation requirements
-      const dryRunResult = await server.executeTool('smartsuite_record', {
+      const dryRunResult = await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'create',
         appId: '507f1f77bcf86cd799439011', // Valid MongoDB ObjectId format
         data: { name: 'Test Record', value: 42 },
@@ -113,7 +114,7 @@ describe('Audit Integration', () => {
       expect(dryRunResult).toBeDefined();
 
       // Now perform the actual create operation
-      const result = await server.executeTool('smartsuite_record', {
+      const result = await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'create',
         appId: '507f1f77bcf86cd799439011',
         data: { name: 'Test Record', value: 42 },
@@ -141,7 +142,7 @@ describe('Audit Integration', () => {
   describe('Update Operation Auditing', () => {
     it('should audit update operations with beforeData', async () => {
       // First perform a dry-run
-      await server.executeTool('smartsuite_record', {
+      await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'update',
         appId: '507f1f77bcf86cd799439011',
         recordId: 'record-123',
@@ -150,7 +151,7 @@ describe('Audit Integration', () => {
       });
 
       // Perform actual update operation
-      const result = await server.executeTool('smartsuite_record', {
+      const result = await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'update',
         appId: '507f1f77bcf86cd799439011',
         recordId: 'record-123',
@@ -178,7 +179,7 @@ describe('Audit Integration', () => {
   describe('Delete Operation Auditing', () => {
     it('should audit delete operations with recovery data', async () => {
       // First perform a dry-run
-      await server.executeTool('smartsuite_record', {
+      await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'delete',
         appId: '507f1f77bcf86cd799439011',
         recordId: 'record-123',
@@ -186,7 +187,7 @@ describe('Audit Integration', () => {
       });
 
       // Perform actual delete operation
-      const result = await server.executeTool('smartsuite_record', {
+      const result = await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'delete',
         appId: '507f1f77bcf86cd799439011',
         recordId: 'record-123',
@@ -212,14 +213,14 @@ describe('Audit Integration', () => {
   describe('Audit Trail Persistence', () => {
     it('should persist audit entries to the correct file location', async () => {
       // Perform a create operation
-      await server.executeTool('smartsuite_record', {
+      await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'create',
         appId: '507f1f77bcf86cd799439011',
         data: { name: 'Test Record' },
         dry_run: true,
       });
 
-      await server.executeTool('smartsuite_record', {
+      await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'create',
         appId: '507f1f77bcf86cd799439011',
         data: { name: 'Test Record' },
@@ -241,14 +242,14 @@ describe('Audit Integration', () => {
 
     it('should handle multiple operations in sequence', async () => {
       // Create record
-      await server.executeTool('smartsuite_record', {
+      await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'create',
         appId: '507f1f77bcf86cd799439011',
         data: { name: 'Test Record' },
         dry_run: true,
       });
 
-      await server.executeTool('smartsuite_record', {
+      await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'create',
         appId: '507f1f77bcf86cd799439011',
         data: { name: 'Test Record' },
@@ -256,7 +257,7 @@ describe('Audit Integration', () => {
       });
 
       // Update record
-      await server.executeTool('smartsuite_record', {
+      await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'update',
         appId: '507f1f77bcf86cd799439011',
         recordId: 'new-record-123',
@@ -264,7 +265,7 @@ describe('Audit Integration', () => {
         dry_run: true,
       });
 
-      await server.executeTool('smartsuite_record', {
+      await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'update',
         appId: '507f1f77bcf86cd799439011',
         recordId: 'new-record-123',
@@ -273,14 +274,14 @@ describe('Audit Integration', () => {
       });
 
       // Delete record
-      await server.executeTool('smartsuite_record', {
+      await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'delete',
         appId: '507f1f77bcf86cd799439011',
         recordId: 'new-record-123',
         dry_run: true,
       });
 
-      await server.executeTool('smartsuite_record', {
+      await executeSmartSuiteTool(server, 'smartsuite_record', {
         operation: 'delete',
         appId: '507f1f77bcf86cd799439011',
         recordId: 'new-record-123',
@@ -319,8 +320,8 @@ describe('Audit Integration', () => {
       ];
 
       for (const op of operations) {
-        await server.executeTool('smartsuite_record', { ...op, dry_run: true });
-        await server.executeTool('smartsuite_record', { ...op, dry_run: false });
+        await executeSmartSuiteTool(server, 'smartsuite_record', { ...op, dry_run: true });
+        await executeSmartSuiteTool(server, 'smartsuite_record', { ...op, dry_run: false });
       }
     });
 
