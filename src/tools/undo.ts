@@ -3,8 +3,23 @@
 // Technical-Architect: function module pattern for tool extraction
 
 import type { AuditLogEntry } from '../audit/audit-logger.js';
+import { createToolArgumentGuard } from '../lib/type-guards.js';
 
 import type { ToolContext } from './types.js';
+
+// ============================================================================
+// TYPE DEFINITIONS & GUARDS
+// ============================================================================
+
+export interface UndoToolArgs {
+  transaction_id: string;
+  [key: string]: unknown;
+}
+
+export const isUndoToolArgs = createToolArgumentGuard<UndoToolArgs>(['transaction_id'], {
+  transaction_id: (v): v is string =>
+    typeof v === 'string' && v.length > 0 && /^audit-\d{13}-[a-f0-9]{8}$/.test(v),
+});
 
 /**
  * Response format for undo operations
@@ -43,7 +58,7 @@ function validateTransactionId(transactionId: string): void {
 function checkTransactionExpiry(entry: AuditLogEntry): void {
   const now = new Date();
   const transactionDate = entry.timestamp;
-  const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   if (transactionDate < thirtyDaysAgo) {
     throw new Error(`Transaction ${entry.id} has expired (older than 30 days)`);
@@ -62,10 +77,7 @@ function validateReversalInstructions(entry: AuditLogEntry): void {
 /**
  * Execute undo operation based on reversal instructions
  */
-async function executeUndoOperation(
-  context: ToolContext,
-  entry: AuditLogEntry,
-): Promise<unknown> {
+async function executeUndoOperation(context: ToolContext, entry: AuditLogEntry): Promise<unknown> {
   const { client } = context;
   const { reversalInstructions } = entry;
 
@@ -118,13 +130,17 @@ async function logUndoOperation(
   await auditLogger.logMutation({
     operation: reversalInstructions.operation,
     tableId: reversalInstructions.tableId,
-    recordId: reversalInstructions.recordId || entry.recordId,
+    recordId: reversalInstructions.recordId ?? entry.recordId,
     result: result as Record<string, unknown>,
     reversalInstructions: {
-      operation: 'undo-undo' as any,  // Special non-executable operation type
-      originalTransactionId: entry.id,
-      message: 'This undo operation cannot be undone',
-    } as any,
+      operation: 'delete' as const, // This undo cannot be undone
+      tableId: reversalInstructions.tableId,
+      recordId: reversalInstructions.recordId ?? entry.recordId,
+      payload: {
+        originalTransactionId: entry.id,
+        message: 'This undo operation cannot be undone',
+      },
+    },
   });
 }
 
@@ -156,10 +172,28 @@ export async function handleUndo(
   context: ToolContext,
   args: Record<string, unknown>,
 ): Promise<UndoResponse> {
-  const { auditLogger } = context;
-  const transactionId = args.transaction_id as string;
+  // Type-safe argument validation with specific error handling
+  if (!isUndoToolArgs(args)) {
+    // Provide specific errors for common cases
+    if (!args.transaction_id) {
+      throw new Error('Transaction ID is required');
+    }
+    if (typeof args.transaction_id === 'string' && args.transaction_id === '') {
+      throw new Error('Transaction ID is required');
+    }
+    if (
+      typeof args.transaction_id === 'string' &&
+      !/^audit-\d{13}-[a-f0-9]{8}$/.test(args.transaction_id)
+    ) {
+      throw new Error('Invalid transaction ID format');
+    }
+    throw new Error('Invalid arguments for undo operation');
+  }
 
-  // Validate transaction ID format
+  const { auditLogger } = context;
+  const { transaction_id: transactionId } = args;
+
+  // Additional validation (transaction ID format already validated by type guard)
   validateTransactionId(transactionId);
 
   let entries: AuditLogEntry[];
@@ -173,7 +207,7 @@ export async function handleUndo(
   }
 
   // Find the transaction by ID
-  const entry = entries.find(e => e.id === transactionId);
+  const entry = entries.find((e) => e.id === transactionId);
   if (!entry) {
     throw new Error(`Transaction ${transactionId} not found`);
   }

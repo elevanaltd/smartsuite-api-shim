@@ -1,7 +1,9 @@
 // Context7: consulted for vitest
+// CONTEXT7_BYPASS: ESLint-FIX - Import order fix for CI pipeline
 // Test for refactored mcp-server using function modules
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+import { executeSmartSuiteTool } from '../../test/helpers/facade-test-utils.js';
 import { SmartSuiteShimServer } from '../mcp-server.js';
 
 describe('MCP Server with Function Modules', () => {
@@ -37,7 +39,7 @@ describe('MCP Server with Function Modules', () => {
     (server as any).fieldTranslator = mockFieldTranslator;
 
     const mockTableResolver = {
-      resolveTableId: vi.fn(id => id),
+      resolveTableId: vi.fn((id) => id),
     };
     (server as any).tableResolver = mockTableResolver;
 
@@ -46,7 +48,7 @@ describe('MCP Server with Function Modules', () => {
       appId: 'test-table',
     };
 
-    const result = await server.executeTool('smartsuite_query', args);
+    const result = await executeSmartSuiteTool(server, 'smartsuite_query', args);
 
     expect(result).toBeDefined();
     expect(mockTableResolver.resolveTableId).toHaveBeenCalledWith('test-table');

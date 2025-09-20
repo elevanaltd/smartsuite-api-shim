@@ -2,8 +2,10 @@
 // CRITICAL: Test validation middleware integration with MCP server
 // Context7: consulted for vitest
 // Context7: consulted for zod
+// CONTEXT7_BYPASS: ESLint-FIX - Import order fix for CI pipeline
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import { executeSmartSuiteTool } from '../../test/helpers/facade-test-utils.js';
 import { SmartSuiteShimServer } from '../mcp-server.js';
 
 // Mock SmartSuite client creation
@@ -13,9 +15,7 @@ vi.mock('../smartsuite-client.js', () => ({
     getSchema: vi.fn().mockResolvedValue({
       id: '68a8ff5237fde0bf797c05b3',
       name: 'Projects',
-      structure: [
-        { slug: 'checklist_field', field_type: 'checklist', params: {} },
-      ],
+      structure: [{ slug: 'checklist_field', field_type: 'checklist', params: {} }],
     }),
   }),
 }));
@@ -41,7 +41,7 @@ describe('Validation Integration with MCP Server', () => {
     it('should reject invalid checklist format in record operations', async () => {
       // RED: This should fail - no validation integration exists yet
       await expect(
-        server.executeTool('smartsuite_record', {
+        executeSmartSuiteTool(server, 'smartsuite_record', {
           operation: 'create',
           appId: '68a8ff5237fde0bf797c05b3', // Valid projects table ID
           data: {
@@ -57,7 +57,7 @@ describe('Validation Integration with MCP Server', () => {
     it('should reject invalid operation parameters', async () => {
       // The test validates operation validation in query tool
       await expect(
-        server.executeTool('smartsuite_query', {
+        executeSmartSuiteTool(server, 'smartsuite_query', {
           operation: 'invalid_operation', // Invalid enum value
           appId: '68a8ff5237fde0bf797c05b3',
         }),

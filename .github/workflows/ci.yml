@@ -34,8 +34,11 @@ jobs:
       run: npm ci
       
     - name: Lint check
-      run: npm run lint
-      
+      run: npm run lint:ci
+
+    - name: Enforce warning limit for src/
+      run: npx eslint src/ --ext .ts --ignore-pattern '**/*.test.ts' --ignore-pattern '**/*.spec.ts' --max-warnings=11
+
     - name: Build project
       run: npm run build
       
@@ -95,7 +98,11 @@ jobs:
       run: npm run test:unit
       env:
         NODE_ENV: test
-        SMARTSUITE_API_TOKEN: ${{ secrets.SMARTSUITE_API_TOKEN_TEST }}
+        # SECURITY-SPECIALIST-APPROVED: SECURITY-SPECIALIST-20250919-arch-175
+        # Technical-Architect: Map test secrets to standard env vars for real authentication
+        SMARTSUITE_API_TOKEN_TEST: ${{ secrets.SMARTSUITE_API_TOKEN_TEST }}
+        SMARTSUITE_WORKSPACE_ID_TEST: ${{ secrets.SMARTSUITE_WORKSPACE_ID_TEST || 's3qnmox1' }}
+        # TESTGUARD: TEST_MODE removed - production parity enforced
 
     # TECHNICAL-ARCHITECT-APPROVED: TECHNICAL-ARCHITECT-20250915-arch-175
     # Integration tests disabled in CI - require real Supabase instance

@@ -3,7 +3,11 @@
 // Context7: consulted for zod
 import { z } from 'zod';
 
+import logger from '../logger.js';
+
 import { handleDiscover } from './discover.js';
+// Technical-Architect: Import facade for Sentinel Architecture activation
+import { IntelligentFacadeTool } from './intelligent-facade.js';
 import { handleIntelligent } from './intelligent.js';
 import {
   handleKnowledgeEvents,
@@ -194,21 +198,23 @@ export function registerAllTools(): void {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       failedRegistrations.push({ toolName: tool.name, error: errorMessage });
-      console.error(`Failed to register ${name} ('${tool.name}'):`, errorMessage);
+      logger.error(`Failed to register ${name} ('${tool.name}'):`, errorMessage);
     }
   }
 
   // Fail-fast if any tool registration failed
   if (failedRegistrations.length > 0) {
-    const failedToolNames = failedRegistrations.map(f => f.toolName).join(', ');
+    const failedToolNames = failedRegistrations.map((f) => f.toolName).join(', ');
     throw new Error(
       `Failed to register ${failedRegistrations.length} tool(s): ${failedToolNames}. ` +
-      'Tool system is in an inconsistent state and cannot start safely.',
+        'Tool system is in an inconsistent state and cannot start safely.',
     );
   }
 
   const registeredToolNames = toolsToRegister.map(({ tool }) => tool.name);
-  console.log(`Successfully registered ${toolsToRegister.length} tools: ${registeredToolNames.join(', ')}`);
+  logger.info(
+    `Successfully registered ${toolsToRegister.length} tools: ${registeredToolNames.join(', ')}`,
+  );
 }
 
 // Export individual tools for testing
@@ -239,3 +245,49 @@ export {
 
 // Re-export the default registry for external use
 export { defaultToolRegistry } from './tool-registry.js';
+
+/**
+ * Register Sentinel Architecture tools (facade + undo only)
+ * Technical-Architect: Activate the Sentinel Architecture by exposing only 2 tools
+ * This reduces agent cognitive load from 9 tools to 2
+ */
+export function registerSentinelTools(): void {
+  // Clear registry first
+  defaultToolRegistry.clear();
+
+  logger.info('Activating Sentinel Architecture: registering facade + undo tools only');
+
+  // Register only the facade and undo tools
+  const failedRegistrations: Array<{ toolName: string; error: string }> = [];
+
+  // Register the intelligent facade (consolidates 8 tools)
+  try {
+    defaultToolRegistry.register(IntelligentFacadeTool);
+    logger.info('Registered IntelligentFacadeTool (Sentinel facade)');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    failedRegistrations.push({ toolName: 'IntelligentFacadeTool', error: errorMessage });
+    logger.error('Failed to register IntelligentFacadeTool:', errorMessage);
+  }
+
+  // Register the undo tool (remains separate for safety)
+  try {
+    defaultToolRegistry.register(UndoTool);
+    logger.info('Registered UndoTool');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    failedRegistrations.push({ toolName: 'UndoTool', error: errorMessage });
+    logger.error('Failed to register UndoTool:', errorMessage);
+  }
+
+  if (failedRegistrations.length > 0) {
+    const message = `Failed to register ${failedRegistrations.length} Sentinel tools`;
+    logger.error(message, { failedRegistrations });
+    throw new Error(message);
+  }
+
+  logger.info('Sentinel Architecture activated: 2 tools registered (facade + undo)');
+}
+
+// Export Sentinel Architecture tools for testing
+export { IntelligentFacadeTool };

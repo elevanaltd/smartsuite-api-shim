@@ -42,7 +42,8 @@ export async function handleKnowledgeEvents(
       if (!args.aggregateId || !args.type || !args.data) {
         return {
           success: false,
-          error: 'Missing required fields: aggregateId, type, and data are required for append operation',
+          error:
+            'Missing required fields: aggregateId, type, and data are required for append operation',
         };
       }
     } else if (args.operation === 'get') {
@@ -55,7 +56,7 @@ export async function handleKnowledgeEvents(
     }
 
     // Get or create event store
-    const eventStore = context.eventStore || await createEventStore();
+    const eventStore = context.eventStore ?? (await createEventStore());
 
     if (args.operation === 'append') {
       const event: DomainEvent = {
@@ -64,8 +65,8 @@ export async function handleKnowledgeEvents(
         type: args.type!,
         version: 1, // In real implementation, would track versions
         timestamp: new Date(),
-        userId: args.metadata?.userId || 'system',
-        payload: (args.data as Record<string, unknown>) || {},
+        userId: args.metadata?.userId ?? 'system',
+        payload: (args.data as Record<string, unknown>) ?? {},
         metadata: {
           correlationId: `corr-${Date.now()}`,
           causationId: `cause-${Date.now()}`,
@@ -117,7 +118,7 @@ export async function handleKnowledgeFieldMappings(
     const aggregateId = `field-mappings-${tableId}`;
 
     // Get or create event store
-    const eventStore = context.eventStore || await createEventStore();
+    const eventStore = context.eventStore ?? (await createEventStore());
 
     try {
       // Try to get snapshot from event store
@@ -162,10 +163,10 @@ export async function handleKnowledgeRefreshViews(
   context: ToolContext,
 ): Promise<unknown> {
   try {
-    const views = args.views || ['field_mappings'];
+    const views = args.views ?? ['field_mappings'];
 
     // Get Supabase client
-    const supabaseClient = context.supabaseClient || supabase;
+    const supabaseClient = context.supabaseClient ?? supabase;
 
     // Attempt to refresh each view in parallel
     const refreshPromises = views.map(async (view) => {
@@ -192,7 +193,7 @@ export async function handleKnowledgeRefreshViews(
     });
 
     const results = await Promise.all(refreshPromises);
-    const errors = results.filter(result => result.error !== null).map(result => result.error);
+    const errors = results.filter((result) => result.error !== null).map((result) => result.error);
 
     if (errors.length > 0) {
       return {
@@ -219,7 +220,11 @@ export async function handleKnowledgeRefreshViews(
 /**
  * Create an event store instance
  * Uses Supabase backend if available, falls back to in-memory
+ *
+ * Note: Returns a Promise to maintain consistency with async event store patterns,
+ * even though current implementation is synchronous
  */
+// eslint-disable-next-line @typescript-eslint/require-await -- Returns Promise for interface consistency
 async function createEventStore(): Promise<IEventStore> {
   try {
     // EventStoreSupabase expects a tenantId, not a client
@@ -233,7 +238,11 @@ async function createEventStore(): Promise<IEventStore> {
 /**
  * Load field mappings from YAML files
  * Fallback mechanism when event store is unavailable
+ *
+ * Note: Returns a Promise for consistency with async patterns,
+ * though current implementation is synchronous
  */
+// eslint-disable-next-line @typescript-eslint/require-await -- Returns Promise for interface consistency
 async function loadFieldMappingsFromYaml(
   tableId: string,
   fallbackReason?: string,
@@ -247,7 +256,15 @@ async function loadFieldMappingsFromYaml(
       // Add more fields as needed
     };
 
-    const result: any = {
+    interface FieldMappingResult {
+      success: boolean;
+      tableId: string;
+      fields: Record<string, { displayName: string; type: string }>;
+      source: string;
+      fallbackReason?: string;
+    }
+
+    const result: FieldMappingResult = {
       success: true,
       tableId,
       fields,

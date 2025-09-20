@@ -1,17 +1,20 @@
 // TESTGUARD_BYPASS: INFRA-002 - ESLint configuration migration from v8 to v9 flat config
 // CONTEXT7_BYPASS: ESLINT-MIGRATION-001 - Standard ESLint library migration for v9 compatibility
+// Critical-Engineer: consulted for CI linting strategy and script validation
 
 // Context7: consulted for @eslint/js
 // Context7: consulted for @typescript-eslint/eslint-plugin
 // Context7: consulted for @typescript-eslint/parser
 // Context7: consulted for eslint-plugin-import
 // Context7: consulted for eslint-plugin-promise
+// Context7: consulted for eslint-plugin-eslint-comments
 
 import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import importPlugin from 'eslint-plugin-import';
 import promisePlugin from 'eslint-plugin-promise';
+import eslintComments from 'eslint-plugin-eslint-comments';
 
 export default [
   // Apply to all TypeScript files
@@ -48,6 +51,7 @@ export default [
       '@typescript-eslint': tseslint,
       import: importPlugin,
       promise: promisePlugin,
+      'eslint-comments': eslintComments,
     },
     rules: {
       // Base ESLint recommended rules
@@ -111,6 +115,12 @@ export default [
       'no-await-in-loop': 'warn',
       'require-atomic-updates': 'warn', // LINT_CLEANUP: Reduced to warning for race condition fixes
       '@typescript-eslint/require-await': 'warn', // LINT_CLEANUP: Reduced to warning for async without await
+
+      // ESLint comments rules
+      'eslint-comments/no-unused-disable': 'error',
+      'eslint-comments/no-unlimited-disable': 'warn',
+      'eslint-comments/no-duplicate-disable': 'error',
+      'eslint-comments/disable-enable-pair': 'error'
     },
   },
 

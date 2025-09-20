@@ -2,6 +2,8 @@
 // TECHNICAL-ARCHITECT: Supports both in-memory (testing) and Supabase (production)
 // CONTEXT7_BYPASS: CI-FIX-001 - ESM import extension fixes for TypeScript compilation
 
+import logger from '../../logger.js';
+
 import { EventStoreSupabase } from './event-store-supabase.js';
 import { DomainEvent, Snapshot } from './types.js';
 
@@ -94,7 +96,7 @@ export function createProductionEventStore(tenantId: string): EventStore {
 // DEPRECATED: Use createMemoryEventStore or createProductionEventStore instead
 // Kept for backward compatibility - will be removed in next major version
 export function createEventStore(tenantId?: string): EventStore {
-  console.warn('createEventStore is deprecated. Use createMemoryEventStore or createProductionEventStore');
+  logger.warn('createEventStore is deprecated. Use createMemoryEventStore or createProductionEventStore');
   if (tenantId) {
     return createProductionEventStore(tenantId);
   }

@@ -8,6 +8,8 @@ describe('MCP Server Table Resolution', () => {
   let server: SmartSuiteShimServer;
 
   beforeEach(async () => {
+    // Technical-Architect: Enable test mode to ensure all 9 tools are available
+    // TESTGUARD: TEST_MODE removed - production parity enforced
     server = new SmartSuiteShimServer();
     // Mock environment variables for authentication
     process.env.SMARTSUITE_API_TOKEN = 'test-token';
@@ -32,7 +34,9 @@ describe('MCP Server Table Resolution', () => {
       server['fieldMappingsInitialized'] = true;
 
       // Call with table name instead of ID
-      await server.callTool('smartsuite_query', {
+      await server.executeTool('smartsuite_intelligent', {
+        tool_name: 'smartsuite_query',
+        operation_description: 'list records from projects table',
         operation: 'list',
         appId: 'projects', // Table name instead of hex ID
         limit: 5,
@@ -53,7 +57,9 @@ describe('MCP Server Table Resolution', () => {
       server['fieldMappingsInitialized'] = true;
 
       const hexId = '68a8ff5237fde0bf797c05b3';
-      await server.callTool('smartsuite_query', {
+      await server.executeTool('smartsuite_intelligent', {
+        tool_name: 'smartsuite_query',
+        operation_description: 'list records with hex ID',
         operation: 'list',
         appId: hexId,
         limit: 5,
@@ -66,11 +72,15 @@ describe('MCP Server Table Resolution', () => {
       server['client'] = {} as any;
       server['fieldMappingsInitialized'] = true;
 
-      await expect(server.callTool('smartsuite_query', {
-        operation: 'list',
-        appId: 'unknown_table',
-        limit: 5,
-      })).rejects.toThrow(/Unknown table 'unknown_table'/);
+      await expect(
+        server.executeTool('smartsuite_intelligent', {
+          tool_name: 'smartsuite_query',
+          operation_description: 'list records from unknown table',
+          operation: 'list',
+          appId: 'unknown_table',
+          limit: 5,
+        }),
+      ).rejects.toThrow(/Unknown table 'unknown_table'/);
     });
   });
 
@@ -79,7 +89,9 @@ describe('MCP Server Table Resolution', () => {
       // Mock authentication to avoid 'Authentication required' error
       server['client'] = {} as any;
 
-      const result = await server.callTool('smartsuite_discover', {
+      const result = await server.executeTool('smartsuite_intelligent', {
+        tool_name: 'smartsuite_discover',
+        operation_description: 'discover available tables',
         scope: 'tables',
       });
 
@@ -95,7 +107,9 @@ describe('MCP Server Table Resolution', () => {
       // Mock authentication to avoid 'Authentication required' error
       server['client'] = {} as any;
 
-      const result = await server.callTool('smartsuite_discover', {
+      const result = await server.executeTool('smartsuite_intelligent', {
+        tool_name: 'smartsuite_discover',
+        operation_description: 'discover fields for projects table',
         scope: 'fields',
         tableId: 'projects', // Can use table name
       });
@@ -111,7 +125,9 @@ describe('MCP Server Table Resolution', () => {
       // Mock authentication to avoid 'Authentication required' error
       server['client'] = {} as any;
 
-      const result = await server.callTool('smartsuite_discover', {
+      const result = await server.executeTool('smartsuite_intelligent', {
+        tool_name: 'smartsuite_discover',
+        operation_description: 'discover fields using hex ID',
         scope: 'fields',
         tableId: '68a8ff5237fde0bf797c05b3', // Using hex ID
       });
@@ -121,14 +137,18 @@ describe('MCP Server Table Resolution', () => {
   });
 
   describe('getTools', () => {
-    it('should include smartsuite_discover tool', () => {
-      const tools = server.getTools();
-      const discoverTool = tools.find(t => t.name === 'smartsuite_discover');
+    it('should include smartsuite_discover tool', async () => {
+      // Technical-Architect: In test mode, discover tool should be available
+      // TESTGUARD: TEST_MODE removed - production parity enforced
+      const testServer = new SmartSuiteShimServer();
+      await testServer.initialize();
+      const tools = testServer.getTools();
+      const discoverTool = tools.find((t) => t.name === 'smartsuite_intelligent');
 
       expect(discoverTool).toBeDefined();
-      expect(discoverTool?.description).toContain('Discover available tables');
-      expect(discoverTool?.inputSchema.properties).toHaveProperty('scope');
-      expect(discoverTool?.inputSchema.properties).toHaveProperty('tableId');
+      expect(discoverTool?.description).toContain('Unified SmartSuite operations interface');
+      expect(discoverTool?.inputSchema.properties).toHaveProperty('tool_name');
+      expect(discoverTool?.inputSchema.properties).toHaveProperty('operation_description');
     });
   });
 });

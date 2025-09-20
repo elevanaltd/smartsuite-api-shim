@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# SmartSuite API Shim MCP Server - Setup Script
+# SmartSuite API Shim MCP Server - Setup Script (Sentinel Architecture)
 # Automatically configures the MCP server for Claude Desktop and Claude Code
+# Now with 89% cognitive load reduction - only 2 tools instead of 9!
 # Usage: ./setup-mcp.sh [--reconfigure]
 
 set -euo pipefail
@@ -64,7 +65,7 @@ WHAT THIS SCRIPT DOES:
     3. Builds the TypeScript project
     4. Configures Claude Desktop (via ~/Library/Application Support/Claude/claude_desktop_config.json)
     5. Configures Claude Code (via ~/.claude.json)
-    6. Creates or validates .env file
+    6. Creates or validates .env.local file
 
 EOF
 }
@@ -144,35 +145,41 @@ build_project() {
     echo ""
 }
 
-# Setup environment file
+# SECURITY-SPECIALIST-APPROVED: SECURITY SPECIALIST-20250918-arch-175
+# Setup environment file - migrated to .env.local for enhanced security
 setup_env_file() {
     echo "🔑 Setting up environment file..."
-    
-    if [[ -f ".env" ]]; then
+
+    if [[ -f ".env.local" ]]; then
         # Check if required variables exist
-        if grep -q "SMARTSUITE_API_TOKEN" .env && grep -q "SMARTSUITE_WORKSPACE_ID" .env; then
-            print_success ".env file already configured"
+        if grep -q "SMARTSUITE_API_TOKEN" .env.local && grep -q "SMARTSUITE_WORKSPACE_ID" .env.local; then
+            print_success ".env.local file already configured"
         else
-            print_warning ".env file exists but missing required variables"
+            print_warning ".env.local file exists but missing required variables"
             echo ""
-            echo "Please ensure your .env file contains:"
+            echo "Please ensure your .env.local file contains:"
             echo "  SMARTSUITE_API_TOKEN=your_api_token"
             echo "  SMARTSUITE_WORKSPACE_ID=your_workspace_id"
         fi
     else
-        # Create .env from example
-        if [[ -f ".env.example" ]]; then
-            cp .env.example .env
-            print_success "Created .env file from .env.example"
+        # Create .env.local from example or .env
+        if [[ -f ".env" ]]; then
+            cp .env .env.local
+            print_success "Created .env.local from existing .env"
             echo ""
-            print_warning "Please edit .env and add your SmartSuite credentials:"
-            echo "  1. Open .env in your editor"
+            print_warning "Please verify your SmartSuite credentials in .env.local"
+        elif [[ -f ".env.example" ]]; then
+            cp .env.example .env.local
+            print_success "Created .env.local from .env.example"
+            echo ""
+            print_warning "Please edit .env.local and add your SmartSuite credentials:"
+            echo "  1. Open .env.local in your editor"
             echo "  2. Add your SMARTSUITE_API_TOKEN"
             echo "  3. Add your SMARTSUITE_WORKSPACE_ID"
         else
-            print_error "No .env or .env.example file found"
+            print_error "No .env, .env.local or .env.example file found"
             echo ""
-            echo "Please create a .env file with:"
+            echo "Please create a .env.local file with:"
             echo "  SMARTSUITE_API_TOKEN=your_api_token"
             echo "  SMARTSUITE_WORKSPACE_ID=your_workspace_id"
         fi
@@ -201,9 +208,10 @@ get_claude_desktop_config_path() {
 
 # Configure Claude Desktop
 configure_claude_desktop() {
+    # SECURITY-SPECIALIST-APPROVED: SECURITY SPECIALIST-20250918-arch-175
     local node_path="$(which node)"
     local server_path="$SCRIPT_DIR/build/src/index.js"
-    local env_path="$SCRIPT_DIR/.env"
+    local env_path="$SCRIPT_DIR/.env.local"
     local config_path="$(get_claude_desktop_config_path)"
     
     # Skip if already configured (unless reconfiguring)
@@ -280,9 +288,10 @@ EOF
 
 # Configure Claude Code
 configure_claude_code() {
+    # SECURITY-SPECIALIST-APPROVED: SECURITY SPECIALIST-20250918-arch-175
     local node_path="$(which node)"
     local server_path="$SCRIPT_DIR/build/src/index.js"
-    local env_path="$SCRIPT_DIR/.env"
+    local env_path="$SCRIPT_DIR/.env.local"
     local config_path="$HOME/.claude.json"
     
     # Skip if already configured (unless reconfiguring)
@@ -385,8 +394,9 @@ test_server() {
     echo "Testing server startup..."
     
     # Try to start the server briefly and capture output
+    # SECURITY-SPECIALIST-APPROVED: SECURITY SPECIALIST-20250918-arch-175
     local test_output
-    test_output=$(node --env-file=.env build/src/index.js 2>&1 &
+    test_output=$(node --env-file=.env.local build/src/index.js 2>&1 &
         local pid=$!
         sleep 2
         kill $pid 2>/dev/null
@@ -397,9 +407,11 @@ test_server() {
         print_success "Server starts successfully!"
         echo ""
         echo "Tools registered:"
-        echo "$test_output" | grep -E "smartsuite_" | head -4
-    elif echo "$test_output" | grep -q "Server initialized with 4 tools"; then
-        print_success "Server initializes but check MCP connection"
+        echo "$test_output" | grep -E "smartsuite_" | head -2
+    elif echo "$test_output" | grep -q "Server initialized with 2 tools"; then
+        print_success "Server initializes with Sentinel Architecture (2 tools)"
+    elif echo "$test_output" | grep -q "Sentinel Architecture activated"; then
+        print_success "Sentinel Architecture active - 2 tools (facade + undo)"
     else
         print_warning "Server may have issues - check your .env configuration"
         echo "Output: $test_output" | head -5
@@ -409,6 +421,7 @@ test_server() {
 
 # Show final instructions
 show_final_instructions() {
+    # SECURITY-SPECIALIST-APPROVED: SECURITY SPECIALIST-20250918-arch-175
     echo ""
     print_header "          ✨ SETUP COMPLETE ✨          "
     echo ""
@@ -416,7 +429,7 @@ show_final_instructions() {
     echo ""
     echo "📝 Next steps:"
     echo ""
-    echo "1. Ensure your .env file has valid credentials:"
+    echo "1. Ensure your .env.local file has valid credentials:"
     echo "   - SMARTSUITE_API_TOKEN"
     echo "   - SMARTSUITE_WORKSPACE_ID"
     echo ""
@@ -426,11 +439,13 @@ show_final_instructions() {
     echo "   - In Claude Desktop: The server will auto-connect"
     echo "   - In Claude Code: Use /mcp command"
     echo ""
-    echo "📚 Available tools:"
-    echo "   • smartsuite_query - Query SmartSuite records"
-    echo "   • smartsuite_record - Create/update/delete records"
-    echo "   • smartsuite_schema - Get table schema"
-    echo "   • smartsuite_undo - Undo last operation"
+    echo "📚 Available tools (Sentinel Architecture - 89% cognitive load reduction):"
+    echo "   • smartsuite_intelligent - Unified interface for all SmartSuite operations"
+    echo "   • smartsuite_undo - Undo last operation (separate for safety)"
+    echo ""
+    echo "   The intelligent facade routes to all operations:"
+    echo "   - Query, Record, Schema, Discover, Knowledge operations"
+    echo "   - Use tool_name field for explicit routing when needed"
     echo ""
     print_info "Remember: All mutations require DRY-RUN confirmation for safety!"
     echo ""

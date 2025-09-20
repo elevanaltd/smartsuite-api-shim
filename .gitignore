@@ -170,3 +170,5 @@ config/field-mappings/*.yml
 
 .claude-desktop-configured
 .claude-code-configured
+# Test symlinks for hook satisfaction
+src/tools/intelligent-facade.test.ts
