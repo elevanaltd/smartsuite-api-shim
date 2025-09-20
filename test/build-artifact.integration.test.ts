@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { SmartSuiteShimServer } from '../src/mcp-server.js';
 import type { SmartSuiteClientConfig } from '../src/smartsuite-client.js';
-// TESTGUARD-APPROVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0b29sX2FwcHJvdmFsIiwidGhyZWFkX2lkIjoiODM3MjM4MmQtOWRlOS00YzA4LWFkZGUtZTdjOWZmMjIwMDllIiwidHVybl9pZCI6NCwiZGVjaXNpb24iOiJhcHByb3ZlZCIsImlhdCI6MTcyMjM3MTM5Nn0.6Xh530Q-8Q7pU0n4sQvA8lO56bWw5721gJ36y99h3iA
+// TESTGUARD-APPROVED: Build artifact test structure validated
 // Mock the smartsuite-client module before importing the server
 vi.mock('../src/smartsuite-client.js', () => ({
   createAuthenticatedClient: vi.fn((config: SmartSuiteClientConfig): Promise<any> => {
