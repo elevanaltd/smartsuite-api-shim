@@ -1,6 +1,11 @@
 // AuthManager - Secure authentication state management with loud failure patterns
 // SECURITY-SPECIALIST-APPROVED: SECURITY-SPECIALIST-20250910-9521e55c
 // Following TRACED methodology - GREEN phase: Make failing tests pass
+// Critical-Engineer: consulted for runtime environment dependencies and authentication strategy
+// Context7: consulted for undici
+// Context7: Node.js built-in timers (setTimeout, clearTimeout) available globally
+
+import { fetch, Response } from 'undici';
 
 export interface AuthConfig {
   apiKey: string;
@@ -93,7 +98,11 @@ export class AuthManager {
 
       let response: Response;
       try {
-        response = await fetch(validationUrl, {
+        // Create timeout controller for Node.js compatibility
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        response = (await fetch(validationUrl, {
           method: 'GET',
           headers: {
             'Authorization': `Token ${this.authConfig.apiKey}`,
@@ -101,8 +110,10 @@ export class AuthManager {
             'Content-Type': 'application/json',
           },
           // SECURITY: Add timeout to prevent hanging requests
-          signal: AbortSignal.timeout(10000),
-        });
+          signal: controller.signal,
+        })) as Response;
+
+        clearTimeout(timeoutId);
       } catch (networkError) {
         const errorMessage = networkError instanceof Error ? networkError.message : String(networkError);
         const error = `Network error: ${errorMessage}. Please check your connection and try again.`;

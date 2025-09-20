@@ -380,6 +380,11 @@ function convertToLegacyArgs(
  * B3 Integration: Handle optional endpoint gracefully
  */
 function extractQueryOperation(args: z.infer<typeof IntelligentFacadeSchema>): string {
+  // Priority 1: Use explicit operation if provided
+  if (args.operation) {
+    return args.operation;
+  }
+
   const desc = args.operation_description.toLowerCase();
 
   // Check for single record GET pattern in endpoint first (if endpoint exists)
@@ -405,13 +410,13 @@ function extractQueryOperation(args: z.infer<typeof IntelligentFacadeSchema>): s
  * B3 Integration: Use inferred method when not explicitly provided
  */
 function extractRecordOperation(args: z.infer<typeof IntelligentFacadeSchema>): string {
-  const method = (args.method ?? inferHttpMethod(args)).toUpperCase();
-  const desc = args.operation_description.toLowerCase();
-
-  // Check explicit operation field first (if provided)
+  // Priority 1: Use explicit operation if provided
   if (args.operation) {
     return args.operation;
   }
+
+  const method = (args.method ?? inferHttpMethod(args)).toUpperCase();
+  const desc = args.operation_description.toLowerCase();
 
   // Method-based detection (priority) - DELETE must be checked first
   if (method === 'DELETE') return 'delete';
@@ -617,10 +622,13 @@ export async function handleIntelligentFacade(
       // These are expected errors that tests rely on - don't wrap them
       if (
         errorMessage.includes('Unknown query operation') ||
+        errorMessage.includes('Unknown record operation') ||
         errorMessage.includes('Unknown table') ||
         errorMessage.includes('requires recordId') ||
         errorMessage.includes('API key is required') ||
-        errorMessage.includes('SmartDoc validation failed')
+        errorMessage.includes('SmartDoc validation failed') ||
+        errorMessage.includes('Transaction ID is required') ||
+        errorMessage.includes('Authentication required')
       ) {
         throw error; // Preserve original error for test contracts
       }

@@ -3,14 +3,20 @@
 // Technical-Architect: Replaced mocks with real authentication
 // Context7: consulted for dotenv
 // Context7: consulted for path
+// Context7: consulted for undici
 // CONTEXT7_BYPASS: CI-FIX-001 - Emergency import order fix for CI pipeline
 
 // Load environment variables for integration tests that need real connections
 import path from 'path';
 
 import { config } from 'dotenv';
+import { fetch } from 'undici';
 
 import { setupTestAuthentication, getAuthConfigDescription } from './helpers/auth-setup.js';
+
+// Make fetch available globally for tests
+// @ts-expect-error - globalThis assignment for test environment
+globalThis.fetch = fetch;
 
 // Determine which env file to load based on environment
 // Updated to use .env.local as per security requirements
