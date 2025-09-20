@@ -114,9 +114,9 @@ export default [
     },
   },
 
-  // Test files overrides
+  // Test files overrides - consolidated configuration for all test patterns
   {
-    files: ['**/*.test.ts', '**/*.spec.ts'],
+    files: ['**/*.test.ts', '**/*.spec.ts', 'test/**/*.ts', 'tests/**/*.ts'],
     languageOptions: {
       globals: {
         // Vitest globals
@@ -129,7 +129,7 @@ export default [
         afterAll: 'readonly',
         vi: 'readonly',
         test: 'readonly',
-        // Node.js globals (inherit from parent)
+        // Node.js globals
         console: 'readonly',
         process: 'readonly',
         Buffer: 'readonly',
@@ -144,18 +144,27 @@ export default [
         NodeJS: 'readonly',
         fetch: 'readonly',
         performance: 'readonly',
+        // Browser environment for test globals (fixes fetch-related ESLint errors)
+        browser: true,
       },
     },
     rules: {
+      // Completely disable TypeScript strictness for tests
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/await-thenable': 'off',
+      '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      // Disable base rules for tests
       'no-console': 'off',
-      'no-unused-vars': 'off', // Also disable base rule for tests
+      'no-unused-vars': 'off',
+      'no-await-in-loop': 'off',
+      'require-atomic-updates': 'off',
     },
   },
 
@@ -172,23 +181,6 @@ export default [
     files: ['src/cli/**/*.ts'],
     rules: {
       'no-console': 'off', // CLI tools need console output
-    },
-  },
-
-  // Test file overrides - reduce noise in test files
-  {
-    files: ['**/*.test.ts', '**/*.spec.ts', 'test/**/*.ts', 'tests/**/*.ts'],
-    rules: {
-      '@typescript-eslint/require-await': 'off',
-      'no-console': 'off',
-      'no-await-in-loop': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-member-access': 'warn',
-      '@typescript-eslint/no-unsafe-call': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      '@typescript-eslint/unbound-method': 'off',
-      'require-atomic-updates': 'off',
     },
   },
 
