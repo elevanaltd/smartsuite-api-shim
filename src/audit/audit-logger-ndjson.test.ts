@@ -32,7 +32,7 @@ describe('AuditLogger NDJSON Format', () => {
     ];
 
     // Sequential file cleanup required for test isolation
-    // eslint-disable-next-line no-await-in-loop
+
     for (const file of filesToClean) {
       if (await fs.pathExists(file)) {
         await fs.remove(file);

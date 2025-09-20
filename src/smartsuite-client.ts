@@ -4,6 +4,12 @@
 // GREEN phase implementation to make authentication tests pass
 
 import { FilterValidator } from './lib/filter-validator.js';
+import {
+  isSmartSuiteRecord,
+  isSmartSuiteRecordArray,
+  type SmartSuiteRecordGuarded,
+} from './lib/type-guards.js';
+import logger from './logger.js';
 
 export interface SmartSuiteClientConfig {
   apiKey: string;
@@ -102,24 +108,24 @@ export async function createAuthenticatedClient(
     });
 
     if (!response.ok) {
-      let errorData: Record<string, unknown> = { error: response.statusText };
+      let errorData: SmartSuiteApiError = { error: response.statusText };
       try {
-        errorData = (await response.json()) as Record<string, unknown>;
+        errorData = (await response.json()) as SmartSuiteApiError;
       } catch {
         // Use default error if JSON parsing fails
       }
 
       if (response.status === 401) {
-        const message = `Authentication failed: ${String(errorData.error || 'Invalid API key')}`;
+        const message = `Authentication failed: ${errorData.error ?? 'Invalid API key'}`;
         throw new Error(message);
       } else if (response.status === 403) {
-        const message = `Authorization failed: ${String(errorData.error || 'No access to workspace')}`;
+        const message = `Authorization failed: ${errorData.error ?? 'No access to workspace'}`;
         throw new Error(message);
       } else if (response.status === 503) {
-        const message = `SmartSuite API unavailable: ${String(errorData.error || 'Service temporarily unavailable')}. Try again later.`;
+        const message = `SmartSuite API unavailable: ${errorData.error ?? 'Service temporarily unavailable'}. Try again later.`;
         throw new Error(message);
       } else {
-        const message = `API error ${response.status}: ${String(errorData.error || response.statusText)}`;
+        const message = `API error ${response.status}: ${errorData.error ?? response.statusText}`;
         throw new Error(message);
       }
     }
@@ -472,7 +478,7 @@ export async function createAuthenticatedClient(
 
       // Only attempt JSON parsing for JSON content types
       if (!contentType.includes('application/json')) {
-        console.warn('[SmartSuite Client] Non-JSON response received:', {
+        logger.warn('[SmartSuite Client] Non-JSON response received:', {
           status: response.status,
           contentType,
           url: options.endpoint,
@@ -487,7 +493,7 @@ export async function createAuthenticatedClient(
         return JSON.parse(responseText) as SmartSuiteRequestResponse;
       } catch (parseError) {
         // Critical diagnostic information for debugging JSON parse failures
-        console.error('[SmartSuite Client] JSON Parse Error:', {
+        logger.error('[SmartSuite Client] JSON Parse Error:', {
           status: response.status,
           statusText: response.statusText,
           contentType,
@@ -507,4 +513,106 @@ export async function createAuthenticatedClient(
   };
 
   return client;
+}
+
+// ============================================================================
+// TYPE-SAFE CLIENT WRAPPER
+// Following docs/412-DOC-TYPE-SAFETY-PATTERN-DESIGN.md
+// ============================================================================
+
+export interface TypeSafeSmartSuiteClient extends SmartSuiteClient {
+  // Type-safe list records
+  listRecordsSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+    appId: string,
+    options?: SmartSuiteListOptions
+  ): Promise<{ items: T[]; total: number; offset: number; limit: number }>;
+
+  // Type-safe get record
+  getRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+    appId: string,
+    recordId: string
+  ): Promise<T>;
+
+  // Type-safe create with validation
+  createRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+    appId: string,
+    data: Omit<T, 'id' | 'application_id' | 'created_at' | 'updated_at'>
+  ): Promise<T>;
+
+  // Type-safe update with partial data
+  updateRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+    appId: string,
+    recordId: string,
+    data: Partial<Omit<T, 'id' | 'application_id'>>
+  ): Promise<T>;
+}
+
+export function createTypeSafeClient(client: SmartSuiteClient): TypeSafeSmartSuiteClient {
+  return {
+    ...client,
+
+    async listRecordsSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+      appId: string,
+      options?: SmartSuiteListOptions,
+    ): Promise<{ items: T[]; total: number; offset: number; limit: number }> {
+      const response = await client.listRecords(appId, options);
+
+      // Validate response structure with type guards
+      if (!response || typeof response !== 'object') {
+        throw new TypeError('Invalid list response format: expected object');
+      }
+
+      const { items, total, offset, limit } = response;
+
+      if (!isSmartSuiteRecordArray(items)) {
+        throw new TypeError('Invalid items in list response: expected array of SmartSuite records');
+      }
+
+      if (typeof total !== 'number' || typeof offset !== 'number' || typeof limit !== 'number') {
+        throw new TypeError('Invalid pagination data in list response');
+      }
+
+      return { items: items as T[], total, offset, limit };
+    },
+
+    async getRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+      appId: string,
+      recordId: string,
+    ): Promise<T> {
+      const response = await client.getRecord(appId, recordId);
+
+      if (!isSmartSuiteRecord(response)) {
+        throw new TypeError('Invalid record response format: expected SmartSuite record');
+      }
+
+      return response as T;
+    },
+
+    async createRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+      appId: string,
+      data: Omit<T, 'id' | 'application_id' | 'created_at' | 'updated_at'>,
+    ): Promise<T> {
+      const response = await client.createRecord(appId, data as Record<string, unknown>);
+
+      if (!isSmartSuiteRecord(response)) {
+        throw new TypeError('Invalid create response format: expected SmartSuite record');
+      }
+
+      return response as T;
+    },
+
+    async updateRecordSafe<T extends SmartSuiteRecordGuarded = SmartSuiteRecordGuarded>(
+      appId: string,
+      recordId: string,
+      data: Partial<Omit<T, 'id' | 'application_id'>>,
+    ): Promise<T> {
+      const response = await client.updateRecord(appId, recordId, data as Record<string, unknown>);
+
+      if (!isSmartSuiteRecord(response)) {
+        throw new TypeError('Invalid update response format: expected SmartSuite record');
+      }
+
+      return response as T;
+    },
+  };
 }

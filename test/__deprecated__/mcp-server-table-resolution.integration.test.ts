@@ -1,0 +1,164 @@
+// Context7: consulted for vitest
+// TESTGUARD-APPROVED: CI-ERROR-FIX-002 - Fixing tool registry initialization in test setup
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+import { SmartSuiteShimServer } from '../../src/mcp-server.js';
+
+describe('MCP Server Table Resolution', () => {
+  let server: SmartSuiteShimServer;
+
+  // Helper to route through facade (Sentinel Architecture)
+  const callToolViaFacade = async (toolName: string, args: Record<string, unknown>) => {
+    return await server.callTool('smartsuite_intelligent', {
+      tool_name: toolName,
+      operation_description: `Execute ${toolName} operation`,
+      ...args,
+    });
+  };
+
+  beforeEach(async () => {
+    // Technical-Architect: Enable test mode to ensure all 9 tools are available
+    // TESTGUARD: TEST_MODE removed - production parity enforced
+    server = new SmartSuiteShimServer();
+    // Mock environment variables for authentication
+    process.env.SMARTSUITE_API_TOKEN = 'test-token';
+    process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
+
+    // Mock the authenticate method to avoid real API calls
+    server['authenticate'] = vi.fn().mockResolvedValue(undefined);
+
+    // Initialize the server which registers tools
+    await server.initialize();
+
+    // Initialize field mappings to enable table resolution
+    await server['initializeFieldMappings']();
+  });
+  describe('Table name resolution in query operations', () => {
+    it('should resolve table names to IDs in smartsuite_query', async () => {
+      // Mock the client to avoid actual API calls
+      const mockClient = {
+        listRecords: vi.fn().mockResolvedValue({ items: [], total_count: 0 }),
+      };
+      server['client'] = mockClient as any;
+      server['fieldMappingsInitialized'] = true;
+
+      // Call with table name instead of ID
+      await callToolViaFacade('smartsuite_query', {
+        operation: 'list',
+        appId: 'projects', // Table name instead of hex ID
+        limit: 5,
+      });
+
+      // Should have called the client with resolved ID
+      expect(mockClient.listRecords).toHaveBeenCalledWith(
+        '68a8ff5237fde0bf797c05b3', // Expected resolved ID
+        expect.any(Object),
+      );
+    });
+
+    it('should work with existing hex IDs unchanged', async () => {
+      const mockClient = {
+        listRecords: vi.fn().mockResolvedValue({ items: [], total_count: 0 }),
+      };
+      server['client'] = mockClient as any;
+      server['fieldMappingsInitialized'] = true;
+
+      const hexId = '68a8ff5237fde0bf797c05b3';
+      await callToolViaFacade('smartsuite_query', {
+        operation: 'list',
+        appId: hexId,
+        limit: 5,
+      });
+
+      expect(mockClient.listRecords).toHaveBeenCalledWith(hexId, expect.any(Object));
+    });
+
+    it('should provide helpful error for unknown table names', async () => {
+      server['client'] = {} as any;
+      server['fieldMappingsInitialized'] = true;
+
+      await expect(
+        callToolViaFacade('smartsuite_query', {
+          operation: 'list',
+          appId: 'unknown_table',
+          limit: 5,
+        }),
+      ).rejects.toThrow(/Unknown table 'unknown_table'/);
+    });
+  });
+
+  describe('Discovery tool', () => {
+    it('should list available tables', async () => {
+      // Mock authentication to avoid 'Authentication required' error
+      server['client'] = {} as any;
+
+      const result = await callToolViaFacade('smartsuite_discover', {
+        scope: 'tables',
+      });
+
+      expect(result).toHaveProperty('tables');
+      expect(Array.isArray((result as any).tables)).toBe(true);
+      expect((result as any).tables.length).toBeGreaterThan(0);
+      expect((result as any).tables[0]).toHaveProperty('name');
+      expect((result as any).tables[0]).toHaveProperty('id');
+      expect((result as any).tables[0]).toHaveProperty('solutionId');
+    });
+
+    it('should list fields for a specific table', async () => {
+      // Mock authentication to avoid 'Authentication required' error
+      server['client'] = {} as any;
+
+      const result = await callToolViaFacade('smartsuite_discover', {
+        scope: 'fields',
+        tableId: 'projects', // Can use table name
+      });
+
+      expect(result).toHaveProperty('table');
+      expect(result).toHaveProperty('fields');
+      expect((result as any).table.name).toBe('projects');
+      expect((result as any).fields).toHaveProperty('projectName');
+      expect((result as any).fields.projectName).toBe('project_name_actual');
+    });
+
+    it('should work with table ID for fields discovery', async () => {
+      // Mock authentication to avoid 'Authentication required' error
+      server['client'] = {} as any;
+
+      const result = await callToolViaFacade('smartsuite_discover', {
+        scope: 'fields',
+        tableId: '68a8ff5237fde0bf797c05b3', // Using hex ID
+      });
+
+      expect((result as any).table.name).toBe('projects');
+    });
+  });
+
+  describe('getTools', () => {
+    it('should include smartsuite_discover tool', async () => {
+      // Technical-Architect: Sentinel Architecture - discover is routed through facade
+      const testServer = new SmartSuiteShimServer();
+
+      // Mock environment for test
+      process.env.SMARTSUITE_API_TOKEN = 'test-token';
+      process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
+      testServer['authenticate'] = vi.fn().mockResolvedValue(undefined);
+
+      await testServer.initialize();
+      const tools = testServer.getTools();
+
+      // In Sentinel Architecture, discover is accessed through intelligent facade
+      const facadeTool = tools.find((t: any) => t.name === 'smartsuite_intelligent');
+
+      expect(facadeTool).toBeDefined();
+      expect(facadeTool?.description).toContain('Unified SmartSuite operations interface');
+
+      // Check that tool_name enum includes smartsuite_discover for routing
+      const toolNameProp = facadeTool?.inputSchema.properties.tool_name as any;
+      expect(toolNameProp?.enum).toContain('smartsuite_discover');
+
+      // The facade should have scope and tableId properties for discover operations
+      expect(facadeTool?.inputSchema.properties).toHaveProperty('scope');
+      expect(facadeTool?.inputSchema.properties).toHaveProperty('tableId');
+    });
+  });
+});

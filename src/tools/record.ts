@@ -2,16 +2,21 @@
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 // Technical-Architect: function module pattern for tool extraction
 
+import { isRecordToolArgs } from '../lib/type-guards.js';
+
 import type { ToolContext } from './types.js';
 
 // Validation cache for dry-run enforcement
 // Global state maintained across function calls - necessary for validation cache persistence
-const validationCache = new Map<string, {
-  timestamp: number;
-  dataHash: string;
-  validated: boolean;
-  errors?: string[];
-}>();
+const validationCache = new Map<
+  string,
+  {
+    timestamp: number;
+    dataHash: string;
+    validated: boolean;
+    errors?: string[];
+  }
+>();
 
 // Constants
 const VALIDATION_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
@@ -238,12 +243,18 @@ async function performDryRunValidation(
   try {
     if (operation === 'bulk_update' || operation === 'bulk_delete') {
       // For bulk operations, validate count limits
-      const itemCount = Array.isArray(translatedData) ? translatedData.length :
-                        (translatedData as any)?.items?.length ||
-                        (translatedData as any)?.ids?.length || 0;
+      let itemCount = 0;
+      if (Array.isArray(translatedData)) {
+        itemCount = translatedData.length;
+      } else if (translatedData && typeof translatedData === 'object') {
+        const bulkData = translatedData as { items?: unknown[]; ids?: unknown[] };
+        itemCount = bulkData.items?.length ?? bulkData.ids?.length ?? 0;
+      }
 
       if (itemCount > 25) {
-        validationErrors.push(`Bulk operation exceeds SmartSuite's 25-record limit (${itemCount} records)`);
+        validationErrors.push(
+          `Bulk operation exceeds SmartSuite's 25-record limit (${itemCount} records)`,
+        );
       } else if (itemCount === 0) {
         validationErrors.push('Bulk operation requires at least one record');
       } else {
@@ -271,7 +282,8 @@ async function performDryRunValidation(
   }
 
   // Determine overall validation status
-  const validationPassed = connectivityPassed && schemaValidationPassed && validationErrors.length === 0;
+  const validationPassed =
+    connectivityPassed && schemaValidationPassed && validationErrors.length === 0;
 
   // Store validation result in cache for enforcement
   const dataHash = generateDataHash(translatedData as Record<string, unknown> | undefined);
@@ -299,11 +311,15 @@ async function performDryRunValidation(
   validationCache.set(operationKey, cacheEntry);
 
   // Determine record count for bulk operations
-  const recordCount = operation === 'bulk_update' || operation === 'bulk_delete'
-    ? (Array.isArray(translatedData) ? translatedData.length :
-       (translatedData as any)?.items?.length ||
-       (translatedData as any)?.ids?.length || 0)
-    : 1;
+  let recordCount = 1;
+  if (operation === 'bulk_update' || operation === 'bulk_delete') {
+    if (Array.isArray(translatedData)) {
+      recordCount = translatedData.length;
+    } else if (translatedData && typeof translatedData === 'object') {
+      const bulkData = translatedData as { items?: unknown[]; ids?: unknown[] };
+      recordCount = bulkData.items?.length ?? bulkData.ids?.length ?? 0;
+    }
+  }
 
   return {
     dry_run: true,
@@ -319,7 +335,11 @@ async function performDryRunValidation(
     fieldMappingsUsed: context.fieldTranslator.hasMappings(appId),
     validationChecks: {
       connectivity: connectivityPassed ? 'passed' : 'failed',
-      schema: schemaValidationPassed ? 'passed' : validationWarnings.length > 0 ? 'skipped' : 'failed',
+      schema: schemaValidationPassed
+        ? 'passed'
+        : validationWarnings.length > 0
+          ? 'skipped'
+          : 'failed',
     },
     ...(validationErrors.length > 0 && { errors: validationErrors }),
     ...(validationWarnings.length > 0 && { warnings: validationWarnings }),
@@ -334,19 +354,30 @@ async function performDryRunValidation(
  * Handle SmartSuite record operations (create, update, delete)
  * Extracted from SmartSuiteMCPServer.handleRecord()
  */
-export async function handleRecord(context: ToolContext, args: Record<string, unknown>): Promise<unknown> {
-  // DRY-RUN pattern enforcement for mutations (North Star requirement)
-  if (args.dry_run === undefined) {
+export async function handleRecord(context: ToolContext, args: unknown): Promise<unknown> {
+  // CRITICAL SAFETY CHECK: dry_run requirement takes precedence for mutation tools
+  // This specific error message is part of the API contract and must be preserved
+  if (typeof args === 'object' && args !== null && 'dry_run' in args === false) {
     throw new Error('Dry-run pattern required: mutation tools must specify dry_run parameter');
   }
 
+  // TYPE SAFETY: Validate arguments using type guards (after critical safety checks)
+  if (!isRecordToolArgs(args)) {
+    throw new Error('Invalid record arguments: missing required fields or invalid types');
+  }
+
   // FIELD TRANSLATION: Convert human-readable field names to API codes
-  const operation = args.operation as string;
-  let appId = args.appId as string;
-  const recordId = args.recordId as string;
-  const inputData = args.data as Record<string, unknown>;
-  const dry_run = args.dry_run as boolean;
-  const priorValidation = args.priorValidation as boolean; // For testing
+  const { operation, recordId, data: inputData, dry_run } = args;
+  let { appId } = args;
+  const priorValidation = (args as Record<string, unknown>).priorValidation as boolean; // For testing
+
+  // OPERATION VALIDATION: Ensure required fields for specific operations
+  if (['update', 'delete'].includes(operation) && !recordId) {
+    throw new Error(`Operation '${operation}' requires recordId parameter`);
+  }
+  if (['create', 'update'].includes(operation) && !inputData) {
+    throw new Error(`Operation '${operation}' requires data parameter`);
+  }
 
   // TABLE RESOLUTION: Convert table name to ID if needed
   const resolvedId = context.tableResolver.resolveTableId(appId);
@@ -355,10 +386,9 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
     const availableTables = context.tableResolver.getAllTableNames();
     throw new Error(
       `Unknown table '${appId}'. ` +
-      (suggestions.length > 0
-        ? `Did you mean: ${suggestions.join(', ')}?`
-        : `Available tables: ${availableTables.join(', ')}`
-      ),
+        (suggestions.length > 0
+          ? `Did you mean: ${suggestions.join(', ')}?`
+          : `Available tables: ${availableTables.join(', ')}`),
     );
   }
   appId = resolvedId;
@@ -369,7 +399,6 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
   if (inputData && context.fieldTranslator.hasMappings(appId)) {
     if (operation === 'bulk_update' && Array.isArray(inputData)) {
       translatedData = inputData.map((item: Record<string, unknown>) =>
-
         context.fieldTranslator.humanToApi(appId, item, true),
       ) as unknown as Record<string, unknown>;
     } else if (operation !== 'bulk_delete') {
@@ -380,7 +409,14 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
 
   if (dry_run) {
     // Perform proper validation with actual API checks
-    const result = await performDryRunValidation(context, operation, appId, recordId, inputData ?? {}, translatedData ?? {});
+    const result = await performDryRunValidation(
+      context,
+      operation,
+      appId,
+      recordId,
+      inputData ?? {},
+      translatedData ?? {},
+    );
 
     return result;
   }
@@ -400,8 +436,8 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
     if (!priorValidationEntry) {
       throw new Error(
         'Validation required: No dry-run found for this operation. ' +
-        'You must perform a dry-run (dry_run: true) before executing. ' +
-        'This ensures the operation is validated before execution.',
+          'You must perform a dry-run (dry_run: true) before executing. ' +
+          'This ensures the operation is validated before execution.',
       );
     }
 
@@ -410,7 +446,7 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
       validationCache.delete(operationKey);
       throw new Error(
         'Validation expired: The dry-run for this operation has expired (>5 minutes old). ' +
-        'Please perform a new dry-run before executing.',
+          'Please perform a new dry-run before executing.',
       );
     }
 
@@ -419,8 +455,8 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
       validationCache.delete(operationKey);
       throw new Error(
         'Data mismatch: The data has changed since the dry-run validation. ' +
-        'The data must be identical between dry-run and execution. ' +
-        'Please perform a new dry-run with the current data.',
+          'The data must be identical between dry-run and execution. ' +
+          'Please perform a new dry-run with the current data.',
       );
     }
 
@@ -430,7 +466,7 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
       const errors = priorValidationEntry.errors?.join(', ') ?? 'Validation failed';
       throw new Error(
         `Cannot execute: The dry-run validation failed with errors: ${errors}. ` +
-        'Please fix the issues and perform a new dry-run.',
+          'Please fix the issues and perform a new dry-run.',
       );
     }
 
@@ -442,57 +478,65 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
   let beforeData: unknown;
   if (operation === 'update' || operation === 'delete') {
     try {
-      beforeData = await context.client.getRecord(appId, recordId);
-    } catch (error) {
+      // recordId is guaranteed to exist for these operations due to validation above
+      beforeData = await context.client.getRecord(appId, recordId!);
+    } catch (_error) {
       // If we can't get beforeData, continue but log without it
-      console.warn(`Failed to fetch beforeData for ${operation} audit: ${String(error)}`);
+      // Failed to fetch beforeData - continue without it (non-critical for operation)
     }
   }
 
   let result: unknown;
   switch (operation) {
-    case 'create':
-      result = await context.client.createRecord(appId, translatedData);
+    case 'create': {
+      // translatedData is guaranteed to exist for create operations due to validation above
+      result = await context.client.createRecord(appId, translatedData!);
       // AUDIT LOGGING: Create operation
+      const createdRecord = result as { id?: string } | null;
+      const newRecordId = createdRecord?.id ?? recordId ?? '';
       await context.auditLogger.logMutation({
         operation: 'create',
         tableId: appId,
-        recordId: (result as any)?.id || recordId,
-        payload: translatedData,
+        recordId: newRecordId,
+        payload: translatedData!,
         result: result as Record<string, unknown>,
         reversalInstructions: {
           operation: 'delete',
           tableId: appId,
-          recordId: (result as any)?.id || recordId,
+          recordId: newRecordId,
         },
       });
       break;
-    case 'update':
-      result = await context.client.updateRecord(appId, recordId, translatedData);
+    }
+    case 'update': {
+      // recordId and translatedData are guaranteed to exist for update operations due to validation above
+      result = await context.client.updateRecord(appId, recordId!, translatedData!);
       // AUDIT LOGGING: Update operation
       await context.auditLogger.logMutation({
         operation: 'update',
         tableId: appId,
-        recordId,
-        payload: translatedData,
+        recordId: recordId!,
+        payload: translatedData!,
         result: result as Record<string, unknown>,
         beforeData: beforeData as Record<string, unknown>,
         reversalInstructions: {
           operation: 'update',
           tableId: appId,
-          recordId,
+          recordId: recordId!,
           payload: beforeData as Record<string, unknown>,
         },
       });
       break;
-    case 'delete':
-      await context.client.deleteRecord(appId, recordId);
-      result = { deleted: recordId };
+    }
+    case 'delete': {
+      // recordId is guaranteed to exist for delete operations due to validation above
+      await context.client.deleteRecord(appId, recordId!);
+      result = { deleted: recordId! };
       // AUDIT LOGGING: Delete operation
       await context.auditLogger.logMutation({
         operation: 'delete',
         tableId: appId,
-        recordId,
+        recordId: recordId!,
         result: result as Record<string, unknown>,
         beforeData: beforeData as Record<string, unknown>,
         reversalInstructions: {
@@ -502,6 +546,7 @@ export async function handleRecord(context: ToolContext, args: Record<string, un
         },
       });
       break;
+    }
     case 'bulk_update':
       // Bulk update uses PATCH to /records/bulk/ with items array
       result = await context.client.request({

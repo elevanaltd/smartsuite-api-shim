@@ -1,17 +1,20 @@
 // TESTGUARD_BYPASS: INFRA-002 - ESLint configuration migration from v8 to v9 flat config
 // CONTEXT7_BYPASS: ESLINT-MIGRATION-001 - Standard ESLint library migration for v9 compatibility
+// Critical-Engineer: consulted for CI linting strategy and script validation
 
 // Context7: consulted for @eslint/js
 // Context7: consulted for @typescript-eslint/eslint-plugin
 // Context7: consulted for @typescript-eslint/parser
 // Context7: consulted for eslint-plugin-import
 // Context7: consulted for eslint-plugin-promise
+// Context7: consulted for eslint-plugin-eslint-comments
 
 import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import importPlugin from 'eslint-plugin-import';
 import promisePlugin from 'eslint-plugin-promise';
+import eslintComments from 'eslint-plugin-eslint-comments';
 
 export default [
   // Apply to all TypeScript files
@@ -48,6 +51,7 @@ export default [
       '@typescript-eslint': tseslint,
       import: importPlugin,
       promise: promisePlugin,
+      'eslint-comments': eslintComments,
     },
     rules: {
       // Base ESLint recommended rules
@@ -111,12 +115,18 @@ export default [
       'no-await-in-loop': 'warn',
       'require-atomic-updates': 'warn', // LINT_CLEANUP: Reduced to warning for race condition fixes
       '@typescript-eslint/require-await': 'warn', // LINT_CLEANUP: Reduced to warning for async without await
+
+      // ESLint comments rules
+      'eslint-comments/no-unused-disable': 'error',
+      'eslint-comments/no-unlimited-disable': 'warn',
+      'eslint-comments/no-duplicate-disable': 'error',
+      'eslint-comments/disable-enable-pair': 'error'
     },
   },
 
-  // Test files overrides - consolidated configuration for all test patterns
+  // Test files overrides
   {
-    files: ['**/*.test.ts', '**/*.spec.ts', 'test/**/*.ts', 'tests/**/*.ts'],
+    files: ['**/*.test.ts', '**/*.spec.ts'],
     languageOptions: {
       globals: {
         // Vitest globals
@@ -129,7 +139,7 @@ export default [
         afterAll: 'readonly',
         vi: 'readonly',
         test: 'readonly',
-        // Node.js globals
+        // Node.js globals (inherit from parent)
         console: 'readonly',
         process: 'readonly',
         Buffer: 'readonly',
@@ -144,27 +154,18 @@ export default [
         NodeJS: 'readonly',
         fetch: 'readonly',
         performance: 'readonly',
-        // Browser environment for test globals (fixes fetch-related ESLint errors)
-        browser: true,
       },
     },
     rules: {
-      // Completely disable TypeScript strictness for tests
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/await-thenable': 'off',
-      '@typescript-eslint/require-await': 'off',
-      '@typescript-eslint/unbound-method': 'off',
-      // Disable base rules for tests
       'no-console': 'off',
-      'no-unused-vars': 'off',
-      'no-await-in-loop': 'off',
-      'require-atomic-updates': 'off',
+      'no-unused-vars': 'off', // Also disable base rule for tests
     },
   },
 
@@ -181,6 +182,23 @@ export default [
     files: ['src/cli/**/*.ts'],
     rules: {
       'no-console': 'off', // CLI tools need console output
+    },
+  },
+
+  // Test file overrides - reduce noise in test files
+  {
+    files: ['**/*.test.ts', '**/*.spec.ts', 'test/**/*.ts', 'tests/**/*.ts'],
+    rules: {
+      '@typescript-eslint/require-await': 'off',
+      'no-console': 'off',
+      'no-await-in-loop': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/no-unsafe-call': 'warn',
+      '@typescript-eslint/no-unsafe-argument': 'warn',
+      '@typescript-eslint/unbound-method': 'off',
+      'require-atomic-updates': 'off',
     },
   },
 
