@@ -1,11 +1,7 @@
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 // Technical-Architect: function module pattern for tool extraction
 
-import {
-  isQueryToolArgs,
-  isSmartSuiteRecordArray,
-  extractRecordData,
-} from '../lib/type-guards.js';
+import { isQueryToolArgs, isSmartSuiteRecordArray, extractRecordData } from '../lib/type-guards.js';
 import type { SmartSuiteListResponse } from '../smartsuite-client.js';
 
 import type { ToolContext } from './types.js';
@@ -107,13 +103,11 @@ function formatMcpPaginationResponse(
 /**
  * Handle query operations for SmartSuite records
  */
-export async function handleQuery(
-  context: ToolContext,
-  args: unknown,
-): Promise<unknown> {
-  // Technical-Architect: Check for invalid operation before type guard to provide specific error
+export async function handleQuery(context: ToolContext, args: unknown): Promise<unknown> {
+  // Technical-Architect: Type-safe check for invalid operation before type guard to provide specific error
   if (args && typeof args === 'object' && 'operation' in args) {
-    const operation = (args as any).operation;
+    const argsWithOp = args as { operation: unknown };
+    const operation = argsWithOp.operation;
     if (typeof operation === 'string' && !['list', 'get', 'search', 'count'].includes(operation)) {
       throw new Error(`Unknown query operation: ${operation}`);
     }
@@ -139,10 +133,9 @@ export async function handleQuery(
     const availableTables = tableResolver.getAllTableNames();
     throw new Error(
       `Unknown table '${appId}'. ` +
-      (suggestions.length > 0
-        ? `Did you mean: ${suggestions.join(', ')}?`
-        : `Available tables: ${availableTables.join(', ')}`
-      ),
+        (suggestions.length > 0
+          ? `Did you mean: ${suggestions.join(', ')}?`
+          : `Available tables: ${availableTables.join(', ')}`),
     );
   }
   appId = resolvedId;

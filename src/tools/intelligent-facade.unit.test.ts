@@ -254,6 +254,128 @@ describe('IntelligentFacade', () => {
     });
   });
 
+  describe('Type-Safe Parameter Extraction', () => {
+    it('should safely extract appId when provided as direct parameter', async () => {
+      const mockQueryResponse = { data: [] };
+      (handleQuery as any).mockResolvedValue(mockQueryResponse);
+
+      const args = {
+        tool_name: 'smartsuite_query',
+        operation_description: 'query with direct appId',
+        appId: 'test-app-id-123',
+        operation: 'list',
+      };
+
+      await handleIntelligentFacade(mockContext, args);
+
+      expect(handleQuery).toHaveBeenCalledWith(mockContext, {
+        operation: 'list',
+        appId: 'test-app-id-123',
+        filters: undefined,
+        sort: undefined,
+        limit: undefined,
+        offset: undefined,
+        recordId: undefined,
+      });
+    });
+
+    it('should safely extract dry_run when provided as direct parameter', async () => {
+      const mockRecordResponse = { preview: 'would create' };
+      (handleRecord as any).mockResolvedValue(mockRecordResponse);
+
+      const args = {
+        tool_name: 'smartsuite_record',
+        operation_description: 'create with explicit dry_run',
+        appId: 'test-app-id',
+        operation: 'create',
+        dry_run: false, // explicitly set to false
+        data: { test: 'data' },
+      };
+
+      await handleIntelligentFacade(mockContext, args);
+
+      expect(handleRecord).toHaveBeenCalledWith(mockContext, {
+        operation: 'create',
+        appId: 'test-app-id',
+        recordId: undefined,
+        data: { test: 'data' },
+        dry_run: false, // should use explicit value
+      });
+    });
+
+    it('should safely extract output_mode for schema operations', async () => {
+      const mockSchemaResponse = { fields: [] };
+      (handleSchema as any).mockResolvedValue(mockSchemaResponse);
+
+      const args = {
+        tool_name: 'smartsuite_schema',
+        operation_description: 'get schema with output mode',
+        appId: 'test-app',
+        output_mode: 'detailed',
+      };
+
+      await handleIntelligentFacade(mockContext, args);
+
+      expect(handleSchema).toHaveBeenCalledWith(mockContext, {
+        appId: 'test-app',
+        output_mode: 'detailed',
+      });
+    });
+
+    it('should handle missing optional parameters safely', async () => {
+      const mockQueryResponse = { data: [] };
+      (handleQuery as any).mockResolvedValue(mockQueryResponse);
+
+      const args = {
+        tool_name: 'smartsuite_query',
+        operation_description: 'query with minimal params',
+        tableId: 'fallback-table-id',
+        operation: 'list',
+        // No appId, dry_run, output_mode, scope, etc.
+      };
+
+      await handleIntelligentFacade(mockContext, args);
+
+      expect(handleQuery).toHaveBeenCalledWith(mockContext, {
+        operation: 'list',
+        appId: 'fallback-table-id', // should fallback to tableId
+        filters: undefined,
+        sort: undefined,
+        limit: undefined,
+        offset: undefined,
+        recordId: undefined,
+      });
+    });
+
+    it('should not fail when parameters are wrong type', async () => {
+      const mockQueryResponse = { data: [] };
+      (handleQuery as any).mockResolvedValue(mockQueryResponse);
+
+      const args = {
+        tool_name: 'smartsuite_query',
+        operation_description: 'query with wrong types',
+        appId: 123, // wrong type - number instead of string
+        dry_run: 'yes', // wrong type - string instead of boolean
+        output_mode: true, // wrong type - boolean instead of string
+        tableId: 'valid-table-id',
+        operation: 'list',
+      };
+
+      await handleIntelligentFacade(mockContext, args);
+
+      // Should ignore wrong-typed params and use fallbacks
+      expect(handleQuery).toHaveBeenCalledWith(mockContext, {
+        operation: 'list',
+        appId: 'valid-table-id', // fallback to valid tableId
+        filters: undefined,
+        sort: undefined,
+        limit: undefined,
+        offset: undefined,
+        recordId: undefined,
+      });
+    });
+  });
+
   describe('Fallback to Original Intelligent Handler', () => {
     it('should route to original intelligent handler when no routing pattern matches', async () => {
       const mockIntelligentResponse = { analysis: 'complex operation result' };

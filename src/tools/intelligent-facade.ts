@@ -180,7 +180,19 @@ function convertToLegacyArgs(
 
   // Extract common fields - handle both tableId and appId
   const { tableId, payload, mode } = args;
-  const appId = (args as any).appId; // Direct appId parameter
+
+  // Type-safe extraction of optional fields
+  const appId = 'appId' in args && typeof args.appId === 'string' ? args.appId : undefined;
+
+  const dryRun = 'dry_run' in args && typeof args.dry_run === 'boolean' ? args.dry_run : undefined;
+
+  const outputMode =
+    'output_mode' in args && typeof args.output_mode === 'string' ? args.output_mode : undefined;
+
+  const scope = 'scope' in args && typeof args.scope === 'string' ? args.scope : undefined;
+
+  const directTableId =
+    'tableId' in args && typeof args.tableId === 'string' ? args.tableId : undefined;
 
   switch (targetTool) {
     case 'smartsuite_query':
@@ -200,13 +212,13 @@ function convertToLegacyArgs(
         appId: appId ?? tableId ?? extractAppIdFromEndpoint(args.endpoint),
         recordId: payload?.recordId ?? payload?.id,
         data: payload?.data ?? payload ?? {},
-        dry_run: (args as any).dry_run ?? mode !== 'execute', // Check explicit dry_run first
+        dry_run: dryRun ?? mode !== 'execute', // Check explicit dry_run first
       };
 
     case 'smartsuite_schema':
       return {
         appId: appId ?? tableId ?? extractAppIdFromEndpoint(args.endpoint),
-        output_mode: (args as any).output_mode ?? payload?.output_mode ?? 'summary',
+        output_mode: outputMode ?? payload?.output_mode ?? 'summary',
       };
 
     case 'smartsuite_undo':
@@ -216,8 +228,8 @@ function convertToLegacyArgs(
 
     case 'smartsuite_discover':
       return {
-        scope: (args as any).scope ?? payload?.scope ?? detectDiscoverScope(args),
-        tableId: (args as any).tableId ?? payload?.tableId ?? tableId ?? undefined,
+        scope: scope ?? payload?.scope ?? detectDiscoverScope(args),
+        tableId: directTableId ?? payload?.tableId ?? tableId ?? undefined,
       };
 
     case 'smartsuite_knowledge_field_mappings':
