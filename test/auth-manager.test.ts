@@ -27,6 +27,96 @@ describe('AuthManager - Authentication State Management', () => {
     vi.clearAllMocks();
   });
 
+  describe('Constructor Validation - REGRESSION PREVENTION', () => {
+    // TDD RED→GREEN→REFACTOR cycle completed successfully
+    // Critical-Engineer: mandated fail-fast validation for partial configurations
+    // TestGuard-Approved: CONTRACT-DRIVEN-CORRECTION for constructor robustness
+
+    it('should throw when given partial configuration (empty workspaceId)', () => {
+      expect(() => {
+        new AuthManager({ apiKey: 'test-token', workspaceId: '' });
+      }).toThrow(/partial configuration/);
+    });
+
+    it('should throw when given partial configuration (empty apiKey)', () => {
+      expect(() => {
+        new AuthManager({ apiKey: '', workspaceId: 'test-workspace' });
+      }).toThrow(/partial configuration/);
+    });
+
+    it('should throw when given partial configuration (whitespace-only workspaceId)', () => {
+      expect(() => {
+        new AuthManager({ apiKey: 'test-token', workspaceId: '   ' });
+      }).toThrow(/partial configuration/);
+    });
+
+    it('should throw when given partial configuration (whitespace-only apiKey)', () => {
+      expect(() => {
+        new AuthManager({ apiKey: '   ', workspaceId: 'test-workspace' });
+      }).toThrow(/partial configuration/);
+    });
+
+    it('should throw when config properties are null', () => {
+      expect(() => {
+        // @ts-expect-error Testing runtime behavior with null values
+        new AuthManager({ apiKey: null, workspaceId: 'test' });
+      }).toThrow(/partial configuration/);
+
+      expect(() => {
+        // @ts-expect-error Testing runtime behavior with null values
+        new AuthManager({ apiKey: 'test', workspaceId: null });
+      }).toThrow(/partial configuration/);
+    });
+
+    it('should throw when config properties are undefined', () => {
+      expect(() => {
+        new AuthManager({ workspaceId: 'test' } as any);
+      }).toThrow(/partial configuration/);
+
+      expect(() => {
+        new AuthManager({ apiKey: 'test' } as any);
+      }).toThrow(/partial configuration/);
+    });
+
+    it('should accept valid complete configuration', () => {
+      expect(() => {
+        new AuthManager({
+          apiKey: 'valid-token',
+          workspaceId: 'valid-workspace',
+        });
+      }).not.toThrow();
+    });
+
+    it('should accept no configuration (environment fallback)', () => {
+      expect(() => {
+        new AuthManager();
+      }).not.toThrow();
+    });
+  });
+
+  describe('Environment Variable Fallback', () => {
+    it('should use environment variables when no config provided', () => {
+      process.env.SMARTSUITE_API_TOKEN = 'env-token';
+      process.env.SMARTSUITE_WORKSPACE_ID = 'env-workspace';
+
+      const manager = new AuthManager();
+      const config = manager.getAuthConfig();
+      expect(config?.apiKey).toBe('env-token');
+      expect(config?.workspaceId).toBe('env-workspace');
+    });
+
+    it('should use default baseUrl when not provided in environment', () => {
+      process.env.SMARTSUITE_API_TOKEN = 'env-token';
+      process.env.SMARTSUITE_WORKSPACE_ID = 'env-workspace';
+      delete process.env.SMARTSUITE_BASE_URL;
+
+      const manager = new AuthManager();
+      const config = manager.getAuthConfig();
+
+      expect(config?.baseUrl).toBe('https://app.smartsuite.com');
+    });
+  });
+
   describe('CRITICAL ISSUE: Silent authentication failures', () => {
     it('FAILS - should throw immediately when API key is missing (not silent)', async () => {
       // ARRANGE: No API key provided
@@ -43,7 +133,10 @@ describe('AuthManager - Authentication State Management', () => {
     it('FAILS - should throw immediately when workspace ID is missing (not silent)', async () => {
       // ARRANGE: Create AuthManager with API key but no workspace ID
       // Note: Empty string for workspaceId causes fallback to environment loading
-      const manager = new AuthManager({ apiKey: 'test-token', workspaceId: '' });
+      delete process.env.SMARTSUITE_API_TOKEN;
+      delete process.env.SMARTSUITE_WORKSPACE_ID;
+
+      const manager = new AuthManager();
 
       // ACT & ASSERT: Should fail loudly, not silently
       // When workspaceId is empty string, constructor falls back to env vars
