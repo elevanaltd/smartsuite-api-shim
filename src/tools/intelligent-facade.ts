@@ -1,6 +1,7 @@
 // Test-Methodology-Guardian: approved Strangler Fig Pattern implementation
 // Implementation-Lead: Sentinel Architecture facade for tool consolidation
 // Critical-Engineer: consulted for routing architecture and error handling
+// Critical-Engineer: consulted for Git branching and commit strategy
 // Context7: consulted for zod
 
 import { z } from 'zod';
@@ -42,12 +43,18 @@ const IntelligentFacadeSchema = z.object({
     .optional()
     .describe('Explicit tool routing - use this for deterministic behavior'),
 
-  // Original intelligent tool fields
-  endpoint: z.string().min(1),
-  method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']),
+  // Natural language operation description (required)
   operation_description: z.string().min(1),
-  payload: z.record(z.unknown()).optional(),
+
+  // Optional fields for automatic endpoint/method generation
+  endpoint: z.string().min(1).optional(),
+  method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']).optional(),
+
+  // Common operation fields
   tableId: z.string().optional(),
+  recordId: z.string().optional(), // Missing field that was causing TypeScript errors
+  operation: z.string().optional(), // Missing field that was causing TypeScript errors
+  payload: z.record(z.unknown()).optional(),
   mode: z.enum(['learn', 'dry_run', 'execute']).optional(),
   confirmed: z.boolean().optional(),
 
@@ -229,7 +236,7 @@ function convertToLegacyArgs(
  */
 function extractQueryOperation(args: z.infer<typeof IntelligentFacadeSchema>): string {
   const desc = args.operation_description.toLowerCase();
-  const endpoint = args.endpoint.toLowerCase();
+  const endpoint = args.endpoint?.toLowerCase() ?? '';
 
   // Check for single record GET pattern in endpoint first
   if (endpoint.match(/\/records\/[a-f0-9]{24}\/?$/)) return 'get';
@@ -250,7 +257,7 @@ function extractQueryOperation(args: z.infer<typeof IntelligentFacadeSchema>): s
  * Technical-Architect: Fixed operation detection logic to properly handle UPDATE/DELETE
  */
 function extractRecordOperation(args: z.infer<typeof IntelligentFacadeSchema>): string {
-  const method = args.method.toUpperCase();
+  const method = args.method?.toUpperCase() ?? 'POST';
   const desc = args.operation_description.toLowerCase();
 
   // Check explicit operation field first (if provided)
@@ -289,7 +296,10 @@ function extractRecordOperation(args: z.infer<typeof IntelligentFacadeSchema>): 
 /**
  * Extract app ID from endpoint URL
  */
-function extractAppIdFromEndpoint(endpoint: string): string {
+function extractAppIdFromEndpoint(endpoint: string | undefined): string {
+  if (!endpoint) {
+    return 'unknown-app-id';
+  }
   // Match patterns like /applications/{id}/ or /apps/{id}/
   const match = endpoint.match(/\/(?:applications|apps)\/([a-f0-9]{24})/i);
   return match?.[1] ?? 'unknown-app-id';
@@ -407,10 +417,18 @@ export async function handleIntelligentFacade(
       }
     }
 
-    // No routing detected - use original intelligent handler
+    // No routing detected - check if we need to generate endpoint/method for intelligent handler
+    if (!validatedArgs.endpoint || !validatedArgs.method) {
+      throw new Error(
+        'No routing target detected and endpoint/method missing. Either use tool_name for explicit routing or provide endpoint/method for intelligent handler.',
+      );
+    }
+
+    // Use original intelligent handler
     logger.info('Facade delegating to original intelligent handler:', {
       operation: validatedArgs.operation_description,
-      no_routing_detected: true,
+      endpoint: validatedArgs.endpoint,
+      method: validatedArgs.method,
     });
 
     return await handleIntelligent(context, args);

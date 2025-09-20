@@ -44,10 +44,10 @@ export function setupTestAuthentication(): void {
  */
 export function isRealAuthAvailable(): boolean {
   return !!(
-    process.env.SMARTSUITE_API_TOKEN ||
-    process.env.SMARTSUITE_API_TOKEN_TEST ||
+    (process.env.SMARTSUITE_API_TOKEN ?? '') ||
+    (process.env.SMARTSUITE_API_TOKEN_TEST ?? '') ||
     // Check .env.local for local development
-    process.env.VITE_SMARTSUITE_API_TOKEN
+    (process.env.VITE_SMARTSUITE_API_TOKEN ?? '')
   );
 }
 

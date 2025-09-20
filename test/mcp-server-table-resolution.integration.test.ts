@@ -68,11 +68,13 @@ describe('MCP Server Table Resolution', () => {
       server['client'] = {} as any;
       server['fieldMappingsInitialized'] = true;
 
-      await expect(server.callTool('smartsuite_query', {
-        operation: 'list',
-        appId: 'unknown_table',
-        limit: 5,
-      })).rejects.toThrow(/Unknown table 'unknown_table'/);
+      await expect(
+        server.callTool('smartsuite_query', {
+          operation: 'list',
+          appId: 'unknown_table',
+          limit: 5,
+        }),
+      ).rejects.toThrow(/Unknown table 'unknown_table'/);
     });
   });
 
@@ -123,13 +125,13 @@ describe('MCP Server Table Resolution', () => {
   });
 
   describe('getTools', () => {
-    it('should include smartsuite_discover tool', () => {
+    it('should include smartsuite_discover tool', async () => {
       // Technical-Architect: In test mode, discover tool should be available
       // TESTGUARD: TEST_MODE removed - production parity enforced
       const testServer = new SmartSuiteShimServer();
-      testServer.initialize();
+      await testServer.initialize();
       const tools = testServer.getTools();
-      const discoverTool = tools.find(t => t.name === 'smartsuite_discover');
+      const discoverTool = tools.find((t) => t.name === 'smartsuite_discover');
 
       expect(discoverTool).toBeDefined();
       expect(discoverTool?.description).toContain('Discover available tables');
