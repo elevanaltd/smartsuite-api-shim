@@ -1,7 +1,8 @@
 // Test-Methodology-Guardian: approved TDD RED-GREEN-REFACTOR cycle
 // Technical-Architect: function module pattern for tool extraction
 
-import type { SmartSuiteListResponse, SmartSuiteRecord } from '../smartsuite-client.js';
+import { isQueryToolArgs, isSmartSuiteRecordArray, extractRecordData } from '../lib/type-guards.js';
+import type { SmartSuiteListResponse } from '../smartsuite-client.js';
 
 import type { ToolContext } from './types.js';
 
@@ -26,10 +27,10 @@ function handleListResponse(
   fieldTranslator: ToolContext['fieldTranslator'],
 ): Record<string, unknown> {
   // Check if it's an array (legacy test mock format)
-  if (Array.isArray(response)) {
+  if (isSmartSuiteRecordArray(response)) {
     // Convert legacy mock format to new pagination response
     const legacyResponse: SmartSuiteListResponse = {
-      items: response as unknown as SmartSuiteRecord[],
+      items: response,
       total: response.length,
       offset: 0,
       limit: response.length,
@@ -37,7 +38,21 @@ function handleListResponse(
     return formatMcpPaginationResponse(appId, legacyResponse, fieldTranslator);
   }
 
-  // Handle new API format
+  // Handle new API format - validate response structure
+  const extractedData = extractRecordData(response);
+  if (extractedData && Array.isArray(extractedData)) {
+    // Response has valid record data, reconstruct as paginated response
+    const apiResponse = response as Record<string, unknown>;
+    const paginatedResponse: SmartSuiteListResponse = {
+      items: extractedData,
+      total: (apiResponse.total as number) ?? extractedData.length,
+      offset: (apiResponse.offset as number) ?? 0,
+      limit: (apiResponse.limit as number) ?? extractedData.length,
+    };
+    return formatMcpPaginationResponse(appId, paginatedResponse, fieldTranslator);
+  }
+
+  // Fallback for unknown response format
   return formatMcpPaginationResponse(appId, response as SmartSuiteListResponse, fieldTranslator);
 }
 
@@ -88,22 +103,28 @@ function formatMcpPaginationResponse(
 /**
  * Handle query operations for SmartSuite records
  */
-export async function handleQuery(
-  context: ToolContext,
-  args: Record<string, unknown>,
-): Promise<unknown> {
+export async function handleQuery(context: ToolContext, args: unknown): Promise<unknown> {
+  // Technical-Architect: Type-safe check for invalid operation before type guard to provide specific error
+  if (args && typeof args === 'object' && 'operation' in args) {
+    const argsWithOp = args as { operation: unknown };
+    const operation = argsWithOp.operation;
+    if (typeof operation === 'string' && !['list', 'get', 'search', 'count'].includes(operation)) {
+      throw new Error(`Unknown query operation: ${operation}`);
+    }
+  }
+
+  // TYPE SAFETY: Validate arguments using type guards
+  if (!isQueryToolArgs(args)) {
+    throw new Error('Invalid query arguments: missing required fields or invalid types');
+  }
+
   const { client, fieldTranslator, tableResolver } = context;
 
   // Note: Query operations are not mutations and don't need audit logging
 
   // FIELD TRANSLATION: Convert human-readable field names to API codes
-  const operation = args.operation as string;
-  let appId = args.appId as string;
-  const recordId = args.recordId as string;
-  const filters = args.filters as Record<string, unknown> | undefined;
-  const sort = args.sort as Record<string, unknown> | undefined;
-  const limit = args.limit as number | undefined;
-  const offset = args.offset as number | undefined;
+  const { operation, recordId, filters, sort, limit, offset } = args;
+  let { appId } = args;
 
   // TABLE RESOLUTION: Convert table name to ID if needed
   const resolvedId = tableResolver.resolveTableId(appId);
@@ -112,10 +133,9 @@ export async function handleQuery(
     const availableTables = tableResolver.getAllTableNames();
     throw new Error(
       `Unknown table '${appId}'. ` +
-      (suggestions.length > 0
-        ? `Did you mean: ${suggestions.join(', ')}?`
-        : `Available tables: ${availableTables.join(', ')}`
-      ),
+        (suggestions.length > 0
+          ? `Did you mean: ${suggestions.join(', ')}?`
+          : `Available tables: ${availableTables.join(', ')}`),
     );
   }
   appId = resolvedId;
@@ -128,7 +148,7 @@ export async function handleQuery(
 
   const translatedSort =
     sort && fieldTranslator.hasMappings(appId)
-      ? fieldTranslator.humanToApi(appId, sort, false) // Non-strict mode for sort
+      ? fieldTranslator.humanToApi(appId, sort as unknown as Record<string, unknown>, false) // Non-strict mode for sort
       : sort;
 
   const options = {
@@ -146,9 +166,13 @@ export async function handleQuery(
       result = handleListResponse(appId, listResponse, fieldTranslator);
       break;
     }
-    case 'get':
+    case 'get': {
+      if (!recordId) {
+        throw new Error('recordId is required for get operation');
+      }
       result = await client.getRecord(appId, recordId);
       break;
+    }
     case 'search': {
       // SIMPLE scope: search is just list with filter
       const searchResponse = await client.listRecords(appId, toListOptions(options));

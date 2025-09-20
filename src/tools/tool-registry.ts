@@ -3,6 +3,7 @@
 // Context7: consulted for zod
 import { z, ZodType } from 'zod';
 
+import logger from '../logger.js';
 import { validateMcpToolInput } from '../validation/input-validator.js';
 
 import type { ToolContext } from './types.js';
@@ -17,7 +18,7 @@ export interface Tool<T extends ZodType = ZodType> {
 
 // Registry implementation with full type safety and security hardening
 export class ToolRegistry {
-  private tools = new Map<string, Tool<any>>();
+  private tools = new Map<string, Tool<ZodType>>();
 
   /**
    * Register a tool with its schema and handler
@@ -25,21 +26,31 @@ export class ToolRegistry {
    */
   register<T extends ZodType>(tool: Tool<T>): void {
     // Security check: Prevent prototype pollution attacks
-    if (typeof tool.name !== 'string' || tool.name.includes('__proto__') || tool.name.includes('constructor')) {
-      throw new Error(`Invalid tool name: ${tool.name}. Tool names cannot contain prototype pollution vectors.`);
+    if (
+      typeof tool.name !== 'string' ||
+      tool.name.includes('__proto__') ||
+      tool.name.includes('constructor')
+    ) {
+      throw new Error(
+        `Invalid tool name: ${tool.name}. Tool names cannot contain prototype pollution vectors.`,
+      );
     }
 
     // Duplicate registration check: Fail-fast to prevent silent overwrites
     if (this.tools.has(tool.name)) {
-      throw new Error(`Tool '${tool.name}' is already registered. Duplicate registration is not allowed.`);
+      throw new Error(
+        `Tool '${tool.name}' is already registered. Duplicate registration is not allowed.`,
+      );
     }
 
     // Validate tool structure before registration
     if (!tool.schema || !tool.execute || !tool.description) {
-      throw new Error(`Tool '${tool.name}' is missing required properties (schema, execute, or description).`);
+      throw new Error(
+        `Tool '${tool.name}' is missing required properties (schema, execute, or description).`,
+      );
     }
 
-    this.tools.set(tool.name, tool);
+    this.tools.set(tool.name, tool as unknown as Tool<ZodType>);
   }
 
   /**
@@ -52,8 +63,8 @@ export class ToolRegistry {
     }
 
     // Use existing validation infrastructure to preserve McpValidationError structure
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const validatedArgs = validateMcpToolInput(toolName, tool.schema, rawArgs);
+
+    const validatedArgs: unknown = validateMcpToolInput(toolName, tool.schema, rawArgs);
 
     // Observability wrapper for production monitoring
     const startTime = Date.now();
@@ -79,7 +90,12 @@ export class ToolRegistry {
   /**
    * Log tool execution for observability (can be extended with metrics)
    */
-  private logToolExecution(toolName: string, duration: number, status: 'success' | 'failure', error?: unknown): void {
+  private logToolExecution(
+    toolName: string,
+    duration: number,
+    status: 'success' | 'failure',
+    error?: unknown,
+  ): void {
     // TODO: Replace with proper metrics/observability system (Prometheus, DataDog, etc.)
     // For now, structured logging provides operational insight
     const logData: Record<string, unknown> = {
@@ -90,14 +106,22 @@ export class ToolRegistry {
     };
 
     if (error) {
-      logData.error = error instanceof Error ? error.message : String(error);
+      if (error instanceof Error) {
+        logData.error = error.message;
+      } else if (typeof error === 'string') {
+        logData.error = error;
+      } else if (typeof error === 'object' && error !== null) {
+        logData.error = JSON.stringify(error);
+      } else {
+        // At this point, error is a primitive (number, boolean, undefined, null, symbol, bigint)
+        logData.error = String(error as number | boolean | undefined | null | symbol | bigint);
+      }
     }
 
-    // Use console for now (can be replaced with proper logger)
     if (status === 'failure') {
-      console.error('Tool execution failed:', logData);
+      logger.error('Tool execution failed:', logData);
     } else {
-      console.log('Tool execution completed:', logData);
+      logger.info('Tool execution completed:', logData);
     }
   }
 
@@ -106,7 +130,7 @@ export class ToolRegistry {
    */
   getValidationSchema(toolName: string): ZodType | null {
     const tool = this.tools.get(toolName);
-    return tool?.schema || null;
+    return tool?.schema ?? null;
   }
 
   /**
@@ -133,7 +157,7 @@ export class ToolRegistry {
   /**
    * Get tool information for MCP protocol
    */
-  getToolInfo(toolName: string): { name: string; description: string; schema: any } | null {
+  getToolInfo(toolName: string): { name: string; description: string; schema: unknown } | null {
     const tool = this.tools.get(toolName);
     if (!tool) return null;
 

@@ -32,18 +32,18 @@ export const supabase = createClient(
       autoRefreshToken: false,
     },
     db: {
-      schema: process.env.KNOWLEDGE_DB_SCHEMA || 'knowledge_platform',
+      schema: process.env.KNOWLEDGE_DB_SCHEMA ?? 'knowledge_platform',
     },
   },
 );
 
 // Export configuration for use in other modules
 export const knowledgeConfig = {
-  schema: process.env.KNOWLEDGE_DB_SCHEMA || 'knowledge_platform',
-  maxRetries: parseInt(process.env.KNOWLEDGE_MAX_RETRIES || '3'),
-  retryDelayMs: parseInt(process.env.KNOWLEDGE_RETRY_DELAY_MS || '1000'),
-  snapshotInterval: parseInt(process.env.KNOWLEDGE_SNAPSHOT_INTERVAL || '100'),
-  maxEventsPerQuery: parseInt(process.env.KNOWLEDGE_MAX_EVENTS_PER_QUERY || '1000'),
+  schema: process.env.KNOWLEDGE_DB_SCHEMA ?? 'knowledge_platform',
+  maxRetries: parseInt(process.env.KNOWLEDGE_MAX_RETRIES ?? '3'),
+  retryDelayMs: parseInt(process.env.KNOWLEDGE_RETRY_DELAY_MS ?? '1000'),
+  snapshotInterval: parseInt(process.env.KNOWLEDGE_SNAPSHOT_INTERVAL ?? '100'),
+  maxEventsPerQuery: parseInt(process.env.KNOWLEDGE_MAX_EVENTS_PER_QUERY ?? '1000'),
 };
 
 // Connection health check

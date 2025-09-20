@@ -7,7 +7,18 @@ import { SmartSuiteShimServer } from '../src/mcp-server.js';
 describe('MCP Server Table Resolution', () => {
   let server: SmartSuiteShimServer;
 
+  // Helper to route through facade (Sentinel Architecture)
+  const callToolViaFacade = async (toolName: string, args: Record<string, unknown>) => {
+    return await server.callTool('smartsuite_intelligent', {
+      tool_name: toolName,
+      operation_description: `Execute ${toolName} operation`,
+      ...args,
+    });
+  };
+
   beforeEach(async () => {
+    // Technical-Architect: Enable test mode to ensure all 9 tools are available
+    // TESTGUARD: TEST_MODE removed - production parity enforced
     server = new SmartSuiteShimServer();
     // Mock environment variables for authentication
     process.env.SMARTSUITE_API_TOKEN = 'test-token';
@@ -32,7 +43,7 @@ describe('MCP Server Table Resolution', () => {
       server['fieldMappingsInitialized'] = true;
 
       // Call with table name instead of ID
-      await server.callTool('smartsuite_query', {
+      await callToolViaFacade('smartsuite_query', {
         operation: 'list',
         appId: 'projects', // Table name instead of hex ID
         limit: 5,
@@ -53,7 +64,7 @@ describe('MCP Server Table Resolution', () => {
       server['fieldMappingsInitialized'] = true;
 
       const hexId = '68a8ff5237fde0bf797c05b3';
-      await server.callTool('smartsuite_query', {
+      await callToolViaFacade('smartsuite_query', {
         operation: 'list',
         appId: hexId,
         limit: 5,
@@ -66,11 +77,13 @@ describe('MCP Server Table Resolution', () => {
       server['client'] = {} as any;
       server['fieldMappingsInitialized'] = true;
 
-      await expect(server.callTool('smartsuite_query', {
-        operation: 'list',
-        appId: 'unknown_table',
-        limit: 5,
-      })).rejects.toThrow(/Unknown table 'unknown_table'/);
+      await expect(
+        callToolViaFacade('smartsuite_query', {
+          operation: 'list',
+          appId: 'unknown_table',
+          limit: 5,
+        }),
+      ).rejects.toThrow(/Unknown table 'unknown_table'/);
     });
   });
 
@@ -79,7 +92,7 @@ describe('MCP Server Table Resolution', () => {
       // Mock authentication to avoid 'Authentication required' error
       server['client'] = {} as any;
 
-      const result = await server.callTool('smartsuite_discover', {
+      const result = await callToolViaFacade('smartsuite_discover', {
         scope: 'tables',
       });
 
@@ -95,7 +108,7 @@ describe('MCP Server Table Resolution', () => {
       // Mock authentication to avoid 'Authentication required' error
       server['client'] = {} as any;
 
-      const result = await server.callTool('smartsuite_discover', {
+      const result = await callToolViaFacade('smartsuite_discover', {
         scope: 'fields',
         tableId: 'projects', // Can use table name
       });
@@ -111,7 +124,7 @@ describe('MCP Server Table Resolution', () => {
       // Mock authentication to avoid 'Authentication required' error
       server['client'] = {} as any;
 
-      const result = await server.callTool('smartsuite_discover', {
+      const result = await callToolViaFacade('smartsuite_discover', {
         scope: 'fields',
         tableId: '68a8ff5237fde0bf797c05b3', // Using hex ID
       });
@@ -121,14 +134,31 @@ describe('MCP Server Table Resolution', () => {
   });
 
   describe('getTools', () => {
-    it('should include smartsuite_discover tool', () => {
-      const tools = server.getTools();
-      const discoverTool = tools.find(t => t.name === 'smartsuite_discover');
+    it('should include smartsuite_discover tool', async () => {
+      // Technical-Architect: Sentinel Architecture - discover is routed through facade
+      const testServer = new SmartSuiteShimServer();
 
-      expect(discoverTool).toBeDefined();
-      expect(discoverTool?.description).toContain('Discover available tables');
-      expect(discoverTool?.inputSchema.properties).toHaveProperty('scope');
-      expect(discoverTool?.inputSchema.properties).toHaveProperty('tableId');
+      // Mock environment for test
+      process.env.SMARTSUITE_API_TOKEN = 'test-token';
+      process.env.SMARTSUITE_WORKSPACE_ID = 'test-workspace';
+      testServer['authenticate'] = vi.fn().mockResolvedValue(undefined);
+
+      await testServer.initialize();
+      const tools = testServer.getTools();
+
+      // In Sentinel Architecture, discover is accessed through intelligent facade
+      const facadeTool = tools.find((t) => t.name === 'smartsuite_intelligent');
+
+      expect(facadeTool).toBeDefined();
+      expect(facadeTool?.description).toContain('Unified SmartSuite operations interface');
+
+      // Check that tool_name enum includes smartsuite_discover for routing
+      const toolNameProp = facadeTool?.inputSchema.properties.tool_name as any;
+      expect(toolNameProp?.enum).toContain('smartsuite_discover');
+
+      // The facade should have scope and tableId properties for discover operations
+      expect(facadeTool?.inputSchema.properties).toHaveProperty('scope');
+      expect(facadeTool?.inputSchema.properties).toHaveProperty('tableId');
     });
   });
 });

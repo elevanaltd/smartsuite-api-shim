@@ -57,7 +57,6 @@ describe('Schema Optimization', () => {
     // Initialize server to register tools
     await server.initialize();
 
-
     // Create mock client with getSchema method
     mockClient = {
       getSchema: vi.fn(),
@@ -199,7 +198,6 @@ describe('Schema Optimization', () => {
       mockClient.getSchema.mockClear();
     });
 
-
     it('should handle cache TTL expiry', async () => {
       // This test would need time manipulation or dependency injection
       // For now, mark as TODO for implementation phase
@@ -218,7 +216,7 @@ describe('Schema Optimization', () => {
           appId: invalidTableId,
           output_mode: 'summary',
         }),
-      ).rejects.toThrow('Unknown table \'78b9gg6348edf1cg8a8c16c4\'. Available tables:');
+      ).rejects.toThrow("Unknown table '78b9gg6348edf1cg8a8c16c4'. Available tables:");
     });
   });
 });

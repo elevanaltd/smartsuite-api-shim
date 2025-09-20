@@ -310,7 +310,7 @@ export class KnowledgeLibrary {
   }
 
   findRelevantKnowledge(method: string, endpoint: string, payload?: unknown): KnowledgeMatch[] {
-    const cacheKey = `${method}:${endpoint}:${JSON.stringify(payload || {})}`;
+    const cacheKey = `${method}:${endpoint}:${JSON.stringify(payload ?? {})}`;
 
     // Track cache requests for hit rate calculation
     this.cacheRequests++;
@@ -430,9 +430,7 @@ export class KnowledgeLibrary {
 
     if (exactMatch) {
       // Update existing exact match with new example
-      if (!exactMatch.examples) {
-        exactMatch.examples = [];
-      }
+      exactMatch.examples ??= [];
       exactMatch.examples.push(example);
     } else {
       // Create new entry for this specific operation pattern
