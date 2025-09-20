@@ -52,11 +52,23 @@ const IntelligentFacadeSchema = z.object({
 
   // Common operation fields
   tableId: z.string().optional(),
+  appId: z.string().optional(), // Direct appId field for legacy support
   recordId: z.string().optional(), // Missing field that was causing TypeScript errors
   operation: z.string().optional(), // Missing field that was causing TypeScript errors
   payload: z.record(z.unknown()).optional(),
   mode: z.enum(['learn', 'dry_run', 'execute']).optional(),
   confirmed: z.boolean().optional(),
+
+  // Legacy tool fields for direct parameter passing
+  filters: z.record(z.unknown()).optional(),
+  sort: z.record(z.unknown()).optional(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+  data: z.record(z.unknown()).optional(),
+  dry_run: z.boolean().optional(),
+  output_mode: z.string().optional(),
+  scope: z.string().optional(),
+  transaction_id: z.string().optional(),
 
   // Routing extension for legacy tool support (deprecated in favor of tool_name)
   _route_to_legacy: z.string().optional(), // Internal routing hint
@@ -166,14 +178,15 @@ function convertToLegacyArgs(
     return args._legacy_args;
   }
 
-  // Extract common fields
+  // Extract common fields - handle both tableId and appId
   const { tableId, payload, mode } = args;
+  const appId = (args as any).appId; // Direct appId parameter
 
   switch (targetTool) {
     case 'smartsuite_query':
       return {
         operation: extractQueryOperation(args),
-        appId: tableId ?? extractAppIdFromEndpoint(args.endpoint),
+        appId: appId ?? tableId ?? extractAppIdFromEndpoint(args.endpoint),
         filters: payload?.filters ?? payload?.filter,
         sort: payload?.sort,
         limit: payload?.limit,
@@ -184,16 +197,16 @@ function convertToLegacyArgs(
     case 'smartsuite_record':
       return {
         operation: extractRecordOperation(args),
-        appId: tableId ?? extractAppIdFromEndpoint(args.endpoint),
+        appId: appId ?? tableId ?? extractAppIdFromEndpoint(args.endpoint),
         recordId: payload?.recordId ?? payload?.id,
-        data: payload ?? {},
-        dry_run: mode !== 'execute', // Default to dry_run unless execute mode
+        data: payload?.data ?? payload ?? {},
+        dry_run: (args as any).dry_run ?? mode !== 'execute', // Check explicit dry_run first
       };
 
     case 'smartsuite_schema':
       return {
-        appId: tableId ?? extractAppIdFromEndpoint(args.endpoint),
-        output_mode: payload?.output_mode ?? 'summary',
+        appId: appId ?? tableId ?? extractAppIdFromEndpoint(args.endpoint),
+        output_mode: (args as any).output_mode ?? payload?.output_mode ?? 'summary',
       };
 
     case 'smartsuite_undo':
@@ -203,8 +216,8 @@ function convertToLegacyArgs(
 
     case 'smartsuite_discover':
       return {
-        scope: payload?.scope ?? detectDiscoverScope(args),
-        tableId: payload?.tableId ?? tableId ?? undefined,
+        scope: (args as any).scope ?? payload?.scope ?? detectDiscoverScope(args),
+        tableId: (args as any).tableId ?? payload?.tableId ?? tableId ?? undefined,
       };
 
     case 'smartsuite_knowledge_field_mappings':

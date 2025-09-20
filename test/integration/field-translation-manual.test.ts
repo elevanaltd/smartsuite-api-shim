@@ -8,6 +8,15 @@ import { createAuthenticatedTestServer } from '../helpers/test-server.js';
 describe('Field Translation Integration - Manual Path Test', () => {
   let server: SmartSuiteShimServer;
 
+  // Helper to route through facade (Sentinel Architecture)
+  const executeToolViaFacade = async (toolName: string, args: Record<string, unknown>) => {
+    return await server.executeTool('smartsuite_intelligent', {
+      tool_name: toolName,
+      operation_description: `Execute ${toolName} operation`,
+      ...args,
+    });
+  };
+
   beforeEach(async () => {
     // Use TestGuard-approved authentication helper
     server = await createAuthenticatedTestServer();
@@ -33,7 +42,7 @@ describe('Field Translation Integration - Manual Path Test', () => {
   it('should translate human-readable field names to API codes for queries', async () => {
     const projectsAppId = '68a8ff5237fde0bf797c05b3'; // Projects table ID from config
 
-    const result = await server.executeTool('smartsuite_query', {
+    const result = await executeToolViaFacade('smartsuite_query', {
       operation: 'list',
       appId: projectsAppId,
       filters: { projectName: 'Test Project' }, // Using human-readable field name
@@ -62,7 +71,7 @@ describe('Field Translation Integration - Manual Path Test', () => {
       ],
     });
 
-    const result = await server.executeTool('smartsuite_record', {
+    const result = await executeToolViaFacade('smartsuite_record', {
       operation: 'create',
       appId: projectsAppId,
       data: {
@@ -84,7 +93,7 @@ describe('Field Translation Integration - Manual Path Test', () => {
   it('should include field mapping info in schema responses', async () => {
     const projectsAppId = '68a8ff5237fde0bf797c05b3';
 
-    const result = await server.executeTool('smartsuite_schema', {
+    const result = await executeToolViaFacade('smartsuite_schema', {
       appId: projectsAppId,
       output_mode: 'detailed',
     });
@@ -108,7 +117,7 @@ describe('Field Translation Integration - Manual Path Test', () => {
 
     // Table resolver now validates table IDs and rejects unknown ones
     await expect(
-      server.executeTool('smartsuite_schema', {
+      executeToolViaFacade('smartsuite_schema', {
         appId: unknownAppId,
       }),
     ).rejects.toThrow(/Unknown table 'unknown-table-id'/);
@@ -129,7 +138,7 @@ describe('Field Translation Integration - Manual Path Test', () => {
       structure: [],
     });
 
-    const result = await server.executeTool('smartsuite_schema', {
+    const result = await executeToolViaFacade('smartsuite_schema', {
       appId: videosAppId,
       output_mode: 'detailed',
     });
