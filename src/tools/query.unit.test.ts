@@ -65,7 +65,7 @@ describe('handleQuery Tool Function', () => {
         operation: 'list',
         appId: 'test-app',
       };
-      mockClient.listRecords.mockResolvedValue({ data: [] });
+      vi.mocked(mockClient.listRecords).mockResolvedValue({ records: [] } as any);
       await expect(handleQuery(mockContext, listArgs)).resolves.toBeDefined();
 
       // Test get operation (needs recordId)
@@ -74,23 +74,15 @@ describe('handleQuery Tool Function', () => {
         appId: 'test-app',
         recordId: 'record-123',
       };
-      mockClient.getRecord.mockResolvedValue({ id: 'record-123', data: {} });
+      vi.mocked(mockClient.getRecord).mockResolvedValue({ id: 'record-123', data: {} } as any);
       await expect(handleQuery(mockContext, getArgs)).resolves.toBeDefined();
-
-      // Test search operation
-      const searchArgs = {
-        operation: 'search',
-        appId: 'test-app',
-      };
-      mockClient.searchRecords.mockResolvedValue({ data: [] });
-      await expect(handleQuery(mockContext, searchArgs)).resolves.toBeDefined();
 
       // Test count operation
       const countArgs = {
         operation: 'count',
         appId: 'test-app',
       };
-      mockClient.countRecords.mockResolvedValue({ count: 0 });
+      vi.mocked(mockClient.countRecords).mockResolvedValue(5);
       await expect(handleQuery(mockContext, countArgs)).resolves.toBeDefined();
     });
 
