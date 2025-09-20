@@ -63,7 +63,10 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
 
     it('should require authentication before tool execution', async () => {
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'list', appId: '68a8ff5237fde0bf797c05b3' }),
+        server.executeTool('smartsuite_query', {
+          operation: 'list',
+          appId: '68a8ff5237fde0bf797c05b3',
+        }),
       ).rejects.toThrow('Authentication required');
     });
   });
@@ -97,8 +100,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-
-
       // TESTGUARD-APPROVED: TEST-METHODOLOGY-GUARDIAN-20250909-7cf66e12
       // Fixed field name: projects table uses 'projectName' not 'name'
       const result = (await server.executeTool('smartsuite_record', {
@@ -122,8 +123,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-
-
       await expect(server.executeTool('unknown_tool', {})).rejects.toThrow(
         'Unknown tool: unknown_tool',
       );
@@ -137,8 +136,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-
-
       await expect(
         server.executeTool('smartsuite_query', {
           operation: 'unknown_op',
@@ -150,7 +147,9 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     it('should handle authentication errors gracefully', async () => {
       // TESTGUARD-APPROVED: Correctly mocking authentication failure for error handling test
       // Override the global mock for this specific test to simulate auth failure
-      vi.mocked(createAuthenticatedClient).mockRejectedValueOnce(new Error('Authentication failed: Invalid token'));
+      vi.mocked(createAuthenticatedClient).mockRejectedValueOnce(
+        new Error('Authentication failed: Invalid token'),
+      );
 
       await expect(
         server.authenticate({
@@ -176,8 +175,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         workspaceId: 'test-workspace',
         baseUrl: 'https://app.smartsuite.com',
       });
-
-
 
       // Mock the client methods by replacing the private client
       // This is testing the tool execution pipeline, not the client itself
@@ -211,7 +208,10 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         offset: 0,
       });
       // Updated to use correct videos table ID from field-mappings
-      expect((server as any).client.listRecords).toHaveBeenCalledWith('68b2437a8f1755b055e0a124', {});
+      expect((server as any).client.listRecords).toHaveBeenCalledWith(
+        '68b2437a8f1755b055e0a124',
+        {},
+      );
     });
 
     it('should execute count operations correctly', async () => {
@@ -251,7 +251,10 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
     it('should have appropriate error messages for single-user context', async () => {
       // Not authenticated
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'list', appId: '68a8ff5237fde0bf797c05b3' }),
+        server.executeTool('smartsuite_query', {
+          operation: 'list',
+          appId: '68a8ff5237fde0bf797c05b3',
+        }),
       ).rejects.toThrow(/Authentication required.*authenticate\(\) first/);
 
       // Invalid operation
@@ -266,10 +269,11 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         baseUrl: 'https://app.smartsuite.com',
       });
 
-
-
       await expect(
-        server.executeTool('smartsuite_query', { operation: 'invalid', appId: '68a8ff5237fde0bf797c05b3' }),
+        server.executeTool('smartsuite_query', {
+          operation: 'invalid',
+          appId: '68a8ff5237fde0bf797c05b3',
+        }),
       ).rejects.toThrow(/Unknown query operation: invalid/);
     });
 
@@ -285,8 +289,6 @@ describe('ERROR-ARCHITECT: Integration Validation', () => {
         workspaceId: 'test-workspace',
         baseUrl: 'https://app.smartsuite.com',
       });
-
-
 
       // Bulk operations not needed for personal automation
       await expect(
